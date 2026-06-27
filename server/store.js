@@ -17,7 +17,7 @@ function ensureDataFile() {
 
 function readStore() {
   ensureDataFile();
-  return JSON.parse(fs.readFileSync(dbPath, "utf8"));
+  return { ...seedData, ...JSON.parse(fs.readFileSync(dbPath, "utf8")) };
 }
 
 function writeStore(nextStore) {

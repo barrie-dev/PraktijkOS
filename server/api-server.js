@@ -157,6 +157,97 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/ai/drafts") {
+    const payload = await readJson(request);
+    if (!payload.workflow || !payload.output) {
+      sendJson(response, 422, { error: "workflow and output are required" });
+      return;
+    }
+
+    const draft = {
+      id: uid("draft"),
+      workflow: payload.workflow,
+      source: payload.source || "",
+      output: payload.output,
+      status: "Concept",
+      createdAt: new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date()),
+      approvedAt: null
+    };
+
+    const nextStore = appendAudit(
+      { ...store, aiDrafts: [draft, ...store.aiDrafts].slice(0, 100) },
+      "AI concept gegenereerd",
+      `${draft.workflow} concept staat klaar voor review.`,
+      "AI Copilot"
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, draft);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/ai\/drafts\/[^/]+\/approve$/)) {
+    const draftId = url.pathname.split("/")[4];
+    const approvedAt = new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date());
+    const draftExists = store.aiDrafts.some((draft) => draft.id === draftId);
+
+    if (!draftExists) {
+      sendJson(response, 404, { error: "Draft not found" });
+      return;
+    }
+
+    const nextStore = appendAudit(
+      {
+        ...store,
+        aiDrafts: store.aiDrafts.map((draft) =>
+          draft.id === draftId ? { ...draft, status: "Goedgekeurd", approvedAt } : draft
+        )
+      },
+      "AI concept goedgekeurd",
+      "Professionele review bevestigd en audit-event vastgelegd."
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, nextStore.aiDrafts.find((draft) => draft.id === draftId));
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/billing/proposals") {
+    const proposalInvoices = store.appointments
+      .filter((appointment) => !store.invoices.some((invoice) => invoice.client === appointment.client && invoice.status === "Voorstel"))
+      .map((appointment) => ({
+        id: uid("inv"),
+        client: appointment.client,
+        amount: appointment.type.toLowerCase().includes("intake") ? 90 : 75,
+        channel: "Bancontact",
+        status: "Voorstel"
+      }));
+
+    const nextStore = appendAudit(
+      { ...store, invoices: [...proposalInvoices, ...store.invoices] },
+      "Factuurvoorstellen gemaakt",
+      `${proposalInvoices.length} voorstellen gegenereerd.`
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, { created: proposalInvoices.length, invoices: proposalInvoices });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/tasks\/[^/]+\/complete$/)) {
+    const taskId = url.pathname.split("/")[3];
+    const nextStore = appendAudit(
+      {
+        ...store,
+        workQueue: store.workQueue.map((task) =>
+          task.id === taskId ? { ...task, status: "Klaar" } : task
+        )
+      },
+      "Taak afgewerkt",
+      `${taskId} gemarkeerd als klaar.`
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, nextStore.workQueue.find((task) => task.id === taskId));
+    return;
+  }
+
   sendJson(response, 404, { error: "Not found" });
 }
 

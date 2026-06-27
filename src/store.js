@@ -1,3 +1,12 @@
+import {
+  approveDraft,
+  completeTask as completeTaskRequest,
+  createAppointment,
+  createClient,
+  createDraft,
+  fetchApiState,
+  generateBillingProposals
+} from "./api.js";
 import { appointments, clients, invoices, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
@@ -5,11 +14,14 @@ const STORAGE_KEY = "praktijkos.state.v1";
 const initialState = {
   view: "dashboard",
   locale: "NL",
+  apiStatus: "local",
+  isLoading: false,
   selectedClientId: clients[0].id,
   appointmentFilter: "",
   clientFilter: "",
   modal: null,
   aiDraft: "Kies een workflow en genereer een concept.",
+  aiSource: "",
   aiWorkflow: "intake",
   aiApproved: false,
   currentDraftId: null,
@@ -36,14 +48,14 @@ function hydrate() {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (!stored) return { ...initialState };
-    return { ...initialState, ...JSON.parse(stored), modal: null };
+    return { ...initialState, ...JSON.parse(stored), modal: null, isLoading: false };
   } catch {
     return { ...initialState };
   }
 }
 
 function persist(nextState) {
-  const { modal, ...persistable } = nextState;
+  const { modal, isLoading, ...persistable } = nextState;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
 }
 
@@ -58,6 +70,12 @@ function nowLabel() {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date());
+}
+
+function commit(nextState) {
+  state = nextState;
+  persist(state);
+  subscribers.forEach((subscriber) => subscriber(state));
 }
 
 function pushAudit(nextState, event, detail, actor = "PraktijkOS") {
@@ -76,10 +94,33 @@ function pushAudit(nextState, event, detail, actor = "PraktijkOS") {
   };
 }
 
-function commit(nextState) {
-  state = nextState;
-  persist(state);
-  subscribers.forEach((subscriber) => subscriber(state));
+function formPayload(formData) {
+  return Object.fromEntries(Array.from(formData.entries()).map(([key, value]) => [key, String(value).trim()]));
+}
+
+function mergeServerState(serverState) {
+  return {
+    ...state,
+    ...serverState,
+    apiStatus: "connected",
+    isLoading: false,
+    modal: null,
+    selectedClientId: serverState.clients?.[0]?.id || state.selectedClientId
+  };
+}
+
+async function refreshFromApi() {
+  const serverState = await fetchApiState();
+  commit(mergeServerState(serverState));
+}
+
+export async function bootstrapState() {
+  setState({ isLoading: true });
+  try {
+    await refreshFromApi();
+  } catch {
+    setState({ apiStatus: "local", isLoading: false });
+  }
 }
 
 export function getState() {
@@ -98,28 +139,40 @@ export function closeModal() {
   setState({ modal: null });
 }
 
-export function addClient(formData) {
-  const name = String(formData.get("name") || "").trim();
-  const track = String(formData.get("track") || "").trim();
-  const clinician = String(formData.get("clinician") || "").trim();
+export async function addClient(formData) {
+  const payload = formPayload(formData);
+  const name = payload.name;
+  const track = payload.track;
+  const clinician = payload.clinician;
 
   if (!name || !track || !clinician) {
     return { ok: false, message: "Naam, traject en zorgverlener zijn verplicht." };
   }
 
+  if (state.apiStatus === "connected") {
+    try {
+      const client = await createClient(payload);
+      await refreshFromApi();
+      setState({ selectedClientId: client.id, view: "clients" });
+      return { ok: true, message: "Client aangemaakt via API." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
   const client = {
     id: uid("cl"),
     name,
-    age: Number(formData.get("age") || 0),
+    age: Number(payload.age || 0),
     track,
-    status: String(formData.get("status") || "Intakefase"),
+    status: payload.status || "Intakefase",
     clinician,
     nextAppointment: "Nog niet gepland",
     adminStatus: "Nieuwe client - intake klaar te zetten",
     aiSuggestion: "Maak een intakevoorstel en plan eerste afspraak."
   };
 
-  const next = pushAudit(
+  commit(pushAudit(
     {
       ...state,
       clients: [client, ...state.clients],
@@ -130,44 +183,49 @@ export function addClient(formData) {
     },
     "Client aangemaakt",
     `${client.name} toegevoegd aan ${client.track}.`
-  );
-
-  commit(next);
-  return { ok: true, message: "Client aangemaakt." };
+  ));
+  return { ok: true, message: "Client lokaal aangemaakt." };
 }
 
-export function addAppointment(formData) {
-  const clientId = String(formData.get("clientId") || "");
-  const client = state.clients.find((item) => item.id === clientId);
-  const time = String(formData.get("time") || "").trim();
-  const type = String(formData.get("type") || "").trim();
-  const clinician = String(formData.get("clinician") || "").trim();
-  const location = String(formData.get("location") || "").trim();
+export async function addAppointment(formData) {
+  const payload = formPayload(formData);
+  const client = state.clients.find((item) => item.id === payload.clientId);
 
-  if (!client || !time || !type || !clinician) {
+  if (!client || !payload.time || !payload.type || !payload.clinician) {
     return { ok: false, message: "Client, tijd, type en zorgverlener zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createAppointment(payload);
+      await refreshFromApi();
+      setState({ view: "agenda" });
+      return { ok: true, message: "Afspraak gepland via API." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
   }
 
   const appointment = {
     id: uid("apt"),
-    time,
-    clientId,
+    time: payload.time,
+    clientId: payload.clientId,
     client: client.name,
-    type,
-    clinician,
-    location: location || "Praktijk",
+    type: payload.type,
+    clinician: payload.clinician,
+    location: payload.location || "Praktijk",
     status: "Nieuw",
     signal: "success",
     aiHint: "Controleer intake, betaalvoorkeur en reminderregels."
   };
 
   const updatedClients = state.clients.map((item) =>
-    item.id === clientId
-      ? { ...item, nextAppointment: `Vandaag ${time}`, adminStatus: "Afspraak gepland" }
+    item.id === payload.clientId
+      ? { ...item, nextAppointment: `Vandaag ${payload.time}`, adminStatus: "Afspraak gepland" }
       : item
   );
 
-  const next = pushAudit(
+  commit(pushAudit(
     {
       ...state,
       appointments: [...state.appointments, appointment].sort((a, b) => a.time.localeCompare(b.time)),
@@ -178,13 +236,22 @@ export function addAppointment(formData) {
     },
     "Afspraak gepland",
     `${appointment.client} om ${appointment.time} bij ${appointment.clinician}.`
-  );
-
-  commit(next);
-  return { ok: true, message: "Afspraak gepland." };
+  ));
+  return { ok: true, message: "Afspraak lokaal gepland." };
 }
 
-export function recordDraft({ workflow, source, output }) {
+export async function recordDraft({ workflow, source, output }) {
+  if (state.apiStatus === "connected") {
+    try {
+      const draft = await createDraft({ workflow, source, output });
+      await refreshFromApi();
+      setState({ aiDraft: output, aiApproved: false, currentDraftId: draft.id });
+      return;
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
   const draft = {
     id: uid("draft"),
     workflow,
@@ -195,7 +262,7 @@ export function recordDraft({ workflow, source, output }) {
     approvedAt: null
   };
 
-  const next = pushAudit(
+  commit(pushAudit(
     {
       ...state,
       aiDraft: output,
@@ -206,14 +273,22 @@ export function recordDraft({ workflow, source, output }) {
     "AI concept gegenereerd",
     `${workflow} concept staat klaar voor review.`,
     "AI Copilot"
-  );
-
-  commit(next);
+  ));
 }
 
-export function approveCurrentDraft() {
+export async function approveCurrentDraft() {
   if (!state.currentDraftId || !state.aiApproved) {
     return { ok: false, message: "Vink eerst professionele review aan." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await approveDraft(state.currentDraftId);
+      await refreshFromApi();
+      return { ok: true, message: "Concept goedgekeurd via API." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
   }
 
   const updatedDrafts = state.aiDrafts.map((draft) =>
@@ -222,17 +297,46 @@ export function approveCurrentDraft() {
       : draft
   );
 
-  const next = pushAudit(
+  commit(pushAudit(
     {
       ...state,
       aiDrafts: updatedDrafts
     },
     "AI concept goedgekeurd",
     "Professionele review bevestigd en audit-event vastgelegd."
-  );
+  ));
+  return { ok: true, message: "Concept lokaal goedgekeurd en gelogd." };
+}
 
-  commit(next);
-  return { ok: true, message: "Concept goedgekeurd en gelogd." };
+export async function createInvoiceProposals() {
+  if (state.apiStatus === "connected") {
+    try {
+      const result = await generateBillingProposals();
+      await refreshFromApi();
+      return { ok: true, message: `${result.created} factuurvoorstellen gegenereerd.` };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  return { ok: true, message: "Factuurvoorstellen staan klaar voor API-koppeling." };
+}
+
+export async function completeTask(taskId) {
+  if (state.apiStatus === "connected") {
+    try {
+      await completeTaskRequest(taskId);
+      await refreshFromApi();
+      return { ok: true, message: "Taak afgewerkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  setState({
+    workQueue: state.workQueue.map((task) => task.id === taskId ? { ...task, status: "Klaar" } : task)
+  });
+  return { ok: true, message: "Taak lokaal afgewerkt." };
 }
 
 export function resetDemoState() {

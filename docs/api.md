@@ -15,6 +15,10 @@ npm run api
 - `GET /api/state`
 - `POST /api/clients`
 - `POST /api/appointments`
+- `POST /api/ai/drafts`
+- `POST /api/ai/drafts/:id/approve`
+- `POST /api/billing/proposals`
+- `POST /api/tasks/:id/complete`
 
 ## Local Storage
 
@@ -25,5 +29,5 @@ The API writes development data to `data/dev-db.json`. This file is ignored by g
 - Replace file storage with a database.
 - Add authentication and practice scoping.
 - Add role-based authorization.
-- Move frontend localStorage writes behind API calls.
+- Move the remaining offline fallback into a deliberate sync strategy.
 - Add validation schemas and automated tests.

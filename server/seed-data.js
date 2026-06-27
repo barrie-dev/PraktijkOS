@@ -53,6 +53,11 @@ const seedData = {
     { id: "inv-001", client: "Mila Verbeeck", amount: 75, channel: "Bancontact", status: "Voorstel" },
     { id: "inv-002", client: "Olivier Peeters", amount: 75, channel: "Wero", status: "Open" }
   ],
+  workQueue: [
+    { id: "q-001", label: "2 sessienota's structureren", owner: "AI Copilot", priority: "Normaal", status: "Open" },
+    { id: "q-002", label: "3 factuurvoorstellen controleren", owner: "Secretariaat", priority: "Hoog", status: "Open" },
+    { id: "q-003", label: "1 doorverwijsbrief voorbereiden", owner: "L. Janssens", priority: "Normaal", status: "Open" }
+  ],
   aiDrafts: [],
   auditLog: [
     {

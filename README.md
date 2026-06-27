@@ -13,7 +13,8 @@ The first product direction is deliberately focused: help mental-health and para
 - Billing overview with Bancontact, Wero and Peppol positioning
 - AI Copilot for intake summaries, session notes, referral letters and billing checks
 - Human-in-the-loop approval before AI output is treated as usable
-- Local persistent demo state with AI draft history and audit logging
+- API-backed development mode with local fallback
+- AI draft history, task completion and audit logging
 
 ## Run Locally
 

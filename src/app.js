@@ -3,7 +3,10 @@ import {
   addAppointment,
   addClient,
   approveCurrentDraft,
+  bootstrapState,
   closeModal,
+  completeTask,
+  createInvoiceProposals,
   getState,
   openModal,
   recordDraft,
@@ -33,7 +36,7 @@ function inputValue(action) {
   return document.querySelector(`[data-action="${action}"]`)?.value || "";
 }
 
-function handleClick(event) {
+async function handleClick(event) {
   const target = event.target.closest("[data-action]");
   if (!target) return;
 
@@ -95,7 +98,7 @@ function handleClick(event) {
     const state = getState();
     const source = inputValue("ai-input");
     const output = generateDraft({ workflow: state.aiWorkflow, input: source });
-    recordDraft({ workflow: state.aiWorkflow, source, output });
+    await recordDraft({ workflow: state.aiWorkflow, source, output });
     showToast("AI concept gegenereerd. Review blijft verplicht.");
     return;
   }
@@ -111,13 +114,20 @@ function handleClick(event) {
   }
 
   if (action === "approve-ai") {
-    const result = approveCurrentDraft();
+    const result = await approveCurrentDraft();
     showToast(result.message);
     return;
   }
 
   if (action === "generate-invoices") {
-    showToast("Factuurvoorstellen gegenereerd voor review.");
+    const result = await createInvoiceProposals();
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "complete-task") {
+    const result = await completeTask(target.dataset.taskId);
+    showToast(result.message);
   }
 }
 
@@ -151,18 +161,19 @@ function handleChange(event) {
   }
 }
 
-function handleSubmit(event) {
+async function handleSubmit(event) {
   const form = event.target.closest("[data-form]");
   if (!form) return;
 
   event.preventDefault();
   const formData = new FormData(form);
-  const result = form.dataset.form === "client" ? addClient(formData) : addAppointment(formData);
+  const result = form.dataset.form === "client" ? await addClient(formData) : await addAppointment(formData);
   showToast(result.message);
 }
 
 subscribe(render);
 render();
+bootstrapState();
 
 document.addEventListener("click", handleClick);
 document.addEventListener("input", handleInput);

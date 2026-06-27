@@ -60,7 +60,7 @@ function shell(state) {
       <main class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Groepspraktijk / Belgie / ${state.locale}</p>
+            <p class="eyebrow">Groepspraktijk / Belgie / ${state.locale} / ${state.apiStatus === "connected" ? "API verbonden" : "Lokale modus"}</p>
             <h1>${viewTitles[state.view]}</h1>
           </div>
           <div class="topbar-actions">
@@ -72,6 +72,7 @@ function shell(state) {
         ${renderView(state)}
       </main>
     </div>
+    ${state.isLoading ? `<div class="loading-bar">Synchroniseren met PraktijkOS API...</div>` : ""}
     ${modal(state)}
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   `;
@@ -115,8 +116,11 @@ function dashboardView(state) {
           ${state.workQueue.map((task) => `
             <article class="task-item">
               <strong>${escapeHtml(task.label)}</strong>
-              <span>${escapeHtml(task.owner)} / ${escapeHtml(task.priority)}</span>
-              <button class="ghost-action" data-action="navigate" data-view="ai" type="button">Open workflow</button>
+              <span>${escapeHtml(task.owner)} / ${escapeHtml(task.priority)} / ${escapeHtml(task.status || "Open")}</span>
+              <div class="inline-actions">
+                <button class="ghost-action" data-action="navigate" data-view="ai" type="button">Open workflow</button>
+                <button class="ghost-action" data-action="complete-task" data-task-id="${escapeHtml(task.id)}" type="button">Klaar</button>
+              </div>
             </article>
           `).join("")}
         </div>

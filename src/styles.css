@@ -383,6 +383,17 @@ h2 {
   margin-top: 10px;
 }
 
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.inline-actions button {
+  margin-top: 0;
+}
+
 .toolbar {
   justify-content: space-between;
   margin-bottom: 18px;
@@ -573,6 +584,20 @@ pre {
 .toast.show {
   opacity: 1;
   transform: translateY(0);
+}
+
+.loading-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  z-index: 11;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: var(--shadow);
 }
 
 .modal-backdrop {
