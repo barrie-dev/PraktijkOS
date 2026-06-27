@@ -2,6 +2,7 @@ import { generateDraft } from "./ai.js";
 import {
   addAppointment,
   addClient,
+  addIntake,
   addTeamMember,
   approveCurrentDraft,
   bootstrapState,
@@ -178,6 +179,8 @@ async function handleSubmit(event) {
     result = await savePracticeSettings(formData);
   } else if (form.dataset.form === "team") {
     result = await addTeamMember(formData);
+  } else if (form.dataset.form === "intake") {
+    result = await addIntake(formData);
   }
   showToast(result.message);
 }

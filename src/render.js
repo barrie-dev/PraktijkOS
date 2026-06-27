@@ -4,6 +4,7 @@ const viewTitles = {
   dashboard: "Dashboard",
   agenda: "Agenda",
   clients: "Clienten",
+  intake: "Intake",
   billing: "Facturatie",
   ai: "AI Copilot",
   settings: "Instellingen"
@@ -35,6 +36,7 @@ function shell(state) {
     ["dashboard", "D", "Dashboard"],
     ["agenda", "A", "Agenda"],
     ["clients", "C", "Clienten"],
+    ["intake", "I", "Intake"],
     ["billing", "E", "Facturatie"],
     ["ai", "AI", "AI Copilot"],
     ["settings", "S", "Instellingen"]
@@ -83,6 +85,7 @@ function shell(state) {
 function renderView(state) {
   if (state.view === "agenda") return agendaView(state);
   if (state.view === "clients") return clientsView(state);
+  if (state.view === "intake") return intakeView(state);
   if (state.view === "billing") return billingView(state);
   if (state.view === "ai") return aiView(state);
   if (state.view === "settings") return settingsView(state);
@@ -192,6 +195,36 @@ function clientsView(state) {
         </dl>
         <button class="primary-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">Open AI workflow</button>
       </article>
+    </section>
+  `;
+}
+
+function intakeView(state) {
+  return `
+    <section class="content-grid">
+      <form class="panel" data-form="intake">
+        <div class="panel-header"><div><h2>Nieuwe intake</h2><p>Leg clientinput vast voor dossier en AI-samenvatting.</p></div></div>
+        <label class="field"><span>Client</span><select name="clientId" required>${state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`).join("")}</select></label>
+        <label class="field"><span>Hulpvraag</span><textarea name="hulpvraag" rows="4" required></textarea></label>
+        <label class="field"><span>Voorkeuren</span><input name="voorkeur" placeholder="Bijv. dinsdagavond, online mogelijk"></label>
+        <label class="field"><span>Voorgeschiedenis</span><textarea name="voorgeschiedenis" rows="4"></textarea></label>
+        <button class="primary-action" type="submit">Intake opslaan</button>
+      </form>
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Intakes</h2><p>Status en AI-acties per ontvangen formulier.</p></div></div>
+        <div class="intake-list">
+          ${state.intakes.map((intake) => `
+            <article class="intake-item">
+              <div>
+                <strong>${escapeHtml(intake.client)}</strong>
+                <span>${escapeHtml(intake.status)}${intake.submittedAt ? ` / ${escapeHtml(intake.submittedAt)}` : ""}</span>
+                <p>${escapeHtml(intake.answers.hulpvraag)}</p>
+              </div>
+              <button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(`Intake ${intake.client}: hulpvraag ${intake.answers.hulpvraag}; voorkeur ${intake.answers.voorkeur}; voorgeschiedenis ${intake.answers.voorgeschiedenis}`)}" type="button">Vat samen met AI</button>
+            </article>
+          `).join("")}
+        </div>
+      </div>
     </section>
   `;
 }

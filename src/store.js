@@ -3,6 +3,7 @@ import {
   completeTask as completeTaskRequest,
   createAppointment,
   createClient,
+  createIntake,
   createTeamMember,
   createDraft,
   fetchApiState,
@@ -37,6 +38,20 @@ const initialState = {
   team: [
     { id: "usr-001", name: "L. Janssens", role: "Praktijkhouder", access: "Volledig" },
     { id: "usr-002", name: "N. Dubois", role: "Zorgverlener", access: "Eigen dossiers" }
+  ],
+  intakes: [
+    {
+      id: "int-001",
+      clientId: "cl-001",
+      client: "Mila Verbeeck",
+      status: "Onvolledig",
+      submittedAt: null,
+      answers: {
+        hulpvraag: "Stressklachten en slecht slapen.",
+        voorkeur: "Dinsdagavond",
+        voorgeschiedenis: "Nog aan te vullen"
+      }
+    }
   ],
   appointments,
   clients,
@@ -410,6 +425,44 @@ export async function addTeamMember(formData) {
     `${member.name} lokaal toegevoegd.`
   ));
   return { ok: true, message: "Teamlid lokaal toegevoegd." };
+}
+
+export async function addIntake(formData) {
+  const payload = formPayload(formData);
+  const client = state.clients.find((item) => item.id === payload.clientId);
+  if (!client || !payload.hulpvraag) {
+    return { ok: false, message: "Client en hulpvraag zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createIntake(payload);
+      await refreshFromApi();
+      return { ok: true, message: "Intake opgeslagen." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const intake = {
+    id: uid("int"),
+    clientId: client.id,
+    client: client.name,
+    status: "Ingediend",
+    submittedAt: nowLabel(),
+    answers: {
+      hulpvraag: payload.hulpvraag,
+      voorkeur: payload.voorkeur || "",
+      voorgeschiedenis: payload.voorgeschiedenis || ""
+    }
+  };
+
+  commit(pushAudit(
+    { ...state, intakes: [intake, ...state.intakes] },
+    "Intake ontvangen",
+    `${intake.client} intake lokaal opgeslagen.`
+  ));
+  return { ok: true, message: "Intake lokaal opgeslagen." };
 }
 
 export function resetDemoState() {

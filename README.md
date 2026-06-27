@@ -16,6 +16,7 @@ The first product direction is deliberately focused: help mental-health and para
 - API-backed development mode with local fallback
 - AI draft history, task completion and audit logging
 - Practice settings and team role scaffolding
+- Intake capture with AI summarization handoff
 
 ## Run Locally
 

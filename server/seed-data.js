@@ -11,6 +11,20 @@ const seedData = {
     { id: "usr-002", name: "N. Dubois", role: "Zorgverlener", access: "Eigen dossiers" },
     { id: "usr-003", name: "Secretariaat", role: "Administratie", access: "Planning en facturatie" }
   ],
+  intakes: [
+    {
+      id: "int-001",
+      clientId: "cl-001",
+      client: "Mila Verbeeck",
+      status: "Onvolledig",
+      submittedAt: null,
+      answers: {
+        hulpvraag: "Stressklachten en slecht slapen.",
+        voorkeur: "Dinsdagavond",
+        voorgeschiedenis: "Nog aan te vullen"
+      }
+    }
+  ],
   appointments: [
     {
       id: "apt-001",

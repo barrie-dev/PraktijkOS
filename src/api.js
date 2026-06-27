@@ -74,3 +74,10 @@ export async function createTeamMember(payload) {
     body: JSON.stringify(payload)
   });
 }
+
+export async function createIntake(payload) {
+  return request("/api/intakes", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}

@@ -142,6 +142,37 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/intakes") {
+    const payload = await readJson(request);
+    const client = store.clients.find((item) => item.id === payload.clientId);
+    if (!client || !payload.hulpvraag) {
+      sendJson(response, 422, { error: "clientId and hulpvraag are required" });
+      return;
+    }
+
+    const intake = {
+      id: uid("int"),
+      clientId: client.id,
+      client: client.name,
+      status: payload.status || "Ingediend",
+      submittedAt: new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date()),
+      answers: {
+        hulpvraag: payload.hulpvraag,
+        voorkeur: payload.voorkeur || "",
+        voorgeschiedenis: payload.voorgeschiedenis || ""
+      }
+    };
+
+    const nextStore = appendAudit(
+      { ...store, intakes: [intake, ...store.intakes] },
+      "Intake ontvangen",
+      `${intake.client} intake klaar voor AI-samenvatting.`
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, intake);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/clients") {
     const payload = await readJson(request);
     if (!payload.name || !payload.track || !payload.clinician) {

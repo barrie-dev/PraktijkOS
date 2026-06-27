@@ -520,15 +520,33 @@ textarea {
   gap: 8px;
 }
 
-.team-row {
+.intake-list {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) 160px 220px;
+  gap: 10px;
+}
+
+.team-row,
+.intake-item {
+  display: grid;
   gap: 12px;
   align-items: center;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fbfcfc;
+}
+
+.team-row {
+  grid-template-columns: minmax(160px, 1fr) 160px 220px;
+}
+
+.intake-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.intake-item p {
+  margin: 6px 0 0;
+  color: var(--muted);
 }
 
 .payment-stack div {
@@ -734,6 +752,7 @@ pre {
   .schedule-board,
   .invoice-row,
   .team-row,
+  .intake-item,
   .client-detail dl,
   .timeline-item,
   .form-grid {
