@@ -66,10 +66,11 @@ function shell(state) {
       <main class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Groepspraktijk / Belgie / ${state.locale} / ${state.apiStatus === "connected" ? "API verbonden" : "Lokale modus"}</p>
+            <p class="eyebrow">${escapeHtml(state.practice?.name || "Groepspraktijk")} / ${state.locale}</p>
             <h1>${viewTitles[state.view]}</h1>
           </div>
           <div class="topbar-actions">
+            <span class="connection-pill">${state.apiStatus === "connected" ? "API verbonden" : "Lokale modus"}</span>
             <button class="icon-button" data-action="toggle-locale" type="button">${state.locale}</button>
             <button class="ghost-action" data-action="reset-demo" type="button">Reset demo</button>
             <button class="primary-action" data-action="new-appointment" type="button">Nieuwe afspraak</button>

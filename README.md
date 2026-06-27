@@ -54,3 +54,4 @@ Default API URL: [http://127.0.0.1:8128/api/health](http://127.0.0.1:8128/api/he
 - [Product roadmap](docs/roadmap.md)
 - [AI governance notes](docs/ai-governance.md)
 - [Architecture notes](docs/architecture.md)
+- [Design direction](docs/design-direction.md)
