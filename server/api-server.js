@@ -97,6 +97,51 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PUT" && url.pathname === "/api/practice") {
+    const payload = await readJson(request);
+    const practice = {
+      ...store.practice,
+      name: payload.name || store.practice.name,
+      language: payload.language || store.practice.language,
+      locations: Array.isArray(payload.locations) ? payload.locations : store.practice.locations,
+      paymentMethods: Array.isArray(payload.paymentMethods) ? payload.paymentMethods : store.practice.paymentMethods,
+      aiPolicy: payload.aiPolicy || store.practice.aiPolicy
+    };
+
+    const nextStore = appendAudit(
+      { ...store, practice },
+      "Praktijkinstellingen bijgewerkt",
+      `${practice.name} configuratie opgeslagen.`
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, practice);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/team") {
+    const payload = await readJson(request);
+    if (!payload.name || !payload.role) {
+      sendJson(response, 422, { error: "name and role are required" });
+      return;
+    }
+
+    const member = {
+      id: uid("usr"),
+      name: payload.name,
+      role: payload.role,
+      access: payload.access || "Eigen dossiers"
+    };
+
+    const nextStore = appendAudit(
+      { ...store, team: [member, ...store.team] },
+      "Teamlid toegevoegd",
+      `${member.name} toegevoegd als ${member.role}.`
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, member);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/clients") {
     const payload = await readJson(request);
     if (!payload.name || !payload.track || !payload.clinician) {

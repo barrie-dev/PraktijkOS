@@ -3,9 +3,11 @@ import {
   completeTask as completeTaskRequest,
   createAppointment,
   createClient,
+  createTeamMember,
   createDraft,
   fetchApiState,
-  generateBillingProposals
+  generateBillingProposals,
+  updatePractice
 } from "./api.js";
 import { appointments, clients, invoices, workQueue } from "./data.js";
 
@@ -25,6 +27,17 @@ const initialState = {
   aiWorkflow: "intake",
   aiApproved: false,
   currentDraftId: null,
+  practice: {
+    name: "Groepspraktijk De Linde",
+    language: "NL",
+    locations: ["Antwerpen", "Online"],
+    paymentMethods: ["Bancontact", "Wero", "Overschrijving"],
+    aiPolicy: "Concepten vereisen professionele review voor opslag of verzending."
+  },
+  team: [
+    { id: "usr-001", name: "L. Janssens", role: "Praktijkhouder", access: "Volledig" },
+    { id: "usr-002", name: "N. Dubois", role: "Zorgverlener", access: "Eigen dossiers" }
+  ],
   appointments,
   clients,
   invoices,
@@ -337,6 +350,66 @@ export async function completeTask(taskId) {
     workQueue: state.workQueue.map((task) => task.id === taskId ? { ...task, status: "Klaar" } : task)
   });
   return { ok: true, message: "Taak lokaal afgewerkt." };
+}
+
+export async function savePracticeSettings(formData) {
+  const payload = formPayload(formData);
+  const practice = {
+    ...state.practice,
+    name: payload.name,
+    language: payload.language,
+    locations: payload.locations.split(",").map((item) => item.trim()).filter(Boolean),
+    paymentMethods: payload.paymentMethods.split(",").map((item) => item.trim()).filter(Boolean),
+    aiPolicy: payload.aiPolicy
+  };
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updatePractice(practice);
+      await refreshFromApi();
+      return { ok: true, message: "Praktijkinstellingen opgeslagen." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  commit(pushAudit(
+    { ...state, practice },
+    "Praktijkinstellingen bijgewerkt",
+    `${practice.name} lokaal opgeslagen.`
+  ));
+  return { ok: true, message: "Praktijkinstellingen lokaal opgeslagen." };
+}
+
+export async function addTeamMember(formData) {
+  const payload = formPayload(formData);
+  if (!payload.name || !payload.role) {
+    return { ok: false, message: "Naam en rol zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createTeamMember(payload);
+      await refreshFromApi();
+      return { ok: true, message: "Teamlid toegevoegd." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const member = {
+    id: uid("usr"),
+    name: payload.name,
+    role: payload.role,
+    access: payload.access || "Eigen dossiers"
+  };
+
+  commit(pushAudit(
+    { ...state, team: [member, ...state.team] },
+    "Teamlid toegevoegd",
+    `${member.name} lokaal toegevoegd.`
+  ));
+  return { ok: true, message: "Teamlid lokaal toegevoegd." };
 }
 
 export function resetDemoState() {

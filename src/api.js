@@ -60,3 +60,17 @@ export async function completeTask(taskId) {
     body: JSON.stringify({})
   });
 }
+
+export async function updatePractice(payload) {
+  return request("/api/practice", {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function createTeamMember(payload) {
+  return request("/api/team", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}

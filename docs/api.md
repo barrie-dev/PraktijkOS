@@ -19,6 +19,8 @@ npm run api
 - `POST /api/ai/drafts/:id/approve`
 - `POST /api/billing/proposals`
 - `POST /api/tasks/:id/complete`
+- `PUT /api/practice`
+- `POST /api/team`
 
 ## Local Storage
 

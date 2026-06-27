@@ -1,4 +1,16 @@
 const seedData = {
+  practice: {
+    name: "Groepspraktijk De Linde",
+    language: "NL",
+    locations: ["Antwerpen", "Online"],
+    paymentMethods: ["Bancontact", "Wero", "Overschrijving"],
+    aiPolicy: "Concepten vereisen professionele review voor opslag of verzending."
+  },
+  team: [
+    { id: "usr-001", name: "L. Janssens", role: "Praktijkhouder", access: "Volledig" },
+    { id: "usr-002", name: "N. Dubois", role: "Zorgverlener", access: "Eigen dossiers" },
+    { id: "usr-003", name: "Secretariaat", role: "Administratie", access: "Planning en facturatie" }
+  ],
   appointments: [
     {
       id: "apt-001",

@@ -5,7 +5,8 @@ const viewTitles = {
   agenda: "Agenda",
   clients: "Clienten",
   billing: "Facturatie",
-  ai: "AI Copilot"
+  ai: "AI Copilot",
+  settings: "Instellingen"
 };
 
 function escapeHtml(value = "") {
@@ -35,7 +36,8 @@ function shell(state) {
     ["agenda", "A", "Agenda"],
     ["clients", "C", "Clienten"],
     ["billing", "E", "Facturatie"],
-    ["ai", "AI", "AI Copilot"]
+    ["ai", "AI", "AI Copilot"],
+    ["settings", "S", "Instellingen"]
   ];
 
   return `
@@ -83,6 +85,7 @@ function renderView(state) {
   if (state.view === "clients") return clientsView(state);
   if (state.view === "billing") return billingView(state);
   if (state.view === "ai") return aiView(state);
+  if (state.view === "settings") return settingsView(state);
   return dashboardView(state);
 }
 
@@ -244,6 +247,47 @@ function aiView(state) {
       <div class="panel wide">
         <div class="panel-header"><div><h2>Audit trail</h2><p>Controleerbare historiek voor praktijkhouder en compliance.</p></div></div>
         ${auditList(state)}
+      </div>
+    </section>
+  `;
+}
+
+function settingsView(state) {
+  return `
+    <section class="settings-grid">
+      <form class="panel" data-form="practice">
+        <div class="panel-header"><div><h2>Praktijk</h2><p>Basisconfiguratie voor de groepspraktijk.</p></div></div>
+        <label class="field"><span>Praktijknaam</span><input name="name" value="${escapeHtml(state.practice.name)}" required></label>
+        <div class="form-grid">
+          <label class="field"><span>Taal</span><select name="language"><option ${state.practice.language === "NL" ? "selected" : ""}>NL</option><option ${state.practice.language === "FR" ? "selected" : ""}>FR</option></select></label>
+          <label class="field"><span>Locaties</span><input name="locations" value="${escapeHtml(state.practice.locations.join(", "))}"></label>
+        </div>
+        <label class="field"><span>Betaalmethodes</span><input name="paymentMethods" value="${escapeHtml(state.practice.paymentMethods.join(", "))}"></label>
+        <label class="field"><span>AI policy</span><textarea name="aiPolicy" rows="4">${escapeHtml(state.practice.aiPolicy)}</textarea></label>
+        <button class="primary-action" type="submit">Instellingen opslaan</button>
+      </form>
+
+      <form class="panel" data-form="team">
+        <div class="panel-header"><div><h2>Team en rollen</h2><p>Voeg zorgverleners of secretariaatsrollen toe.</p></div></div>
+        <label class="field"><span>Naam</span><input name="name" placeholder="Naam of functie" required></label>
+        <div class="form-grid">
+          <label class="field"><span>Rol</span><select name="role"><option>Zorgverlener</option><option>Praktijkhouder</option><option>Administratie</option></select></label>
+          <label class="field"><span>Toegang</span><select name="access"><option>Eigen dossiers</option><option>Planning en facturatie</option><option>Volledig</option></select></label>
+        </div>
+        <button class="primary-action" type="submit">Teamlid toevoegen</button>
+      </form>
+
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Actieve rollen</h2><p>Huidige toegangen in de praktijk.</p></div></div>
+        <div class="team-table">
+          ${state.team.map((member) => `
+            <article class="team-row">
+              <strong>${escapeHtml(member.name)}</strong>
+              <span>${escapeHtml(member.role)}</span>
+              <span>${escapeHtml(member.access)}</span>
+            </article>
+          `).join("")}
+        </div>
       </div>
     </section>
   `;

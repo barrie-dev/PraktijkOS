@@ -2,6 +2,7 @@ import { generateDraft } from "./ai.js";
 import {
   addAppointment,
   addClient,
+  addTeamMember,
   approveCurrentDraft,
   bootstrapState,
   closeModal,
@@ -11,6 +12,7 @@ import {
   openModal,
   recordDraft,
   resetDemoState,
+  savePracticeSettings,
   setState,
   subscribe
 } from "./store.js";
@@ -167,7 +169,16 @@ async function handleSubmit(event) {
 
   event.preventDefault();
   const formData = new FormData(form);
-  const result = form.dataset.form === "client" ? await addClient(formData) : await addAppointment(formData);
+  let result;
+  if (form.dataset.form === "client") {
+    result = await addClient(formData);
+  } else if (form.dataset.form === "appointment") {
+    result = await addAppointment(formData);
+  } else if (form.dataset.form === "practice") {
+    result = await savePracticeSettings(formData);
+  } else if (form.dataset.form === "team") {
+    result = await addTeamMember(formData);
+  }
   showToast(result.message);
 }
 

@@ -15,6 +15,7 @@ The first product direction is deliberately focused: help mental-health and para
 - Human-in-the-loop approval before AI output is treated as usable
 - API-backed development mode with local fallback
 - AI draft history, task completion and audit logging
+- Practice settings and team role scaffolding
 
 ## Run Locally
 
