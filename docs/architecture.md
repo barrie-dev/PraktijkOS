@@ -13,10 +13,12 @@ The current codebase is a dependency-free SPA so the product can be iterated qui
 - `src/render.js`: view rendering functions
 - `src/app.js`: routing, interactions and bootstrap
 - `scripts/dev-server.js`: local static preview server
+- `server/api-server.js`: dependency-free development API and static server
+- `server/store.js`: local JSON store used by the development API
 
 ## Intended Backend Boundary
 
-The frontend currently uses local demo state. The first backend should expose:
+The frontend currently uses local demo state, and the development API now exposes:
 
 - `GET /dashboard`
 - `GET /appointments`

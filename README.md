@@ -29,6 +29,14 @@ If that port is already in use, run:
 node scripts/dev-server.js 8125
 ```
 
+Run the API-backed development server:
+
+```powershell
+npm run api
+```
+
+Default API URL: [http://127.0.0.1:8128/api/health](http://127.0.0.1:8128/api/health).
+
 ## Product Principles
 
 - AI assists with administration; it does not diagnose or autonomously decide.

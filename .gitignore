@@ -5,6 +5,7 @@ node_modules/
 .env.*
 dist/
 coverage/
+data/dev-db.json
 .idea/
 .vscode/
 outputs/

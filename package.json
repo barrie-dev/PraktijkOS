@@ -5,7 +5,8 @@
   "description": "Belgian-first AI practice operating system for multidisciplinary care practices.",
   "scripts": {
     "dev": "node scripts/dev-server.js",
-    "check": "node --check src/app.js && node --check src/ai.js && node --check src/data.js && node --check src/render.js && node --check src/store.js && node --check scripts/dev-server.js"
+    "api": "node server/api-server.js",
+    "check": "node --check src/app.js && node --check src/ai.js && node --check src/data.js && node --check src/render.js && node --check src/store.js && node --check scripts/dev-server.js && node --check server/api-server.js && node --check server/store.js && node --check server/seed-data.js"
   },
   "keywords": [
     "healthcare",
