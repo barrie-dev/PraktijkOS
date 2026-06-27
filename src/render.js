@@ -99,31 +99,42 @@ function renderView(state) {
 function dashboardView(state) {
   const openAmount = state.invoices.reduce((total, invoice) => total + invoice.amount, 0);
   const noShowCount = state.appointments.filter((appointment) => appointment.signal === "danger").length;
+  const pendingIntakes = state.intakes.filter((intake) => intake.status !== "Ingediend").length;
+  const openTasks = state.workQueue.filter((task) => (task.status || "Open") !== "Klaar");
 
   return `
     <section class="metric-grid">
       <article class="metric"><span>Vandaag</span><strong>${state.appointments.length}</strong><small>afspraken gepland</small></article>
       <article class="metric"><span>AI concepten</span><strong>${state.aiDrafts.length}</strong><small>${state.aiDrafts.filter((draft) => draft.status === "Goedgekeurd").length} goedgekeurd</small></article>
       <article class="metric"><span>Openstaand</span><strong>${formatEuro(openAmount)}</strong><small>${state.invoices.length} facturen</small></article>
-      <article class="metric"><span>No-show risico</span><strong>${noShowCount}</strong><small>opvolging nodig</small></article>
+      <article class="metric"><span>Risico</span><strong>${noShowCount + pendingIntakes}</strong><small>opvolging nodig</small></article>
     </section>
-    <section class="content-grid">
-      <div class="panel wide">
-        <div class="panel-header"><div><h2>Vandaag</h2><p>Agenda, dossierstatus en administratie in een werkrij.</p></div></div>
-        <div class="timeline">
+    <section class="dashboard-grid">
+      <div class="panel work-surface">
+        <div class="panel-header">
+          <div><span class="section-kicker">Dagplanning</span><h2>Vandaag</h2></div>
+          <button class="ghost-action" data-action="new-appointment" type="button">Afspraak plannen</button>
+        </div>
+        <div class="day-table">
           ${state.appointments.map((appointment) => `
-            <article class="timeline-item">
+            <article class="day-row">
               <span class="time">${escapeHtml(appointment.time)}</span>
-              <div><strong>${escapeHtml(appointment.client)}</strong><span>${escapeHtml(appointment.type)} / ${escapeHtml(appointment.clinician)}</span></div>
+              <div>
+                <strong>${escapeHtml(appointment.client)}</strong>
+                <span>${escapeHtml(appointment.type)}</span>
+              </div>
+              <span>${escapeHtml(appointment.clinician)}</span>
+              <span>${escapeHtml(appointment.location)}</span>
               ${badge(appointment.status, appointment.signal)}
             </article>
           `).join("")}
         </div>
       </div>
+
       <div class="panel">
-        <div class="panel-header"><div><h2>Werkvoorraad</h2><p>Wat secretariaat en zorgverleners vandaag moeten afwerken.</p></div></div>
+        <div class="panel-header"><div><span class="section-kicker">Prioriteiten</span><h2>Werkvoorraad</h2></div></div>
         <div class="task-list">
-          ${state.workQueue.map((task) => `
+          ${openTasks.slice(0, 5).map((task) => `
             <article class="task-item">
               <strong>${escapeHtml(task.label)}</strong>
               <span>${escapeHtml(task.owner)} / ${escapeHtml(task.priority)} / ${escapeHtml(task.status || "Open")}</span>
@@ -135,9 +146,23 @@ function dashboardView(state) {
           `).join("")}
         </div>
       </div>
-      <div class="panel wide">
-        <div class="panel-header"><div><h2>Audit trail</h2><p>Laatste systeem- en AI-events.</p></div></div>
-        ${auditList(state)}
+
+      <div class="panel">
+        <div class="panel-header"><div><span class="section-kicker">Signalen</span><h2>Opvolging</h2></div></div>
+        <div class="risk-list">
+          ${state.appointments.filter((appointment) => appointment.signal !== "success").map((appointment) => `
+            <article class="risk-item">
+              <div><strong>${escapeHtml(appointment.client)}</strong><span>${escapeHtml(appointment.aiHint)}</span></div>
+              ${badge(appointment.status, appointment.signal)}
+            </article>
+          `).join("") || `<p class="empty-state">Geen kritieke signalen.</p>`}
+          ${pendingIntakes ? `<article class="risk-item"><div><strong>${pendingIntakes} intake open</strong><span>Clientinput ontbreekt voor volledige dossierstart.</span></div>${badge("Intake", "warning")}</article>` : ""}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div><span class="section-kicker">Historiek</span><h2>Audit</h2></div></div>
+        ${auditList(state, 5)}
       </div>
     </section>
   `;
@@ -174,6 +199,7 @@ function clientsView(state) {
     [client.name, client.track, client.status, client.clinician].join(" ").toLowerCase().includes(filter)
   );
   const selected = state.clients.find((client) => client.id === state.selectedClientId) || state.clients[0];
+  const activity = clientActivity(state, selected);
 
   return `
     <section class="toolbar">
@@ -189,18 +215,67 @@ function clientsView(state) {
         `).join("")}
       </div>
       <article class="panel client-detail">
-        <div class="panel-header"><div><h2>${escapeHtml(selected.name)}</h2><p>${escapeHtml(selected.track)}</p></div>${badge(selected.status)}</div>
-        <dl>
-          <dt>Leeftijd</dt><dd>${escapeHtml(selected.age)}</dd>
-          <dt>Zorgverlener</dt><dd>${escapeHtml(selected.clinician)}</dd>
-          <dt>Volgende afspraak</dt><dd>${escapeHtml(selected.nextAppointment)}</dd>
-          <dt>Administratie</dt><dd>${escapeHtml(selected.adminStatus)}</dd>
-          <dt>AI voorstel</dt><dd>${escapeHtml(selected.aiSuggestion)}</dd>
-        </dl>
-        <button class="primary-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">Open AI workflow</button>
+        <div class="dossier-header">
+          <div>
+            <span class="section-kicker">Clientdossier</span>
+            <h2>${escapeHtml(selected.name)}</h2>
+            <p>${escapeHtml(selected.track)}</p>
+          </div>
+          ${badge(selected.status)}
+        </div>
+
+        <div class="action-strip">
+          <button class="primary-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">AI workflow</button>
+          <button class="ghost-action" data-action="new-appointment" type="button">Afspraak</button>
+          <button class="ghost-action" data-action="navigate" data-view="portal" type="button">Bericht</button>
+        </div>
+
+        <div class="care-strip">
+          <div><span>Leeftijd</span><strong>${escapeHtml(selected.age)}</strong></div>
+          <div><span>Zorgverlener</span><strong>${escapeHtml(selected.clinician)}</strong></div>
+          <div><span>Volgende afspraak</span><strong>${escapeHtml(selected.nextAppointment)}</strong></div>
+        </div>
+
+        <section class="dossier-section">
+          <h3>Dossierstatus</h3>
+          <dl>
+            <dt>Administratie</dt><dd>${escapeHtml(selected.adminStatus)}</dd>
+            <dt>AI voorstel</dt><dd>${escapeHtml(selected.aiSuggestion)}</dd>
+          </dl>
+        </section>
+
+        <section class="dossier-section">
+          <h3>Activiteit</h3>
+          <div class="activity-list">
+            ${activity.map((item) => `
+              <article class="activity-item">
+                <span>${escapeHtml(item.type)}</span>
+                <div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></div>
+              </article>
+            `).join("") || `<p class="empty-state">Nog geen activiteit.</p>`}
+          </div>
+        </section>
       </article>
     </section>
   `;
+}
+
+function clientActivity(state, client) {
+  if (!client) return [];
+  const items = [];
+  state.appointments.filter((item) => item.clientId === client.id).forEach((item) => {
+    items.push({ type: "Afspraak", title: `${item.time} / ${item.type}`, detail: `${item.clinician} / ${item.status}` });
+  });
+  state.intakes.filter((item) => item.clientId === client.id).forEach((item) => {
+    items.push({ type: "Intake", title: item.status, detail: item.answers.hulpvraag });
+  });
+  state.documents.filter((item) => item.clientId === client.id).forEach((item) => {
+    items.push({ type: "Document", title: item.title, detail: `${item.type} / ${item.status}` });
+  });
+  state.messages.filter((item) => item.clientId === client.id).forEach((item) => {
+    items.push({ type: "Bericht", title: item.subject, detail: `${item.channel} / ${item.status}` });
+  });
+  return items.slice(0, 8);
 }
 
 function intakeView(state) {
@@ -414,10 +489,10 @@ function draftList(state) {
   `;
 }
 
-function auditList(state) {
+function auditList(state, limit = 8) {
   return `
     <div class="audit-list">
-      ${state.auditLog.slice(0, 8).map((entry) => `
+      ${state.auditLog.slice(0, limit).map((entry) => `
         <article class="audit-item">
           <div><strong>${escapeHtml(entry.event)}</strong><span>${escapeHtml(entry.detail)}</span></div>
           <span class="audit-meta">${escapeHtml(entry.at)} / ${escapeHtml(entry.actor)}</span>

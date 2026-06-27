@@ -284,6 +284,16 @@ h2 {
   grid-template-columns: minmax(0, 1.75fr) minmax(280px, 0.8fr);
 }
 
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.8fr);
+  gap: 14px;
+}
+
+.work-surface {
+  grid-row: span 2;
+}
+
 .wide {
   grid-column: 1 / -1;
 }
@@ -334,6 +344,15 @@ h2 {
   margin-bottom: 13px;
 }
 
+.section-kicker {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--subtle);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .panel-header p,
 .timeline-item span,
 .task-item span,
@@ -355,12 +374,16 @@ h2 {
 .audit-list,
 .team-table,
 .intake-list,
-.portal-list {
+.portal-list,
+.day-table,
+.risk-list,
+.activity-list {
   display: grid;
   gap: 8px;
 }
 
 .timeline-item,
+.day-row,
 .task-item,
 .client-card,
 .invoice-row,
@@ -368,7 +391,9 @@ h2 {
 .audit-item,
 .team-row,
 .intake-item,
-.portal-item {
+.portal-item,
+.risk-item,
+.activity-item {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
@@ -377,6 +402,14 @@ h2 {
 .timeline-item {
   display: grid;
   grid-template-columns: 70px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+}
+
+.day-row {
+  display: grid;
+  grid-template-columns: 70px minmax(180px, 1fr) 130px 110px auto;
   gap: 12px;
   align-items: center;
   padding: 11px 12px;
@@ -417,17 +450,24 @@ h2 {
 .audit-item,
 .team-row,
 .intake-item,
-.portal-item {
+.portal-item,
+.risk-item,
+.activity-item {
   padding: 11px 12px;
 }
 
 .audit-item,
 .intake-item,
-.portal-item {
+.portal-item,
+.risk-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
+}
+
+.risk-item span {
+  color: var(--muted);
 }
 
 .audit-meta {
@@ -552,6 +592,84 @@ textarea {
   grid-template-columns: 140px 1fr;
   gap: 9px 12px;
   margin: 14px 0;
+}
+
+.dossier-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.dossier-header p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.action-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.care-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.care-strip div {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.care-strip span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.care-strip strong {
+  display: block;
+  min-height: 20px;
+}
+
+.dossier-section {
+  margin-top: 16px;
+}
+
+.dossier-section h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.activity-item {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.activity-item > span {
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.activity-item small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
 }
 
 .client-detail dt {
@@ -755,6 +873,7 @@ pre {
   .app-shell,
   .metric-grid,
   .content-grid,
+  .dashboard-grid,
   .client-layout,
   .ai-layout,
   .settings-grid {
@@ -824,6 +943,9 @@ pre {
   .invoice-row,
   .invoice-row.rich-row,
   .team-row,
+  .day-row,
+  .care-strip,
+  .activity-item,
   .intake-item,
   .portal-item,
   .audit-item,
