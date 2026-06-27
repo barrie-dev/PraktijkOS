@@ -1,5 +1,16 @@
 import { generateDraft } from "./ai.js";
-import { getState, setState, subscribe } from "./store.js";
+import {
+  addAppointment,
+  addClient,
+  approveCurrentDraft,
+  closeModal,
+  getState,
+  openModal,
+  recordDraft,
+  resetDemoState,
+  setState,
+  subscribe
+} from "./store.js";
 import { renderApp } from "./render.js";
 
 const root = document.querySelector("#app");
@@ -28,6 +39,13 @@ function handleClick(event) {
 
   const action = target.dataset.action;
 
+  if (action === "close-modal") {
+    if (event.target === target || target.tagName === "BUTTON") {
+      closeModal();
+    }
+    return;
+  }
+
   if (action === "navigate") {
     setState({ view: target.dataset.view });
     return;
@@ -39,14 +57,19 @@ function handleClick(event) {
     return;
   }
 
+  if (action === "reset-demo") {
+    resetDemoState();
+    showToast("Demo opnieuw geladen.");
+    return;
+  }
+
   if (action === "new-appointment") {
-    setState({ view: "agenda" });
-    showToast("Nieuwe afspraak-flow wordt de volgende backend-stap.");
+    openModal("appointment");
     return;
   }
 
   if (action === "new-client") {
-    showToast("Cliënt aanmaken wordt gekoppeld aan de API-laag.");
+    openModal("client");
     return;
   }
 
@@ -56,10 +79,13 @@ function handleClick(event) {
   }
 
   if (action === "prepare-ai") {
+    const source = target.dataset.source || "";
     setState({
       view: "ai",
-      aiDraft: `Broncontext voorbereid:\n${target.dataset.source}\n\nGenereer een concept om verder te werken.`,
-      aiApproved: false
+      aiSource: source,
+      aiDraft: `Broncontext voorbereid:\n${source}\n\nGenereer een concept om verder te werken.`,
+      aiApproved: false,
+      currentDraftId: null
     });
     showToast("AI workflow voorbereid.");
     return;
@@ -67,10 +93,9 @@ function handleClick(event) {
 
   if (action === "run-ai") {
     const state = getState();
-    setState({
-      aiDraft: generateDraft({ workflow: state.aiWorkflow, input: inputValue("ai-input") }),
-      aiApproved: false
-    });
+    const source = inputValue("ai-input");
+    const output = generateDraft({ workflow: state.aiWorkflow, input: source });
+    recordDraft({ workflow: state.aiWorkflow, source, output });
     showToast("AI concept gegenereerd. Review blijft verplicht.");
     return;
   }
@@ -78,13 +103,16 @@ function handleClick(event) {
   if (action === "clear-ai") {
     setState({
       aiDraft: "Kies een workflow en genereer een concept.",
-      aiApproved: false
+      aiSource: "",
+      aiApproved: false,
+      currentDraftId: null
     });
     return;
   }
 
   if (action === "approve-ai") {
-    showToast("Concept goedgekeurd en audit-event gelogd.");
+    const result = approveCurrentDraft();
+    showToast(result.message);
     return;
   }
 
@@ -104,6 +132,10 @@ function handleInput(event) {
   if (target.dataset.action === "filter-clients") {
     setState({ clientFilter: target.value });
   }
+
+  if (target.dataset.action === "ai-input") {
+    setState({ aiSource: target.value });
+  }
 }
 
 function handleChange(event) {
@@ -119,9 +151,20 @@ function handleChange(event) {
   }
 }
 
+function handleSubmit(event) {
+  const form = event.target.closest("[data-form]");
+  if (!form) return;
+
+  event.preventDefault();
+  const formData = new FormData(form);
+  const result = form.dataset.form === "client" ? addClient(formData) : addAppointment(formData);
+  showToast(result.message);
+}
+
 subscribe(render);
 render();
 
 document.addEventListener("click", handleClick);
 document.addEventListener("input", handleInput);
 document.addEventListener("change", handleChange);
+document.addEventListener("submit", handleSubmit);

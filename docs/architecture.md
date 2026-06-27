@@ -8,6 +8,7 @@ The current codebase is a dependency-free SPA so the product can be iterated qui
 - `src/styles.css`: product UI styling
 - `src/data.js`: demo domain data
 - `src/store.js`: tiny local state container
+- `src/store.js`: local state container with persistence and domain actions
 - `src/ai.js`: AI workflow adapter and draft generator
 - `src/render.js`: view rendering functions
 - `src/app.js`: routing, interactions and bootstrap
@@ -38,6 +39,11 @@ The frontend currently uses local demo state. The first backend should expose:
 - Invoice
 - AIDraft
 - AuditLogEntry
+
+## Current Client-Side Persistence
+
+The MVP stores demo state in `localStorage` under `praktijkos.state.v1`.
+This is intentionally temporary and should be replaced by authenticated API storage once backend work starts.
 
 ## Security Baseline
 

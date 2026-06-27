@@ -9,10 +9,11 @@ The first product direction is deliberately focused: help mental-health and para
 - Practice dashboard with operational signals
 - Agenda with no-show and administration status
 - Client dossiers with care-track context
+- Client and appointment creation flows
 - Billing overview with Bancontact, Wero and Peppol positioning
 - AI Copilot for intake summaries, session notes, referral letters and billing checks
 - Human-in-the-loop approval before AI output is treated as usable
-- Local-first demo state with a path toward API integration
+- Local persistent demo state with AI draft history and audit logging
 
 ## Run Locally
 
@@ -21,6 +22,12 @@ npm run dev
 ```
 
 Open [http://127.0.0.1:8124/](http://127.0.0.1:8124/).
+
+If that port is already in use, run:
+
+```powershell
+node scripts/dev-server.js 8125
+```
 
 ## Product Principles
 

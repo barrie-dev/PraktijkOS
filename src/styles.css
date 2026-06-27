@@ -251,6 +251,10 @@ h2 {
   grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
 }
 
+.wide {
+  grid-column: 1 / -1;
+}
+
 .client-layout {
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
 }
@@ -295,7 +299,8 @@ h2 {
 .task-list,
 .client-list,
 .invoice-table,
-.payment-stack {
+.payment-stack,
+.audit-list {
   display: grid;
   gap: 10px;
 }
@@ -304,7 +309,8 @@ h2 {
 .task-item,
 .client-card,
 .invoice-row,
-.schedule-card {
+.schedule-card,
+.audit-item {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fbfcfc;
@@ -349,8 +355,28 @@ h2 {
 .task-item,
 .client-card,
 .schedule-card,
-.invoice-row {
+.invoice-row,
+.audit-item {
   padding: 12px;
+}
+
+.audit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.audit-item span,
+.audit-meta,
+.empty-state {
+  color: var(--muted);
+}
+
+.audit-meta {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .task-item button {
@@ -549,6 +575,45 @@ pre {
   transform: translateY(0);
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(16, 35, 33, 0.48);
+}
+
+.modal {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.modal .field,
+.modal .form-grid {
+  margin-bottom: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
 @media (max-width: 1050px) {
   .app-shell,
   .metric-grid,
@@ -621,7 +686,14 @@ pre {
   .schedule-board,
   .invoice-row,
   .client-detail dl,
-  .timeline-item {
+  .timeline-item,
+  .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .audit-item,
+  .modal-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
