@@ -110,9 +110,9 @@ const seedData = {
     {
       id: "audit-001",
       at: "Vandaag 08:12",
-      actor: "System",
-      event: "API seed geladen",
-      detail: "Lokale development store geinitialiseerd."
+      actor: "PraktijkOS",
+      event: "Praktijk gestart",
+      detail: "Startgegevens voor agenda, clienten en facturatie beschikbaar."
     }
   ]
 };

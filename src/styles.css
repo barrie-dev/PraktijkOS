@@ -257,10 +257,10 @@ h2 {
   align-items: center;
   min-height: 34px;
   padding: 0 10px;
-  border: 1px solid var(--line);
+  border: 1px solid #b9dfcf;
   border-radius: 999px;
-  background: var(--surface);
-  color: var(--muted);
+  background: var(--success-bg);
+  color: var(--success);
   font-size: 12px;
   font-weight: 900;
 }
@@ -278,6 +278,41 @@ h2 {
 .metric-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 14px;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.quick-action {
+  display: grid;
+  gap: 3px;
+  min-height: 58px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+
+.quick-action:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.quick-action span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.quick-action strong {
+  font-size: 14px;
 }
 
 .content-grid {
@@ -872,6 +907,7 @@ pre {
 @media (max-width: 1050px) {
   .app-shell,
   .metric-grid,
+  .quick-actions,
   .content-grid,
   .dashboard-grid,
   .client-layout,
@@ -940,6 +976,7 @@ pre {
   }
 
   .schedule-board,
+  .quick-actions,
   .invoice-row,
   .invoice-row.rich-row,
   .team-row,

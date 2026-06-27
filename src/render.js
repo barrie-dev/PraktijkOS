@@ -49,7 +49,7 @@ function shell(state) {
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">P</div>
-          <div><strong>PraktijkOS</strong><span>Belgian AI practice OS</span></div>
+          <div><strong>PraktijkOS</strong><span>Praktijkbeheer</span></div>
         </div>
         <nav class="nav-list" aria-label="Hoofdnavigatie">
           ${nav.map(([view, icon, label]) => `
@@ -60,7 +60,7 @@ function shell(state) {
         </nav>
         <div class="security-note">
           <span class="status-dot"></span>
-          <div><strong>AI governance</strong><p>Concepten vereisen altijd professionele review.</p></div>
+          <div><strong>Review vereist</strong><p>AI-concepten worden pas gebruikt na goedkeuring.</p></div>
         </div>
       </aside>
       <main class="workspace">
@@ -70,16 +70,15 @@ function shell(state) {
             <h1>${viewTitles[state.view]}</h1>
           </div>
           <div class="topbar-actions">
-            <span class="connection-pill">${state.apiStatus === "connected" ? "API verbonden" : "Lokale modus"}</span>
+            <span class="connection-pill">${state.apiStatus === "connected" ? "Live opslag" : "Offline opslag"}</span>
             <button class="icon-button" data-action="toggle-locale" type="button">${state.locale}</button>
-            <button class="ghost-action" data-action="reset-demo" type="button">Reset demo</button>
             <button class="primary-action" data-action="new-appointment" type="button">Nieuwe afspraak</button>
           </div>
         </header>
         ${renderView(state)}
       </main>
     </div>
-    ${state.isLoading ? `<div class="loading-bar">Synchroniseren met PraktijkOS API...</div>` : ""}
+    ${state.isLoading ? `<div class="loading-bar">Gegevens synchroniseren...</div>` : ""}
     ${modal(state)}
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   `;
@@ -108,6 +107,12 @@ function dashboardView(state) {
       <article class="metric"><span>AI concepten</span><strong>${state.aiDrafts.length}</strong><small>${state.aiDrafts.filter((draft) => draft.status === "Goedgekeurd").length} goedgekeurd</small></article>
       <article class="metric"><span>Openstaand</span><strong>${formatEuro(openAmount)}</strong><small>${state.invoices.length} facturen</small></article>
       <article class="metric"><span>Risico</span><strong>${noShowCount + pendingIntakes}</strong><small>opvolging nodig</small></article>
+    </section>
+    <section class="quick-actions">
+      <button class="quick-action" data-action="new-client" type="button"><span>Nieuwe client</span><strong>Dossier starten</strong></button>
+      <button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Formulier verwerken</strong></button>
+      <button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Facturatie</span><strong>Betalingen opvolgen</strong></button>
+      <button class="quick-action" data-action="navigate" data-view="portal" type="button"><span>Portal</span><strong>Bericht of document</strong></button>
     </section>
     <section class="dashboard-grid">
       <div class="panel work-surface">
@@ -495,11 +500,15 @@ function auditList(state, limit = 8) {
       ${state.auditLog.slice(0, limit).map((entry) => `
         <article class="audit-item">
           <div><strong>${escapeHtml(entry.event)}</strong><span>${escapeHtml(entry.detail)}</span></div>
-          <span class="audit-meta">${escapeHtml(entry.at)} / ${escapeHtml(entry.actor)}</span>
+          <span class="audit-meta">${escapeHtml(entry.at)} / ${escapeHtml(displayActor(entry.actor))}</span>
         </article>
       `).join("")}
     </div>
   `;
+}
+
+function displayActor(actor = "") {
+  return actor.includes("API") || actor === "System" ? "PraktijkOS" : actor;
 }
 
 function modal(state) {
