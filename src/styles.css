@@ -515,6 +515,43 @@ textarea {
   align-items: center;
 }
 
+.invoice-row.rich-row {
+  grid-template-columns: minmax(180px, 1fr) 100px 170px minmax(260px, auto);
+}
+
+.invoice-row span {
+  color: var(--muted);
+}
+
+.compact-select {
+  display: grid;
+  gap: 4px;
+}
+
+.compact-select span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.compact-select select {
+  min-height: 34px;
+}
+
+.invoice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.invoice-actions .ghost-action {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
 .team-table {
   display: grid;
   gap: 8px;
@@ -751,6 +788,7 @@ pre {
 
   .schedule-board,
   .invoice-row,
+  .invoice-row.rich-row,
   .team-row,
   .intake-item,
   .client-detail dl,

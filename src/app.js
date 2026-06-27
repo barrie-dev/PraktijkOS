@@ -6,12 +6,15 @@ import {
   addTeamMember,
   approveCurrentDraft,
   bootstrapState,
+  changeInvoiceChannel,
   closeModal,
   completeTask,
   createInvoiceProposals,
   getState,
   openModal,
   recordDraft,
+  markInvoicePaid,
+  remindInvoice,
   resetDemoState,
   savePracticeSettings,
   setState,
@@ -128,6 +131,18 @@ async function handleClick(event) {
     return;
   }
 
+  if (action === "mark-invoice-paid") {
+    const result = await markInvoicePaid(target.dataset.invoiceId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "remind-invoice") {
+    const result = await remindInvoice(target.dataset.invoiceId);
+    showToast(result.message);
+    return;
+  }
+
   if (action === "complete-task") {
     const result = await completeTask(target.dataset.taskId);
     showToast(result.message);
@@ -161,6 +176,10 @@ function handleChange(event) {
 
   if (target.dataset.action === "approve-checkbox") {
     setState({ aiApproved: target.checked });
+  }
+
+  if (target.dataset.action === "invoice-channel") {
+    changeInvoiceChannel(target.dataset.invoiceId, target.value).then((result) => showToast(result.message));
   }
 }
 

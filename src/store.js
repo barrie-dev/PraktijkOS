@@ -8,6 +8,8 @@ import {
   createDraft,
   fetchApiState,
   generateBillingProposals,
+  sendInvoiceReminder,
+  updateInvoice,
   updatePractice
 } from "./api.js";
 import { appointments, clients, invoices, workQueue } from "./data.js";
@@ -348,6 +350,61 @@ export async function createInvoiceProposals() {
   }
 
   return { ok: true, message: "Factuurvoorstellen staan klaar voor API-koppeling." };
+}
+
+export async function markInvoicePaid(invoiceId) {
+  if (state.apiStatus === "connected") {
+    try {
+      await updateInvoice(invoiceId, { status: "Betaald" });
+      await refreshFromApi();
+      return { ok: true, message: "Factuur gemarkeerd als betaald." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const invoice = state.invoices.find((item) => item.id === invoiceId);
+  setState({
+    invoices: state.invoices.map((item) => item.id === invoiceId ? { ...item, status: "Betaald", paidAt: nowLabel() } : item)
+  });
+  commit(pushAudit(getState(), "Factuur betaald", `${invoice?.client || invoiceId} lokaal gemarkeerd als betaald.`));
+  return { ok: true, message: "Factuur lokaal betaald." };
+}
+
+export async function remindInvoice(invoiceId) {
+  if (state.apiStatus === "connected") {
+    try {
+      await sendInvoiceReminder(invoiceId);
+      await refreshFromApi();
+      return { ok: true, message: "Herinnering klaargezet." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const invoice = state.invoices.find((item) => item.id === invoiceId);
+  setState({
+    invoices: state.invoices.map((item) => item.id === invoiceId ? { ...item, status: "Herinnering", reminderSentAt: nowLabel() } : item)
+  });
+  commit(pushAudit(getState(), "Betalingsherinnering klaargezet", `${invoice?.client || invoiceId} lokaal herinnerd.`));
+  return { ok: true, message: "Herinnering lokaal klaargezet." };
+}
+
+export async function changeInvoiceChannel(invoiceId, channel) {
+  if (state.apiStatus === "connected") {
+    try {
+      await updateInvoice(invoiceId, { channel });
+      await refreshFromApi();
+      return { ok: true, message: "Betaalmethode bijgewerkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  setState({
+    invoices: state.invoices.map((item) => item.id === invoiceId ? { ...item, channel } : item)
+  });
+  return { ok: true, message: "Betaalmethode lokaal bijgewerkt." };
 }
 
 export async function completeTask(taskId) {

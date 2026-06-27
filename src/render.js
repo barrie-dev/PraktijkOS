@@ -230,22 +230,36 @@ function intakeView(state) {
 }
 
 function billingView(state) {
+  const paid = state.invoices.filter((invoice) => invoice.status === "Betaald").reduce((total, invoice) => total + invoice.amount, 0);
+  const open = state.invoices.filter((invoice) => invoice.status !== "Betaald").reduce((total, invoice) => total + invoice.amount, 0);
+
   return `
     <section class="content-grid">
       <div class="panel wide">
         <div class="panel-header"><div><h2>Facturen</h2><p>Belgische betaalopvolging met Peppol-ready status.</p></div><button class="primary-action" data-action="generate-invoices" type="button">Maak voorstellen</button></div>
         <div class="invoice-table">
           ${state.invoices.map((invoice) => `
-            <article class="invoice-row"><strong>${escapeHtml(invoice.client)}</strong><span>${formatEuro(invoice.amount)}</span><span>${escapeHtml(invoice.channel)}</span>${badge(invoice.status, invoice.status === "Herinnering" ? "warning" : "success")}</article>
+            <article class="invoice-row rich-row">
+              <div><strong>${escapeHtml(invoice.client)}</strong><span>${invoice.paidAt ? `Betaald ${escapeHtml(invoice.paidAt)}` : invoice.reminderSentAt ? `Herinnerd ${escapeHtml(invoice.reminderSentAt)}` : "Nog op te volgen"}</span></div>
+              <span>${formatEuro(invoice.amount)}</span>
+              <label class="compact-select"><span>Methode</span><select data-action="invoice-channel" data-invoice-id="${escapeHtml(invoice.id)}">
+                ${["Bancontact", "Wero", "Peppol", "Overschrijving"].map((channel) => `<option ${invoice.channel === channel ? "selected" : ""}>${channel}</option>`).join("")}
+              </select></label>
+              <div class="invoice-actions">
+                ${badge(invoice.status, invoice.status === "Herinnering" ? "warning" : invoice.status === "Betaald" ? "success" : "warning")}
+                <button class="ghost-action" data-action="remind-invoice" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Herinner</button>
+                <button class="ghost-action" data-action="mark-invoice-paid" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Betaald</button>
+              </div>
+            </article>
           `).join("")}
         </div>
       </div>
       <div class="panel">
         <div class="panel-header"><div><h2>Betaalstromen</h2><p>Bancontact, Wero en boekhouder-export.</p></div></div>
         <div class="payment-stack">
-          <div><strong>EUR 6.420</strong><span>betaald deze maand</span></div>
-          <div><strong>EUR 1.180</strong><span>te verzenden via Peppol</span></div>
-          <div><strong>EUR 460</strong><span>automatische herinnering klaar</span></div>
+          <div><strong>${formatEuro(paid)}</strong><span>betaald in deze omgeving</span></div>
+          <div><strong>${formatEuro(open)}</strong><span>openstaand of in voorstel</span></div>
+          <div><strong>${state.invoices.filter((invoice) => invoice.status === "Herinnering").length}</strong><span>herinneringen actief</span></div>
         </div>
       </div>
     </section>

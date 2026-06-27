@@ -54,6 +54,20 @@ export async function generateBillingProposals() {
   });
 }
 
+export async function updateInvoice(invoiceId, payload) {
+  return request(`/api/invoices/${invoiceId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function sendInvoiceReminder(invoiceId) {
+  return request(`/api/invoices/${invoiceId}/reminder`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function completeTask(taskId) {
   return request(`/api/tasks/${taskId}/complete`, {
     method: "POST",

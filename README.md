@@ -17,6 +17,7 @@ The first product direction is deliberately focused: help mental-health and para
 - AI draft history, task completion and audit logging
 - Practice settings and team role scaffolding
 - Intake capture with AI summarization handoff
+- Billing workflow actions for payment status, reminders and payment channels
 
 ## Run Locally
 

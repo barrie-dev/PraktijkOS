@@ -18,6 +18,8 @@ npm run api
 - `POST /api/ai/drafts`
 - `POST /api/ai/drafts/:id/approve`
 - `POST /api/billing/proposals`
+- `PATCH /api/invoices/:id`
+- `POST /api/invoices/:id/reminder`
 - `POST /api/tasks/:id/complete`
 - `PUT /api/practice`
 - `POST /api/team`

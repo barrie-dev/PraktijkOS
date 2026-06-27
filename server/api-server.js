@@ -307,6 +307,63 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/invoices\/[^/]+$/)) {
+    const invoiceId = url.pathname.split("/")[3];
+    const payload = await readJson(request);
+    const invoice = store.invoices.find((item) => item.id === invoiceId);
+
+    if (!invoice) {
+      sendJson(response, 404, { error: "Invoice not found" });
+      return;
+    }
+
+    const updatedInvoice = {
+      ...invoice,
+      status: payload.status || invoice.status,
+      channel: payload.channel || invoice.channel,
+      reminderSentAt: payload.reminderSentAt || invoice.reminderSentAt,
+      paidAt: payload.status === "Betaald"
+        ? new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date())
+        : invoice.paidAt
+    };
+
+    const nextStore = appendAudit(
+      {
+        ...store,
+        invoices: store.invoices.map((item) => item.id === invoiceId ? updatedInvoice : item)
+      },
+      "Factuur bijgewerkt",
+      `${updatedInvoice.client} status: ${updatedInvoice.status}.`
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedInvoice);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/invoices\/[^/]+\/reminder$/)) {
+    const invoiceId = url.pathname.split("/")[3];
+    const invoice = store.invoices.find((item) => item.id === invoiceId);
+
+    if (!invoice) {
+      sendJson(response, 404, { error: "Invoice not found" });
+      return;
+    }
+
+    const reminderSentAt = new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date());
+    const updatedInvoice = { ...invoice, status: "Herinnering", reminderSentAt };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        invoices: store.invoices.map((item) => item.id === invoiceId ? updatedInvoice : item)
+      },
+      "Betalingsherinnering klaargezet",
+      `${invoice.client} krijgt een betaalherinnering via ${invoice.channel}.`
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedInvoice);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname.match(/^\/api\/tasks\/[^/]+\/complete$/)) {
     const taskId = url.pathname.split("/")[3];
     const nextStore = appendAudit(
