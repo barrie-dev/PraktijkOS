@@ -2,7 +2,9 @@ import { generateDraft } from "./ai.js";
 import {
   addAppointment,
   addClient,
+  addDocument,
   addIntake,
+  addMessage,
   addTeamMember,
   approveCurrentDraft,
   bootstrapState,
@@ -200,6 +202,10 @@ async function handleSubmit(event) {
     result = await addTeamMember(formData);
   } else if (form.dataset.form === "intake") {
     result = await addIntake(formData);
+  } else if (form.dataset.form === "message") {
+    result = await addMessage(formData);
+  } else if (form.dataset.form === "document") {
+    result = await addDocument(formData);
   }
   showToast(result.message);
 }

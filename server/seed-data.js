@@ -25,6 +25,27 @@ const seedData = {
       }
     }
   ],
+  messages: [
+    {
+      id: "msg-001",
+      clientId: "cl-001",
+      client: "Mila Verbeeck",
+      subject: "Intake aanvullen",
+      body: "Kan je de ontbrekende voorgeschiedenis nog aanvullen voor je afspraak?",
+      status: "Concept",
+      channel: "Client portal"
+    }
+  ],
+  documents: [
+    {
+      id: "doc-001",
+      clientId: "cl-002",
+      client: "Olivier Peeters",
+      title: "Sessienota concept",
+      type: "Nota",
+      status: "Review nodig"
+    }
+  ],
   appointments: [
     {
       id: "apt-001",

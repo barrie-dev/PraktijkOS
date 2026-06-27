@@ -3,7 +3,9 @@ import {
   completeTask as completeTaskRequest,
   createAppointment,
   createClient,
+  createDocument,
   createIntake,
+  createMessage,
   createTeamMember,
   createDraft,
   fetchApiState,
@@ -53,6 +55,27 @@ const initialState = {
         voorkeur: "Dinsdagavond",
         voorgeschiedenis: "Nog aan te vullen"
       }
+    }
+  ],
+  messages: [
+    {
+      id: "msg-001",
+      clientId: "cl-001",
+      client: "Mila Verbeeck",
+      subject: "Intake aanvullen",
+      body: "Kan je de ontbrekende voorgeschiedenis nog aanvullen voor je afspraak?",
+      status: "Concept",
+      channel: "Client portal"
+    }
+  ],
+  documents: [
+    {
+      id: "doc-001",
+      clientId: "cl-002",
+      client: "Olivier Peeters",
+      title: "Sessienota concept",
+      type: "Nota",
+      status: "Review nodig"
     }
   ],
   appointments,
@@ -520,6 +543,75 @@ export async function addIntake(formData) {
     `${intake.client} intake lokaal opgeslagen.`
   ));
   return { ok: true, message: "Intake lokaal opgeslagen." };
+}
+
+export async function addMessage(formData) {
+  const payload = formPayload(formData);
+  const client = state.clients.find((item) => item.id === payload.clientId);
+  if (!client || !payload.subject || !payload.body) {
+    return { ok: false, message: "Client, onderwerp en bericht zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createMessage(payload);
+      await refreshFromApi();
+      return { ok: true, message: "Bericht aangemaakt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const message = {
+    id: uid("msg"),
+    clientId: client.id,
+    client: client.name,
+    subject: payload.subject,
+    body: payload.body,
+    status: payload.status || "Concept",
+    channel: payload.channel || "Client portal"
+  };
+
+  commit(pushAudit(
+    { ...state, messages: [message, ...state.messages] },
+    "Bericht aangemaakt",
+    `${message.subject} lokaal aangemaakt.`
+  ));
+  return { ok: true, message: "Bericht lokaal aangemaakt." };
+}
+
+export async function addDocument(formData) {
+  const payload = formPayload(formData);
+  const client = state.clients.find((item) => item.id === payload.clientId);
+  if (!client || !payload.title || !payload.type) {
+    return { ok: false, message: "Client, titel en type zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createDocument(payload);
+      await refreshFromApi();
+      return { ok: true, message: "Document aangemaakt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const document = {
+    id: uid("doc"),
+    clientId: client.id,
+    client: client.name,
+    title: payload.title,
+    type: payload.type,
+    status: payload.status || "Review nodig"
+  };
+
+  commit(pushAudit(
+    { ...state, documents: [document, ...state.documents] },
+    "Document aangemaakt",
+    `${document.title} lokaal aangemaakt.`
+  ));
+  return { ok: true, message: "Document lokaal aangemaakt." };
 }
 
 export function resetDemoState() {

@@ -562,8 +562,14 @@ textarea {
   gap: 10px;
 }
 
+.portal-list {
+  display: grid;
+  gap: 10px;
+}
+
 .team-row,
-.intake-item {
+.intake-item,
+.portal-item {
   display: grid;
   gap: 12px;
   align-items: center;
@@ -577,11 +583,13 @@ textarea {
   grid-template-columns: minmax(160px, 1fr) 160px 220px;
 }
 
-.intake-item {
+.intake-item,
+.portal-item {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.intake-item p {
+.intake-item p,
+.portal-item p {
   margin: 6px 0 0;
   color: var(--muted);
 }
@@ -791,6 +799,7 @@ pre {
   .invoice-row.rich-row,
   .team-row,
   .intake-item,
+  .portal-item,
   .client-detail dl,
   .timeline-item,
   .form-grid {

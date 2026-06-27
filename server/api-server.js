@@ -173,6 +173,61 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/messages") {
+    const payload = await readJson(request);
+    const client = store.clients.find((item) => item.id === payload.clientId);
+    if (!client || !payload.subject || !payload.body) {
+      sendJson(response, 422, { error: "clientId, subject and body are required" });
+      return;
+    }
+
+    const message = {
+      id: uid("msg"),
+      clientId: client.id,
+      client: client.name,
+      subject: payload.subject,
+      body: payload.body,
+      status: payload.status || "Concept",
+      channel: payload.channel || "Client portal"
+    };
+
+    const nextStore = appendAudit(
+      { ...store, messages: [message, ...store.messages] },
+      "Bericht aangemaakt",
+      `${message.subject} voor ${message.client}.`
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, message);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/documents") {
+    const payload = await readJson(request);
+    const client = store.clients.find((item) => item.id === payload.clientId);
+    if (!client || !payload.title || !payload.type) {
+      sendJson(response, 422, { error: "clientId, title and type are required" });
+      return;
+    }
+
+    const document = {
+      id: uid("doc"),
+      clientId: client.id,
+      client: client.name,
+      title: payload.title,
+      type: payload.type,
+      status: payload.status || "Review nodig"
+    };
+
+    const nextStore = appendAudit(
+      { ...store, documents: [document, ...store.documents] },
+      "Document aangemaakt",
+      `${document.title} voor ${document.client}.`
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, document);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/clients") {
     const payload = await readJson(request);
     if (!payload.name || !payload.track || !payload.clinician) {

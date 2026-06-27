@@ -95,3 +95,17 @@ export async function createIntake(payload) {
     body: JSON.stringify(payload)
   });
 }
+
+export async function createMessage(payload) {
+  return request("/api/messages", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function createDocument(payload) {
+  return request("/api/documents", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}

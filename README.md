@@ -18,6 +18,7 @@ The first product direction is deliberately focused: help mental-health and para
 - Practice settings and team role scaffolding
 - Intake capture with AI summarization handoff
 - Billing workflow actions for payment status, reminders and payment channels
+- Client portal scaffolding for messages and documents
 
 ## Run Locally
 

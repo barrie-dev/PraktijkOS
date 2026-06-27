@@ -24,6 +24,8 @@ npm run api
 - `PUT /api/practice`
 - `POST /api/team`
 - `POST /api/intakes`
+- `POST /api/messages`
+- `POST /api/documents`
 
 ## Local Storage
 
