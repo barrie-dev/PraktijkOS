@@ -44,6 +44,7 @@ const initialState = {
   selectedClientId: clients[0].id,
   appointmentFilter: "",
   clientFilter: "",
+  commandQuery: "",
   modal: null,
   aiDraft: "Kies een workflow en genereer een concept.",
   aiSource: "",

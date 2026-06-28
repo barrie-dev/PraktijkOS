@@ -41,7 +41,16 @@ const root = document.querySelector("#app");
 let toastTimer;
 
 function render() {
+  const activeElement = document.activeElement;
+  const restoreCommandSearch = activeElement?.dataset?.action === "command-search";
+  const selectionStart = restoreCommandSearch ? activeElement.selectionStart : null;
+  const selectionEnd = restoreCommandSearch ? activeElement.selectionEnd : null;
   root.innerHTML = renderApp(getState());
+  if (restoreCommandSearch) {
+    const nextInput = document.querySelector('[data-action="command-search"]');
+    nextInput?.focus();
+    nextInput?.setSelectionRange(selectionStart, selectionEnd);
+  }
 }
 
 function showToast(message) {
@@ -71,7 +80,19 @@ async function handleClick(event) {
   }
 
   if (action === "navigate") {
-    setState({ view: target.dataset.view });
+    setState({ view: target.dataset.view, commandQuery: "" });
+    return;
+  }
+
+  if (action === "command-open") {
+    const nextState = { commandQuery: "" };
+    if (target.dataset.view) nextState.view = target.dataset.view;
+    if (target.dataset.clientId) nextState.selectedClientId = target.dataset.clientId;
+    if (target.dataset.appointmentFilter) nextState.appointmentFilter = target.dataset.appointmentFilter;
+    setState(nextState);
+    if (target.dataset.commandAction === "new-appointment") {
+      openModal("appointment");
+    }
     return;
   }
 
@@ -236,6 +257,10 @@ function handleInput(event) {
 
   if (target.dataset.action === "filter-clients") {
     setState({ clientFilter: target.value });
+  }
+
+  if (target.dataset.action === "command-search") {
+    setState({ commandQuery: target.value });
   }
 
   if (target.dataset.action === "ai-input") {

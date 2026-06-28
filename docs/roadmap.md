@@ -13,6 +13,7 @@
 - NL/FR interface foundation
 - Dossier-first daily workflow: dashboard and agenda actions open the right client context
 - Consent-aware communicatie-templates voor portaal, e-mailconcept en sms
+- Globale zoekfunctie voor dossiers, afspraken, facturen, wachtlijst en acties
 
 ## Phase 2: AI Administrative Copilot
 
@@ -35,7 +36,7 @@
 
 ## Next Product Slice
 
-- Add practice command menu and global search shortcuts.
+- Add dashboard workload forecast and day-closing checklist.
 
 ## Phase 4: Belgian Integrations
 

@@ -76,6 +76,90 @@ function firstAvailableView(state) {
   return ["dashboard", "work", "agenda", "waiting", "clients", "billing", "ai", "settings"].find((view) => canView(state, view)) || "dashboard";
 }
 
+function commandResults(state) {
+  const query = `${state.commandQuery || ""}`.trim().toLowerCase();
+  if (query.length < 2) return [];
+
+  const matches = (parts) => parts.join(" ").toLowerCase().includes(query);
+  const results = [];
+
+  state.clients
+    .filter((client) => matches([client.name, client.track, client.status, client.clinician]))
+    .slice(0, 4)
+    .forEach((client) => {
+      results.push({
+        type: "Dossier",
+        title: client.name,
+        detail: `${client.track} / ${client.clinician}`,
+        view: "clients",
+        clientId: client.id
+      });
+    });
+
+  state.appointments
+    .filter((appointment) => matches([appointment.client, appointment.time, appointment.type, appointment.clinician, appointment.status]))
+    .slice(0, 3)
+    .forEach((appointment) => {
+      results.push({
+        type: "Afspraak",
+        title: `${appointment.time} ${appointment.client}`,
+        detail: `${appointment.type} / ${appointment.status}`,
+        view: "agenda",
+        appointmentFilter: appointment.client
+      });
+    });
+
+  state.invoices
+    .filter((invoice) => matches([invoice.client, invoice.channel, invoice.status, String(invoice.amount)]))
+    .slice(0, 3)
+    .forEach((invoice) => {
+      results.push({
+        type: "Factuur",
+        title: invoice.client,
+        detail: `${formatEuro(invoice.amount)} / ${invoice.status}`,
+        view: "billing"
+      });
+    });
+
+  (state.waitlist || [])
+    .filter((entry) => matches([entry.client, entry.request, entry.preferred, entry.priority]))
+    .slice(0, 2)
+    .forEach((entry) => {
+      results.push({
+        type: "Wachtlijst",
+        title: entry.client,
+        detail: `${entry.request} / ${entry.preferred}`,
+        view: "waiting"
+      });
+    });
+
+  [
+    { title: "Nieuwe afspraak", detail: "Plan meteen een afspraak", action: "new-appointment", permission: "scheduling" },
+    { title: "Factuurvoorstellen", detail: "Maak facturen voor billable afspraken", view: "billing", permission: "billing" },
+    { title: "AI concept", detail: "Open de assistent", view: "ai", permission: "ai" }
+  ]
+    .filter((item) => matches([item.title, item.detail]) && can(state, item.permission))
+    .forEach((item) => results.push({ type: "Actie", ...item }));
+
+  return results.slice(0, 8);
+}
+
+function commandPanel(state) {
+  const results = commandResults(state);
+  if (!state.commandQuery || state.commandQuery.trim().length < 2) return "";
+  return `
+    <div class="command-panel" role="listbox" aria-label="Zoekresultaten">
+      ${results.map((result) => `
+        <button class="command-result" data-action="command-open" data-command-action="${escapeHtml(result.action || "")}" data-view="${escapeHtml(result.view || "")}" data-client-id="${escapeHtml(result.clientId || "")}" data-appointment-filter="${escapeHtml(result.appointmentFilter || "")}" type="button">
+          <span>${escapeHtml(result.type)}</span>
+          <strong>${escapeHtml(result.title)}</strong>
+          <small>${escapeHtml(result.detail)}</small>
+        </button>
+      `).join("") || `<p class="empty-state">Geen resultaten.</p>`}
+    </div>
+  `;
+}
+
 function shell(state) {
   if (state.authStatus !== "authenticated") {
     return loginView(state);
@@ -123,6 +207,13 @@ function shell(state) {
           <div>
             <p class="eyebrow">${escapeHtml(state.practice?.name || "Groepspraktijk")}</p>
             <h1>${viewTitles[activeView]}</h1>
+          </div>
+          <div class="command-search">
+            <label>
+              <span>Zoek</span>
+              <input data-action="command-search" type="search" value="${escapeHtml(state.commandQuery || "")}" placeholder="Dossier, afspraak, factuur of actie">
+            </label>
+            ${commandPanel(state)}
           </div>
           <div class="topbar-actions">
             <span class="connection-pill">${state.apiStatus === "connected" ? "Opgeslagen" : "Lokaal"}</span>
