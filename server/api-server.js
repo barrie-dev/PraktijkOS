@@ -114,6 +114,31 @@ function isBillableAppointment(appointment) {
   return ["Aanwezig", "Klaar voor facturatie"].includes(appointment.status);
 }
 
+function buildAnalytics(store) {
+  const activeAppointments = store.appointments.filter((appointment) => appointment.status !== "Geannuleerd");
+  const riskyAppointments = store.appointments.filter((appointment) => appointment.signal === "danger");
+  const paidRevenue = store.invoices
+    .filter((invoice) => invoice.status === "Betaald")
+    .reduce((total, invoice) => total + Number(invoice.amount || 0), 0);
+  const openRevenue = store.invoices
+    .filter((invoice) => invoice.status !== "Betaald")
+    .reduce((total, invoice) => total + Number(invoice.amount || 0), 0);
+  const pendingIntakes = store.intakes.filter((intake) => intake.status !== "Ingediend").length;
+  const openTasks = store.workQueue.filter((task) => (task.status || "Open") !== "Klaar").length;
+  const reminderCount = store.invoices.filter((invoice) => invoice.status === "Herinnering").length;
+  const capacitySlots = Math.max(8, store.appointments.length);
+
+  return {
+    occupancyRate: Math.round((activeAppointments.length / capacitySlots) * 100),
+    noShowRisk: riskyAppointments.length,
+    paidRevenue,
+    openRevenue,
+    adminBacklog: pendingIntakes + openTasks + reminderCount,
+    activePortalAccesses: (store.portalInvites || []).filter((invite) => invite.status === "Actief" && Number(invite.expiresAt || 0) > Date.now()).length,
+    billableAppointments: store.appointments.filter(isBillableAppointment).length
+  };
+}
+
 function serveStatic(request, response) {
   const url = new URL(request.url, `http://127.0.0.1:${port}`);
   const relative = url.pathname === "/" ? "index.html" : url.pathname.replace(/^\/+/, "");
@@ -214,17 +239,24 @@ async function handleApi(request, response) {
   const store = readStore();
 
   if (request.method === "GET" && url.pathname === "/api/dashboard") {
+    const analytics = buildAnalytics(store);
     sendJson(response, 200, {
       appointmentsToday: store.appointments.length,
       openInvoices: store.invoices.length,
       aiDrafts: store.aiDrafts.length,
-      auditEvents: store.auditLog.length
+      auditEvents: store.auditLog.length,
+      analytics
     });
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/analytics") {
+    sendJson(response, 200, buildAnalytics(store));
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/state") {
-    sendJson(response, 200, store);
+    sendJson(response, 200, { ...store, analytics: buildAnalytics(store) });
     return;
   }
 

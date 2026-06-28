@@ -194,6 +194,7 @@ function dashboardView(state) {
   const noShowCount = state.appointments.filter((appointment) => appointment.signal === "danger").length;
   const pendingIntakes = state.intakes.filter((intake) => intake.status !== "Ingediend").length;
   const openTasks = state.workQueue.filter((task) => (task.status || "Open") !== "Klaar");
+  const analytics = state.analytics || {};
 
   return `
     <section class="metric-grid">
@@ -209,6 +210,16 @@ function dashboardView(state) {
       ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="portal" type="button"><span>Portal</span><strong>Bericht of document</strong></button>` : ""}
     </section>
     <section class="dashboard-grid">
+      <div class="panel wide">
+        <div class="panel-header"><div><span class="section-kicker">Praktijkinzichten</span><h2>Vandaag in cijfers</h2></div></div>
+        <div class="insight-grid">
+          <article><span>Bezetting</span><strong>${escapeHtml(analytics.occupancyRate ?? 0)}%</strong><small>actieve slots vandaag</small></article>
+          <article><span>No-show risico</span><strong>${escapeHtml(analytics.noShowRisk ?? noShowCount)}</strong><small>afspraken met opvolging</small></article>
+          <article><span>Betaald</span><strong>${formatEuro(analytics.paidRevenue ?? 0)}</strong><small>geregistreerde omzet</small></article>
+          <article><span>Backlog</span><strong>${escapeHtml(analytics.adminBacklog ?? openTasks.length)}</strong><small>taken, intakes en herinneringen</small></article>
+        </div>
+      </div>
+
       <div class="panel work-surface">
         <div class="panel-header">
           <div><span class="section-kicker">Dagplanning</span><h2>Vandaag</h2></div>

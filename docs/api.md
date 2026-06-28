@@ -21,6 +21,7 @@ npm run verify
 - `POST /api/auth/logout`
 - `GET /api/auth/session`
 - `GET /api/dashboard`
+- `GET /api/analytics`
 - `GET /api/state`
 - `POST /api/clients`
 - `POST /api/appointments`

@@ -927,6 +927,31 @@ textarea {
   background: var(--surface-soft);
 }
 
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.insight-grid article {
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.insight-grid span,
+.insight-grid small {
+  display: block;
+  color: var(--muted);
+}
+
+.insight-grid strong {
+  display: block;
+  margin: 5px 0 2px;
+  font-size: 22px;
+}
+
 .payment-stack strong {
   font-size: 21px;
 }
@@ -1145,6 +1170,7 @@ pre {
     grid-template-columns: repeat(2, minmax(220px, 1fr));
   }
 
+  .insight-grid,
   .dossier-grid,
   .care-strip.dossier-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1181,6 +1207,7 @@ pre {
 
   .schedule-board,
   .quick-actions,
+  .insight-grid,
   .invoice-row,
   .invoice-row.rich-row,
   .team-row,

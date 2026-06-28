@@ -44,6 +44,15 @@ const initialState = {
   aiWorkflow: "intake",
   aiApproved: false,
   currentDraftId: null,
+  analytics: {
+    occupancyRate: 0,
+    noShowRisk: 0,
+    paidRevenue: 0,
+    openRevenue: 0,
+    adminBacklog: 0,
+    activePortalAccesses: 0,
+    billableAppointments: 0
+  },
   practice: {
     name: "Groepspraktijk De Linde",
     language: "NL",

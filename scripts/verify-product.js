@@ -137,6 +137,10 @@ async function verify() {
       "Billable appointment should create an invoice proposal."
     );
 
+    const analytics = await request("/api/analytics");
+    assert(analytics.billableAppointments >= 1, "Analytics should count billable appointments.");
+    assert(analytics.adminBacklog >= 0, "Analytics should expose admin backlog.");
+
     const message = await request("/api/messages", {
       method: "POST",
       body: JSON.stringify({
