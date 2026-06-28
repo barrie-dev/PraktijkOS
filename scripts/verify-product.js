@@ -201,10 +201,12 @@ async function verify() {
         subject: "Verificatie portal",
         body: "Dit bericht bewijst de portalflow.",
         status: "Concept",
-        channel: "Client portal"
+        channel: "Client portal",
+        consentNote: "Inhoudelijke info via portaal."
       })
     });
     assert(conceptMessage.subject === "Verificatie portal", "Message should be created.");
+    assert(conceptMessage.consentNote, "Message should keep consent context.");
 
     const reviewDocument = await request("/api/documents", {
       method: "POST",

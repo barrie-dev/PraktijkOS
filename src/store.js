@@ -53,6 +53,13 @@ const initialState = {
   selectedWaitlistId: null,
   selectedWaitlistSlot: null,
   billingExport: null,
+  messageTemplate: {
+    subject: "Opvolging afspraak",
+    body: "",
+    channel: "Client portal",
+    status: "Concept",
+    consentNote: "Inhoudelijke info via portaal; e-mail of sms enkel praktisch."
+  },
   analytics: {
     occupancyRate: 0,
     noShowRisk: 0,
@@ -1023,6 +1030,36 @@ export async function addIntake(formData) {
   return { ok: true, message: "Intake lokaal opgeslagen." };
 }
 
+export function selectMessageTemplate(templateKey) {
+  const templates = {
+    intake: {
+      subject: "Intake aanvullen",
+      body: "Dag, kan je de ontbrekende intakegegevens nog aanvullen via het clientportaal? Zo kunnen we je dossier goed voorbereiden voor de afspraak.",
+      channel: "Client portal",
+      status: "Concept",
+      consentNote: "Inhoudelijke intakegegevens worden enkel via het portaal gevraagd."
+    },
+    appointment: {
+      subject: "Herinnering afspraak",
+      body: "Dag, dit is een vriendelijke herinnering aan je afspraak. Laat ons weten als het moment niet meer past.",
+      channel: "SMS reminder",
+      status: "Concept",
+      consentNote: "SMS bevat alleen praktische afspraakinfo, geen inhoudelijke zorggegevens."
+    },
+    document: {
+      subject: "Document klaar in portaal",
+      body: "Dag, er staat een document klaar in je clientportaal. Je kan het daar veilig bekijken.",
+      channel: "Client portal",
+      status: "Concept",
+      consentNote: "Documenten worden niet via e-mail meegestuurd maar via het portaal gedeeld."
+    }
+  };
+  const template = templates[templateKey];
+  if (!template) return { ok: false, message: "Template niet gevonden." };
+  setState({ messageTemplate: template });
+  return { ok: true, message: "Berichttemplate ingevuld." };
+}
+
 export async function addMessage(formData) {
   const payload = formPayload(formData);
   const client = state.clients.find((item) => item.id === payload.clientId);
@@ -1047,7 +1084,8 @@ export async function addMessage(formData) {
     subject: payload.subject,
     body: payload.body,
     status: payload.status || "Concept",
-    channel: payload.channel || "Client portal"
+    channel: payload.channel || "Client portal",
+    consentNote: payload.consentNote || "Inhoudelijke info via portaal; e-mail of sms enkel praktisch."
   };
 
   commit(pushAudit(

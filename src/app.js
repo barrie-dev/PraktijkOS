@@ -31,6 +31,7 @@ import {
   runAiWorkflow,
   scheduleFromWaitlist,
   savePracticeSettings,
+  selectMessageTemplate,
   setState,
   subscribe
 } from "./store.js";
@@ -123,6 +124,12 @@ async function handleClick(event) {
   if (action === "compose-message") {
     setState({ selectedClientId: target.dataset.clientId, view: "portal" });
     showToast("Client staat klaar in het berichtformulier.");
+    return;
+  }
+
+  if (action === "use-message-template") {
+    const result = selectMessageTemplate(target.dataset.template);
+    showToast(result.message);
     return;
   }
 

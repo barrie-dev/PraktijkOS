@@ -723,6 +723,8 @@ function intakeView(state) {
 
 function portalView(state) {
   const invites = state.portalInvites || [];
+  const messageTemplate = state.messageTemplate || {};
+  const messageChannels = ["Client portal", "Email concept", "SMS reminder"];
 
   return `
     <section class="settings-grid">
@@ -734,13 +736,20 @@ function portalView(state) {
 
       <form class="panel" data-form="message">
         <div class="panel-header"><div><h2>Nieuw bericht</h2><p>Bereid veilige clientcommunicatie voor.</p></div></div>
-        <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
-        <label class="field"><span>Onderwerp</span><input name="subject" value="Opvolging afspraak" required></label>
-        <label class="field"><span>Bericht</span><textarea name="body" rows="5" required></textarea></label>
-        <div class="form-grid">
-          <label class="field"><span>Kanaal</span><select name="channel"><option>Client portal</option><option>Email concept</option><option>SMS reminder</option></select></label>
-          <label class="field"><span>Status</span><select name="status"><option>Concept</option><option>Klaar voor verzending</option></select></label>
+        <div class="template-strip" aria-label="Berichttemplates">
+          <button class="slot-pill" data-action="use-message-template" data-template="intake" type="button">Intake aanvullen</button>
+          <button class="slot-pill" data-action="use-message-template" data-template="appointment" type="button">Afspraakherinnering</button>
+          <button class="slot-pill" data-action="use-message-template" data-template="document" type="button">Document klaar</button>
         </div>
+        <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
+        <label class="field"><span>Onderwerp</span><input name="subject" value="${escapeHtml(messageTemplate.subject || "Opvolging afspraak")}" required></label>
+        <label class="field"><span>Bericht</span><textarea name="body" rows="5" required>${escapeHtml(messageTemplate.body || "")}</textarea></label>
+        <div class="form-grid">
+          <label class="field"><span>Kanaal</span><select name="channel">${messageChannels.map((channel) => `<option ${channel === messageTemplate.channel ? "selected" : ""}>${channel}</option>`).join("")}</select></label>
+          <label class="field"><span>Status</span><select name="status">${messageStatuses.map((status) => `<option ${status === messageTemplate.status ? "selected" : ""}>${status}</option>`).join("")}</select></label>
+        </div>
+        <input type="hidden" name="consentNote" value="${escapeHtml(messageTemplate.consentNote || "Inhoudelijke info via portaal; e-mail of sms enkel praktisch.")}">
+        <p class="consent-note">${escapeHtml(messageTemplate.consentNote || "Inhoudelijke info via portaal; e-mail of sms enkel praktisch.")}</p>
         <button class="primary-action" type="submit">Bericht opslaan</button>
       </form>
 
@@ -777,7 +786,7 @@ function portalView(state) {
         <div class="portal-list">
           ${state.messages.map((message) => `
             <article class="portal-item">
-              <div><strong>${escapeHtml(message.subject)}</strong><span>${escapeHtml(message.client)} / ${escapeHtml(message.channel)} / ${escapeHtml(message.status)}</span><p>${escapeHtml(message.body)}</p></div>
+              <div><strong>${escapeHtml(message.subject)}</strong><span>${escapeHtml(message.client)} / ${escapeHtml(message.channel)} / ${escapeHtml(message.status)}</span><p>${escapeHtml(message.body)}</p>${message.consentNote ? `<p>${escapeHtml(message.consentNote)}</p>` : ""}</div>
               <div class="status-stack">
                 ${badge(message.status, message.status === "Concept" ? "warning" : "success")}
                 <label class="compact-select"><span>Status</span><select data-action="message-status" data-message-id="${escapeHtml(message.id)}">

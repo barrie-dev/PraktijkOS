@@ -547,7 +547,8 @@ async function handleApi(request, response) {
       subject: payload.subject,
       body: payload.body,
       status: payload.status || "Concept",
-      channel: payload.channel || "Client portal"
+      channel: payload.channel || "Client portal",
+      consentNote: payload.consentNote || "Inhoudelijke info via portaal; e-mail of sms enkel praktisch."
     };
 
     const nextStore = appendAudit(

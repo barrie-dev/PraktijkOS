@@ -12,6 +12,7 @@
 - Boekhouderpakket met CSV/JSON export en auditlog
 - NL/FR interface foundation
 - Dossier-first daily workflow: dashboard and agenda actions open the right client context
+- Consent-aware communicatie-templates voor portaal, e-mailconcept en sms
 
 ## Phase 2: AI Administrative Copilot
 
@@ -34,7 +35,7 @@
 
 ## Next Product Slice
 
-- Add consent-aware client communication templates.
+- Add practice command menu and global search shortcuts.
 
 ## Phase 4: Belgian Integrations
 
