@@ -1,5 +1,6 @@
 const app = document.querySelector("#portal-app");
 const token = new URLSearchParams(window.location.search).get("token");
+let portalState = null;
 
 function escapeHtml(value = "") {
   return String(value)
@@ -16,6 +17,7 @@ function itemList(items, emptyText, renderItem) {
 }
 
 function render(data) {
+  portalState = data;
   app.innerHTML = `
     <section class="portal-hero">
       <div>
@@ -46,7 +48,16 @@ function render(data) {
         </div>
       </article>
       <article class="panel wide">
-        <div class="panel-header"><div><h2>Intake</h2><p>Status van ontvangen intakegegevens.</p></div></div>
+        <div class="panel-header"><div><h2>Intake</h2><p>Vul ontbrekende intakegegevens aan voor je praktijk.</p></div></div>
+        <form class="portal-intake-form" data-portal-form="intake">
+          <label class="field"><span>Hulpvraag</span><textarea name="hulpvraag" rows="4" placeholder="Waarvoor zoek je hulp of opvolging?" required></textarea></label>
+          <div class="form-grid">
+            <label class="field"><span>Voorkeuren</span><input name="voorkeur" placeholder="Bijv. dinsdagavond, online mogelijk"></label>
+            <label class="field"><span>Voorgeschiedenis</span><input name="voorgeschiedenis" placeholder="Relevante context of eerdere begeleiding"></label>
+          </div>
+          <button class="primary-action" type="submit">Intake indienen</button>
+          <p class="portal-form-status" role="status" aria-live="polite"></p>
+        </form>
         <div class="portal-list">
           ${itemList(data.intakes, "Geen intakegegevens.", (intake) => `
             <article class="portal-item">
@@ -57,6 +68,28 @@ function render(data) {
       </article>
     </section>
   `;
+}
+
+async function submitIntake(form) {
+  const status = form.querySelector(".portal-form-status");
+  const payload = Object.fromEntries(Array.from(new FormData(form).entries()).map(([key, value]) => [key, String(value).trim()]));
+  status.textContent = "Intake wordt verzonden...";
+
+  const response = await fetch(`/api/portal/${encodeURIComponent(token)}/intake`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    status.textContent = "Intake kon niet worden verzonden.";
+    return;
+  }
+
+  form.reset();
+  status.textContent = "Intake ontvangen.";
+  const refresh = await fetch(`/api/portal/${encodeURIComponent(token)}`);
+  if (refresh.ok) render(await refresh.json());
 }
 
 async function bootstrap() {
@@ -75,3 +108,13 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+document.addEventListener("submit", (event) => {
+  const form = event.target.closest("[data-portal-form='intake']");
+  if (!form) return;
+  event.preventDefault();
+  submitIntake(form).catch(() => {
+    const status = form.querySelector(".portal-form-status");
+    status.textContent = "Intake kon niet worden verzonden.";
+  });
+});

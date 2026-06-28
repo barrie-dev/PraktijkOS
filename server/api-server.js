@@ -171,6 +171,26 @@ function buildClientExport(store, clientId, user) {
   };
 }
 
+function activePortalInvite(store, token) {
+  return store.portalInvites.find((item) => item.token === token && item.status === "Actief" && Number(item.expiresAt || 0) >= Date.now());
+}
+
+function portalPayload(store, invite) {
+  return {
+    practice: {
+      name: store.practice.name,
+      language: store.practice.language
+    },
+    client: {
+      id: invite.clientId,
+      name: invite.client
+    },
+    messages: store.messages.filter((item) => item.clientId === invite.clientId && item.status !== "Concept"),
+    documents: store.documents.filter((item) => item.clientId === invite.clientId && item.status !== "Review nodig"),
+    intakes: store.intakes.filter((item) => item.clientId === invite.clientId)
+  };
+}
+
 function serveStatic(request, response) {
   const url = new URL(request.url, `http://127.0.0.1:${port}`);
   const relative = url.pathname === "/" ? "index.html" : url.pathname.replace(/^\/+/, "");
@@ -240,25 +260,52 @@ async function handleApi(request, response) {
   if (request.method === "GET" && url.pathname.match(/^\/api\/portal\/[^/]+$/)) {
     const token = url.pathname.split("/")[3];
     const portalStore = readStore();
-    const invite = portalStore.portalInvites.find((item) => item.token === token && item.status === "Actief");
-    if (!invite || Number(invite.expiresAt || 0) < Date.now()) {
+    const invite = activePortalInvite(portalStore, token);
+    if (!invite) {
       sendJson(response, 404, { error: "Portaaltoegang is niet actief." });
       return;
     }
 
-    sendJson(response, 200, {
-      practice: {
-        name: portalStore.practice.name,
-        language: portalStore.practice.language
-      },
-      client: {
-        id: invite.clientId,
-        name: invite.client
-      },
-      messages: portalStore.messages.filter((item) => item.clientId === invite.clientId && item.status !== "Concept"),
-      documents: portalStore.documents.filter((item) => item.clientId === invite.clientId && item.status !== "Review nodig"),
-      intakes: portalStore.intakes.filter((item) => item.clientId === invite.clientId)
-    });
+    sendJson(response, 200, portalPayload(portalStore, invite));
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/portal\/[^/]+\/intake$/)) {
+    const token = url.pathname.split("/")[3];
+    const portalStore = readStore();
+    const invite = activePortalInvite(portalStore, token);
+    if (!invite) {
+      sendJson(response, 404, { error: "Portaaltoegang is niet actief." });
+      return;
+    }
+
+    const payload = await readJson(request);
+    if (!payload.hulpvraag) {
+      sendJson(response, 422, { error: "Hulpvraag is verplicht." });
+      return;
+    }
+
+    const intake = {
+      id: uid("int"),
+      clientId: invite.clientId,
+      client: invite.client,
+      status: "Ingediend",
+      submittedAt: timestampLabel(),
+      answers: {
+        hulpvraag: payload.hulpvraag,
+        voorkeur: payload.voorkeur || "",
+        voorgeschiedenis: payload.voorgeschiedenis || ""
+      }
+    };
+
+    const nextStore = appendAudit(
+      { ...portalStore, intakes: [intake, ...portalStore.intakes] },
+      "Portalintake ontvangen",
+      `${invite.client} diende intakegegevens in via de portal.`,
+      "Client portal"
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, intake);
     return;
   }
 

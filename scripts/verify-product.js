@@ -181,10 +181,22 @@ async function verify() {
     });
     assert(invite.token, "Portal invite should include a token.");
 
+    const portalIntake = await request(`/api/portal/${invite.token}/intake`, {
+      method: "POST",
+      headers: { Cookie: "" },
+      body: JSON.stringify({
+        hulpvraag: "Verificatie hulpvraag via portal",
+        voorkeur: "Donderdagavond",
+        voorgeschiedenis: "Geen eerdere begeleiding"
+      })
+    });
+    assert(portalIntake.status === "Ingediend", "Portal intake should be submitted.");
+
     const hiddenPortal = await request(`/api/portal/${invite.token}`, {
       headers: { Cookie: "" }
     });
     assert(hiddenPortal.client.name === client.name, "Portal should expose the invited client.");
+    assert(hiddenPortal.intakes.some((item) => item.id === portalIntake.id), "Portal should show submitted intake.");
     assert(!hiddenPortal.messages.some((item) => item.subject === conceptMessage.subject), "Portal should hide concept messages.");
     assert(!hiddenPortal.documents.some((item) => item.title === reviewDocument.title), "Portal should hide review documents.");
 
