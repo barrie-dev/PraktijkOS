@@ -371,6 +371,7 @@ function clientsView(state) {
           <button class="primary-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">AI workflow</button>
           <button class="ghost-action" data-action="new-appointment" type="button">Afspraak</button>
           <button class="ghost-action" data-action="navigate" data-view="portal" type="button">Bericht</button>
+          <button class="ghost-action" data-action="export-client" data-client-id="${escapeHtml(selected.id)}" type="button">Dossier export</button>
         </div>
 
         <div class="care-strip dossier-metrics">

@@ -45,6 +45,10 @@ export async function createClient(payload) {
   });
 }
 
+export async function exportClient(clientId) {
+  return request(`/api/clients/${clientId}/export`);
+}
+
 export async function createAppointment(payload) {
   return request("/api/appointments", {
     method: "POST",

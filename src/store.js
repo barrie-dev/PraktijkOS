@@ -11,6 +11,7 @@ import {
   createPortalInvite,
   createTeamMember,
   createDraft,
+  exportClient,
   fetchApiState,
   fetchSession,
   generateAiDraft,
@@ -289,6 +290,61 @@ export async function addClient(formData) {
     `${client.name} toegevoegd aan ${client.track}.`
   ));
   return { ok: true, message: "Client lokaal aangemaakt." };
+}
+
+function downloadJson(filename, payload) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+function localClientExport(clientId) {
+  const client = state.clients.find((item) => item.id === clientId);
+  if (!client) return null;
+  return {
+    exportedAt: new Date().toISOString(),
+    exportedBy: state.currentUser,
+    practice: state.practice,
+    client,
+    records: {
+      appointments: state.appointments.filter((item) => item.clientId === client.id),
+      intakes: state.intakes.filter((item) => item.clientId === client.id),
+      notes: (state.notes || []).filter((item) => item.clientId === client.id),
+      messages: state.messages.filter((item) => item.clientId === client.id),
+      documents: state.documents.filter((item) => item.clientId === client.id),
+      invoices: state.invoices.filter((item) => item.clientId === client.id || item.client === client.name),
+      portalInvites: (state.portalInvites || []).filter((item) => item.clientId === client.id).map(({ token, ...invite }) => invite)
+    },
+    audit: state.auditLog.filter((item) => `${item.detail || ""} ${item.event || ""}`.includes(client.name))
+  };
+}
+
+export async function downloadClientDossier(clientId) {
+  const client = state.clients.find((item) => item.id === clientId);
+  if (!client) {
+    return { ok: false, message: "Client niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const payload = await exportClient(clientId);
+      downloadJson(`${client.name.replaceAll(" ", "-").toLowerCase()}-dossier.json`, payload);
+      await refreshFromApi();
+      return { ok: true, message: "Dossierexport aangemaakt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const payload = localClientExport(clientId);
+  downloadJson(`${client.name.replaceAll(" ", "-").toLowerCase()}-dossier.json`, payload);
+  return { ok: true, message: "Lokale dossierexport aangemaakt." };
 }
 
 export async function addAppointment(formData) {

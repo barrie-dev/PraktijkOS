@@ -18,6 +18,7 @@ import {
   completeTask,
   completeOnboarding,
   createInvoiceProposals,
+  downloadClientDossier,
   getState,
   loginUser,
   logoutUser,
@@ -100,6 +101,12 @@ async function handleClick(event) {
 
   if (action === "select-client") {
     setState({ selectedClientId: target.dataset.clientId });
+    return;
+  }
+
+  if (action === "export-client") {
+    const result = await downloadClientDossier(target.dataset.clientId);
+    showToast(result.message);
     return;
   }
 

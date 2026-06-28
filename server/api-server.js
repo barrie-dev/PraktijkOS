@@ -139,6 +139,38 @@ function buildAnalytics(store) {
   };
 }
 
+function buildClientExport(store, clientId, user) {
+  const client = store.clients.find((item) => item.id === clientId);
+  if (!client) return null;
+
+  return {
+    exportedAt: new Date().toISOString(),
+    exportedBy: {
+      id: user.id,
+      name: user.name,
+      role: user.role
+    },
+    practice: {
+      name: store.practice.name,
+      language: store.practice.language,
+      aiPolicy: store.practice.aiPolicy
+    },
+    client,
+    records: {
+      appointments: store.appointments.filter((item) => item.clientId === client.id),
+      intakes: store.intakes.filter((item) => item.clientId === client.id),
+      notes: (store.notes || []).filter((item) => item.clientId === client.id),
+      messages: store.messages.filter((item) => item.clientId === client.id),
+      documents: store.documents.filter((item) => item.clientId === client.id),
+      invoices: store.invoices.filter((item) => item.clientId === client.id || item.client === client.name),
+      portalInvites: (store.portalInvites || [])
+        .filter((item) => item.clientId === client.id)
+        .map(({ token, ...invite }) => invite)
+    },
+    audit: store.auditLog.filter((item) => `${item.detail || ""} ${item.event || ""}`.includes(client.name))
+  };
+}
+
 function serveStatic(request, response) {
   const url = new URL(request.url, `http://127.0.0.1:${port}`);
   const relative = url.pathname === "/" ? "index.html" : url.pathname.replace(/^\/+/, "");
@@ -257,6 +289,26 @@ async function handleApi(request, response) {
 
   if (request.method === "GET" && url.pathname === "/api/state") {
     sendJson(response, 200, { ...store, analytics: buildAnalytics(store) });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname.match(/^\/api\/clients\/[^/]+\/export$/)) {
+    if (!requirePermission(response, user, "care")) return;
+    const clientId = url.pathname.split("/")[3];
+    const dossierExport = buildClientExport(store, clientId, user);
+    if (!dossierExport) {
+      sendJson(response, 404, { error: "Client not found" });
+      return;
+    }
+
+    const nextStore = appendAudit(
+      store,
+      "Clientdossier geexporteerd",
+      `${dossierExport.client.name} dossier export aangemaakt.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, dossierExport);
     return;
   }
 

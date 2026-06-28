@@ -24,6 +24,7 @@ npm run verify
 - `GET /api/analytics`
 - `GET /api/state`
 - `POST /api/clients`
+- `GET /api/clients/:id/export`
 - `POST /api/appointments`
 - `PATCH /api/appointments/:id`
 - `POST /api/invoices`

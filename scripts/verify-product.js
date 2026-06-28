@@ -117,6 +117,17 @@ async function verify() {
       })
     });
 
+    const note = await request("/api/notes", {
+      method: "POST",
+      body: JSON.stringify({
+        clientId: client.id,
+        title: "Verificatie nota",
+        body: "Deze nota hoort in de dossierexport.",
+        status: "Afgewerkt"
+      })
+    });
+    assert(note.title === "Verificatie nota", "Note should be created.");
+
     const risky = await request(`/api/appointments/${appointment.id}`, {
       method: "PATCH",
       body: JSON.stringify({ status: "No-show risico" })
@@ -206,6 +217,14 @@ async function verify() {
       body: JSON.stringify({})
     });
     assert(approved.status === "Goedgekeurd", "AI draft should be approvable.");
+
+    const dossierExport = await request(`/api/clients/${client.id}/export`);
+    assert(dossierExport.client.name === client.name, "Client export should include client identity.");
+    assert(dossierExport.records.appointments.some((item) => item.id === appointment.id), "Client export should include appointments.");
+    assert(dossierExport.records.notes.some((item) => item.id === note.id), "Client export should include notes.");
+    assert(dossierExport.records.messages.some((item) => item.id === conceptMessage.id), "Client export should include messages.");
+    assert(dossierExport.records.documents.some((item) => item.id === reviewDocument.id), "Client export should include documents.");
+    assert(dossierExport.records.invoices.some((item) => item.appointmentId === appointment.id), "Client export should include invoices.");
 
     console.log("PraktijkOS product verification passed.");
   } finally {
