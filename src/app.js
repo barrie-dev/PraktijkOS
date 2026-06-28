@@ -7,6 +7,7 @@ import {
   addInvoice,
   addMessage,
   addNote,
+  addPortalInvite,
   addTeamMember,
   approveCurrentDraft,
   bootstrapState,
@@ -221,6 +222,8 @@ async function handleSubmit(event) {
     result = await addInvoice(formData);
   } else if (form.dataset.form === "message") {
     result = await addMessage(formData);
+  } else if (form.dataset.form === "portal-invite") {
+    result = await addPortalInvite(formData);
   } else if (form.dataset.form === "note") {
     result = await addNote(formData);
   } else if (form.dataset.form === "document") {

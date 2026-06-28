@@ -457,8 +457,16 @@ function intakeView(state) {
 }
 
 function portalView(state) {
+  const invites = state.portalInvites || [];
+
   return `
     <section class="settings-grid">
+      <form class="panel" data-form="portal-invite">
+        <div class="panel-header"><div><h2>Portaaltoegang</h2><p>Maak een tijdelijke toegang voor berichten, documenten en intake-status.</p></div></div>
+        <label class="field"><span>Client</span><select name="clientId" required>${state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`).join("")}</select></label>
+        <button class="primary-action" type="submit">Toegang maken</button>
+      </form>
+
       <form class="panel" data-form="message">
         <div class="panel-header"><div><h2>Nieuw bericht</h2><p>Bereid veilige clientcommunicatie voor.</p></div></div>
         <label class="field"><span>Client</span><select name="clientId" required>${state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`).join("")}</select></label>
@@ -481,6 +489,18 @@ function portalView(state) {
         </div>
         <button class="primary-action" type="submit">Document registreren</button>
       </form>
+
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Toegangen</h2><p>Actieve cliëntlinks voor de portal.</p></div></div>
+        <div class="portal-list">
+          ${invites.map((invite) => `
+            <article class="portal-item">
+              <div><strong>${escapeHtml(invite.client)}</strong><span>${escapeHtml(invite.status)} / aangemaakt door ${escapeHtml(invite.createdBy || "PraktijkOS")}</span><p><a href="${escapeHtml(invite.portalUrl)}" target="_blank" rel="noreferrer">${escapeHtml(invite.portalUrl)}</a></p></div>
+              ${badge(invite.status, invite.status === "Actief" ? "success" : "warning")}
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen portaaltoegangen.</p>`}
+        </div>
+      </div>
 
       <div class="panel wide">
         <div class="panel-header"><div><h2>Berichten</h2><p>Concepten en portalcommunicatie.</p></div></div>

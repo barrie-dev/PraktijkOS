@@ -8,6 +8,7 @@ import {
   createInvoice,
   createMessage,
   createNote,
+  createPortalInvite,
   createTeamMember,
   createDraft,
   fetchApiState,
@@ -77,6 +78,7 @@ const initialState = {
       channel: "Client portal"
     }
   ],
+  portalInvites: [],
   notes: [],
   documents: [
     {
@@ -686,6 +688,44 @@ export async function addMessage(formData) {
     `${message.subject} lokaal aangemaakt.`
   ));
   return { ok: true, message: "Bericht lokaal aangemaakt." };
+}
+
+export async function addPortalInvite(formData) {
+  const payload = formPayload(formData);
+  const client = state.clients.find((item) => item.id === payload.clientId);
+  if (!client) {
+    return { ok: false, message: "Client is verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createPortalInvite(payload);
+      await refreshFromApi();
+      return { ok: true, message: "Portaaltoegang aangemaakt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const token = uid("portal");
+  const invite = {
+    id: uid("portal"),
+    token,
+    clientId: client.id,
+    client: client.name,
+    status: "Actief",
+    createdAt: nowLabel(),
+    expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 14,
+    createdBy: state.currentUser?.name || "PraktijkOS",
+    portalUrl: `/portal.html?token=${token}`
+  };
+
+  commit(pushAudit(
+    { ...state, portalInvites: [invite, ...state.portalInvites] },
+    "Portaaltoegang aangemaakt",
+    `${client.name} lokaal klaargezet.`
+  ));
+  return { ok: true, message: "Portaaltoegang lokaal aangemaakt." };
 }
 
 export async function addDocument(formData) {

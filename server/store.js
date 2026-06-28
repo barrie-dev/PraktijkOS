@@ -12,6 +12,7 @@ const collections = [
   "intakes",
   "notes",
   "messages",
+  "portalInvites",
   "documents",
   "workQueue",
   "aiDrafts",

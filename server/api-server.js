@@ -1,6 +1,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const {
   appendAudit,
   createSession,
@@ -168,6 +169,31 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname.match(/^\/api\/portal\/[^/]+$/)) {
+    const token = url.pathname.split("/")[3];
+    const portalStore = readStore();
+    const invite = portalStore.portalInvites.find((item) => item.token === token && item.status === "Actief");
+    if (!invite || Number(invite.expiresAt || 0) < Date.now()) {
+      sendJson(response, 404, { error: "Portaaltoegang is niet actief." });
+      return;
+    }
+
+    sendJson(response, 200, {
+      practice: {
+        name: portalStore.practice.name,
+        language: portalStore.practice.language
+      },
+      client: {
+        id: invite.clientId,
+        name: invite.client
+      },
+      messages: portalStore.messages.filter((item) => item.clientId === invite.clientId && item.status !== "Concept"),
+      documents: portalStore.documents.filter((item) => item.clientId === invite.clientId && item.status !== "Review nodig"),
+      intakes: portalStore.intakes.filter((item) => item.clientId === invite.clientId)
+    });
+    return;
+  }
+
   const user = getSession(parseCookies(request).praktijkos_session);
   if (!user) {
     sendJson(response, 401, { error: "Niet aangemeld." });
@@ -299,6 +325,39 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, message);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/portal/invites") {
+    if (!requirePermission(response, user, "care")) return;
+    const payload = await readJson(request);
+    const client = store.clients.find((item) => item.id === payload.clientId);
+    if (!client) {
+      sendJson(response, 422, { error: "clientId is required" });
+      return;
+    }
+
+    const token = crypto.randomBytes(24).toString("base64url");
+    const invite = {
+      id: uid("portal"),
+      token,
+      clientId: client.id,
+      client: client.name,
+      status: "Actief",
+      createdAt: timestampLabel(),
+      expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 14,
+      createdBy: user.name,
+      portalUrl: `/portal.html?token=${token}`
+    };
+
+    const nextStore = appendAudit(
+      { ...store, portalInvites: [invite, ...store.portalInvites] },
+      "Portaaltoegang aangemaakt",
+      `${client.name} heeft een nieuwe portaaltoegang.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, invite);
     return;
   }
 

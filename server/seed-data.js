@@ -49,6 +49,7 @@ const seedData = {
       channel: "Client portal"
     }
   ],
+  portalInvites: [],
   documents: [
     {
       id: "doc-001",

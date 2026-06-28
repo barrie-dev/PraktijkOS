@@ -33,6 +33,11 @@ body {
   font-size: 14px;
 }
 
+a {
+  color: var(--brand-dark);
+  font-weight: 800;
+}
+
 button,
 input,
 select,
@@ -1045,6 +1050,59 @@ pre {
   margin-top: 16px;
 }
 
+.portal-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 28px;
+}
+
+.portal-hero {
+  display: flex;
+  align-items: flex-end;
+  min-height: 230px;
+  margin-bottom: 18px;
+  padding: 28px;
+  border-radius: 8px;
+  background: #0f574b;
+  color: #fff;
+}
+
+.portal-hero span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.portal-hero h1 {
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.portal-hero p {
+  max-width: 620px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.portal-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.portal-error {
+  display: grid;
+  place-content: center;
+  min-height: 100vh;
+  padding: 28px;
+  text-align: center;
+}
+
 @media (max-width: 1050px) {
   .app-shell,
   .metric-grid,
@@ -1143,5 +1201,13 @@ pre {
   .modal-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .portal-shell {
+    padding: 18px;
+  }
+
+  .portal-grid {
+    grid-template-columns: 1fr;
   }
 }

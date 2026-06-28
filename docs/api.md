@@ -30,6 +30,8 @@ npm run api
 - `POST /api/intakes`
 - `POST /api/messages`
 - `POST /api/notes`
+- `POST /api/portal/invites`
+- `GET /api/portal/:token`
 - `POST /api/documents`
 
 ## Local Database

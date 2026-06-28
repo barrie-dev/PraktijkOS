@@ -129,6 +129,13 @@ export async function createMessage(payload) {
   });
 }
 
+export async function createPortalInvite(payload) {
+  return request("/api/portal/invites", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function createNote(payload) {
   return request("/api/notes", {
     method: "POST",
