@@ -35,11 +35,12 @@
 - Dashboard workload forecast and day-closing checklist
 - Import preparation for spreadsheet migration with mapped preview
 - Controlled import execution for approved preview rows
+- Import rollback controls for migrated records
 - Migration tooling from spreadsheets and calendar exports
 
 ## Next Product Slice
 
-- Add import validation review and rollback controls.
+- Add role-specific secretary dashboard lanes.
 
 ## Phase 4: Belgian Integrations
 

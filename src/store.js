@@ -22,6 +22,7 @@ import {
   login,
   logout,
   previewImport,
+  rollbackImport,
   scheduleWaitlistEntry,
   sendInvoiceReminder,
   updateAppointment,
@@ -52,6 +53,7 @@ const initialState = {
   importCsv: "naam;leeftijd;traject;status;zorgverlener\nNieuwe Client;34;Stress en slaap;Intakefase;L. Janssens",
   importPreview: null,
   importApplySummary: null,
+  importRollbackSummary: null,
   modal: null,
   aiDraft: "Kies een workflow en genereer een concept.",
   aiSource: "",
@@ -1029,7 +1031,8 @@ export async function applyPreparedImport(previewId) {
     try {
       const summary = await applyImport(previewId);
       await refreshFromApi();
-      setState({ importApplySummary: summary, view: "import" });
+      const updatedRun = getState().importRuns.find((run) => run.id === previewId);
+      setState({ importApplySummary: summary, importPreview: updatedRun || getState().importPreview, view: "import" });
       return { ok: true, message: `${summary.created} rijen geimporteerd.` };
     } catch {
       setState({ apiStatus: "local" });
@@ -1069,7 +1072,8 @@ export async function applyPreparedImport(previewId) {
     appliedBy: state.currentUser?.name || "PraktijkOS",
     created: createdClients.length,
     skipped,
-    errors: []
+    errors: [],
+    records: createdClients.map((client) => ({ collection: "clients", id: client.id, label: client.name }))
   };
   commit(pushAudit(
     {
@@ -1083,6 +1087,47 @@ export async function applyPreparedImport(previewId) {
     `${summary.created} clienten lokaal geimporteerd.`
   ));
   return { ok: true, message: `${summary.created} clienten lokaal geimporteerd.` };
+}
+
+export async function rollbackPreparedImport(previewId) {
+  const run = (state.importRuns || []).find((item) => item.id === previewId) || state.importPreview;
+  if (!run?.applySummary || run.rolledBackAt) {
+    return { ok: false, message: "Deze import kan niet worden teruggedraaid." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const summary = await rollbackImport(previewId);
+      await refreshFromApi();
+      const updatedRun = getState().importRuns.find((run) => run.id === previewId);
+      setState({ importRollbackSummary: summary, importPreview: updatedRun || getState().importPreview, view: "import" });
+      return { ok: true, message: `${summary.removed} records teruggedraaid.` };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const ids = new Set((run.applySummary.records || []).filter((record) => record.collection === "clients").map((record) => record.id));
+  const summary = {
+    previewId,
+    rolledBackAt: nowLabel(),
+    rolledBackBy: state.currentUser?.name || "PraktijkOS",
+    removed: ids.size
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      clients: state.clients.filter((client) => !ids.has(client.id)),
+      importRollbackSummary: summary,
+      importRuns: (state.importRuns || []).map((item) =>
+        item.id === previewId ? { ...item, rolledBackAt: summary.rolledBackAt, rolledBackBy: summary.rolledBackBy, rollbackSummary: summary } : item
+      ),
+      view: "import"
+    },
+    "Import teruggedraaid",
+    `${summary.removed} lokale records verwijderd.`
+  ));
+  return { ok: true, message: `${summary.removed} lokale records teruggedraaid.` };
 }
 
 export async function savePracticeSettings(formData) {

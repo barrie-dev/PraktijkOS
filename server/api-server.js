@@ -408,7 +408,8 @@ function applyImportPreview(store, user, previewId) {
     appliedBy: user.name,
     created: 0,
     skipped: 0,
-    errors: []
+    errors: [],
+    records: []
   };
 
   let nextStore = { ...store };
@@ -429,7 +430,7 @@ function applyImportPreview(store, user, previewId) {
         return;
       }
       existingNames.add(name.toLowerCase());
-      createdClients.push({
+      const client = {
         id: uid("cl"),
         name,
         age: Number(row.values.age || 0),
@@ -439,7 +440,9 @@ function applyImportPreview(store, user, previewId) {
         nextAppointment: row.values.nextAppointment || "Nog te plannen",
         adminStatus: "Geimporteerd uit preview",
         aiSuggestion: "Controleer migratiegegevens en vul ontbrekende dossierinformatie aan."
-      });
+      };
+      createdClients.push(client);
+      summary.records.push({ collection: "clients", id: client.id, label: client.name });
     });
     summary.created = createdClients.length;
     nextStore = { ...nextStore, clients: [...createdClients, ...store.clients] };
@@ -452,7 +455,7 @@ function applyImportPreview(store, user, previewId) {
         summary.errors.push(`Rij ${row.row}: client of tijd ontbreekt.`);
         return;
       }
-      createdAppointments.push({
+      const appointment = {
         id: uid("apt"),
         time: row.values.time,
         clientId: client.id,
@@ -463,7 +466,9 @@ function applyImportPreview(store, user, previewId) {
         status: row.values.status || "Nieuw",
         signal: appointmentSignal(row.values.status || "Nieuw"),
         aiHint: "Geimporteerde afspraak. Controleer status en facturatie."
-      });
+      };
+      createdAppointments.push(appointment);
+      summary.records.push({ collection: "appointments", id: appointment.id, label: `${appointment.time} ${appointment.client}` });
     });
     summary.created = createdAppointments.length;
     nextStore = { ...nextStore, appointments: [...store.appointments, ...createdAppointments].sort((a, b) => a.time.localeCompare(b.time)) };
@@ -477,7 +482,7 @@ function applyImportPreview(store, user, previewId) {
         return;
       }
       const client = store.clients.find((item) => item.name.toLowerCase() === String(row.values.client || "").trim().toLowerCase());
-      createdInvoices.push({
+      const invoice = {
         id: uid("inv"),
         clientId: client?.id || null,
         appointmentId: null,
@@ -489,7 +494,9 @@ function applyImportPreview(store, user, previewId) {
         dueAt: row.values.dueAt || "",
         paidAt: null,
         reminderSentAt: null
-      });
+      };
+      createdInvoices.push(invoice);
+      summary.records.push({ collection: "invoices", id: invoice.id, label: `${invoice.client} ${invoice.amount}` });
     });
     summary.created = createdInvoices.length;
     nextStore = { ...nextStore, invoices: [...createdInvoices, ...store.invoices] };
@@ -501,6 +508,38 @@ function applyImportPreview(store, user, previewId) {
       ...nextStore,
       importRuns: (store.importRuns || []).map((run) =>
         run.id === previewId ? { ...run, appliedAt: now, appliedBy: user.name, applySummary: summary } : run
+      )
+    }
+  };
+}
+
+function rollbackImportPreview(store, user, previewId) {
+  const preview = (store.importRuns || []).find((run) => run.id === previewId);
+  const records = preview?.applySummary?.records || [];
+  if (!preview || !preview.applySummary || preview.rolledBackAt) return null;
+
+  const idsByCollection = records.reduce((groups, record) => {
+    groups[record.collection] = groups[record.collection] || new Set();
+    groups[record.collection].add(record.id);
+    return groups;
+  }, {});
+  const removed = records.length;
+  const now = timestampLabel();
+
+  return {
+    summary: {
+      previewId,
+      rolledBackAt: now,
+      rolledBackBy: user.name,
+      removed
+    },
+    store: {
+      ...store,
+      clients: store.clients.filter((client) => !idsByCollection.clients?.has(client.id)),
+      appointments: store.appointments.filter((appointment) => !idsByCollection.appointments?.has(appointment.id)),
+      invoices: store.invoices.filter((invoice) => !idsByCollection.invoices?.has(invoice.id)),
+      importRuns: (store.importRuns || []).map((run) =>
+        run.id === previewId ? { ...run, rolledBackAt: now, rolledBackBy: user.name, rollbackSummary: { previewId, rolledBackAt: now, rolledBackBy: user.name, removed } } : run
       )
     }
   };
@@ -1365,6 +1404,26 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, applied.summary);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/import\/[^/]+\/rollback$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const previewId = url.pathname.split("/")[3];
+    const rollback = rollbackImportPreview(store, user, previewId);
+    if (!rollback) {
+      sendJson(response, 422, { error: "Import kan niet worden teruggedraaid" });
+      return;
+    }
+
+    const nextStore = appendAudit(
+      rollback.store,
+      "Import teruggedraaid",
+      `${rollback.summary.removed} records verwijderd uit import ${previewId}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, rollback.summary);
     return;
   }
 

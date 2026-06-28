@@ -1085,6 +1085,7 @@ function importView(state) {
   const previewRows = preview?.mappedRows || [];
   const importRuns = state.importRuns || [];
   const applySummary = state.importApplySummary || preview?.applySummary;
+  const rollbackSummary = state.importRollbackSummary || preview?.rollbackSummary;
 
   return `
     <section class="content-grid">
@@ -1117,9 +1118,11 @@ function importView(state) {
             ${preview.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("") || `<p>Geen blokkerende waarschuwingen.</p>`}
           </div>
           <div class="import-actions">
-            <button class="primary-action" data-action="apply-import" data-preview-id="${escapeHtml(preview.id)}" type="button" ${preview.missingHeaders?.length ? "disabled" : ""}>Importeer gecontroleerd</button>
+            ${preview.rolledBackAt ? "" : `<button class="primary-action" data-action="apply-import" data-preview-id="${escapeHtml(preview.id)}" type="button" ${preview.missingHeaders?.length || preview.applySummary ? "disabled" : ""}>Importeer gecontroleerd</button>`}
+            ${preview.applySummary && !preview.rolledBackAt ? `<button class="ghost-action" data-action="rollback-import" data-preview-id="${escapeHtml(preview.id)}" type="button">Draai import terug</button>` : ""}
           </div>
           ${applySummary ? `<p class="handoff-note">${escapeHtml(applySummary.created)} aangemaakt, ${escapeHtml(applySummary.skipped)} overgeslagen door ${escapeHtml(applySummary.appliedBy || "PraktijkOS")}.</p>` : ""}
+          ${rollbackSummary ? `<p class="handoff-note">${escapeHtml(rollbackSummary.removed)} records teruggedraaid door ${escapeHtml(rollbackSummary.rolledBackBy || "PraktijkOS")}.</p>` : ""}
         ` : `<p class="empty-state">Nog geen preview. Plak CSV en analyseer eerst.</p>`}
       </div>
 
@@ -1143,7 +1146,10 @@ function importView(state) {
             <article class="import-row">
               <strong>${escapeHtml(run.label || run.kind)}</strong>
               <span>${escapeHtml(run.createdAt || "")} / ${escapeHtml(run.createdBy || "PraktijkOS")} / ${escapeHtml(run.rowCount || 0)} rijen</span>
-              ${badge(run.warnings?.length ? "Controleer" : "Klaar", run.warnings?.length ? "warning" : "success")}
+              <div class="inline-actions">
+                ${badge(run.rolledBackAt ? "Teruggedraaid" : run.applySummary ? "Geimporteerd" : run.warnings?.length ? "Controleer" : "Klaar", run.warnings?.length ? "warning" : "success")}
+                ${run.applySummary && !run.rolledBackAt ? `<button class="ghost-action" data-action="rollback-import" data-preview-id="${escapeHtml(run.id)}" type="button">Terugdraaien</button>` : ""}
+              </div>
             </article>
           `).join("") || `<p class="empty-state">Nog geen importpreviews.</p>`}
         </div>

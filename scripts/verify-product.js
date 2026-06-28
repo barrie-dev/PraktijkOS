@@ -129,6 +129,13 @@ async function verify() {
     assert(appliedImport.created === 1, "Import apply should create one client.");
     const importedState = await request("/api/state");
     assert(importedState.clients.some((item) => item.name === "Import Client"), "Applied import should add the client.");
+    const rollbackImport = await request(`/api/import/${importPreview.id}/rollback`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(rollbackImport.removed === 1, "Import rollback should remove one created record.");
+    const rollbackState = await request("/api/state");
+    assert(!rollbackState.clients.some((item) => item.name === "Import Client"), "Rolled back import should remove the client.");
 
     const waitlistEntry = state.waitlist[0];
     const waitlistAppointment = await request(`/api/waitlist/${waitlistEntry.id}/schedule`, {

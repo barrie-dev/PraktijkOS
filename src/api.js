@@ -154,6 +154,13 @@ export async function applyImport(previewId) {
   });
 }
 
+export async function rollbackImport(previewId) {
+  return request(`/api/import/${previewId}/rollback`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function updatePractice(payload) {
   return request("/api/practice", {
     method: "PUT",

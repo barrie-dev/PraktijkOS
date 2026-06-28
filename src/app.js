@@ -31,6 +31,7 @@ import {
   markInvoicePaid,
   remindInvoice,
   resetDemoState,
+  rollbackPreparedImport,
   runAiWorkflow,
   scheduleFromWaitlist,
   savePracticeSettings,
@@ -258,6 +259,12 @@ async function handleClick(event) {
 
   if (action === "apply-import") {
     const result = await applyPreparedImport(target.dataset.previewId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "rollback-import") {
+    const result = await rollbackPreparedImport(target.dataset.previewId);
     showToast(result.message);
   }
 }
