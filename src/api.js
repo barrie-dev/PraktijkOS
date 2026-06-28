@@ -143,6 +143,13 @@ export async function createMessage(payload) {
   });
 }
 
+export async function updateMessage(messageId, payload) {
+  return request(`/api/messages/${messageId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function createPortalInvite(payload) {
   return request("/api/portal/invites", {
     method: "POST",
@@ -160,6 +167,13 @@ export async function createNote(payload) {
 export async function createDocument(payload) {
   return request("/api/documents", {
     method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function updateDocument(documentId, payload) {
+  return request(`/api/documents/${documentId}`, {
+    method: "PATCH",
     body: JSON.stringify(payload)
   });
 }

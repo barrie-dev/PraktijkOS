@@ -141,17 +141,28 @@ async function verify() {
     assert(analytics.billableAppointments >= 1, "Analytics should count billable appointments.");
     assert(analytics.adminBacklog >= 0, "Analytics should expose admin backlog.");
 
-    const message = await request("/api/messages", {
+    const conceptMessage = await request("/api/messages", {
       method: "POST",
       body: JSON.stringify({
         clientId: client.id,
         subject: "Verificatie portal",
         body: "Dit bericht bewijst de portalflow.",
-        status: "Klaar voor verzending",
+        status: "Concept",
         channel: "Client portal"
       })
     });
-    assert(message.subject === "Verificatie portal", "Message should be created.");
+    assert(conceptMessage.subject === "Verificatie portal", "Message should be created.");
+
+    const reviewDocument = await request("/api/documents", {
+      method: "POST",
+      body: JSON.stringify({
+        clientId: client.id,
+        title: "Verificatie document",
+        type: "Verslag",
+        status: "Review nodig"
+      })
+    });
+    assert(reviewDocument.title === "Verificatie document", "Document should be created.");
 
     const invite = await request("/api/portal/invites", {
       method: "POST",
@@ -159,11 +170,30 @@ async function verify() {
     });
     assert(invite.token, "Portal invite should include a token.");
 
+    const hiddenPortal = await request(`/api/portal/${invite.token}`, {
+      headers: { Cookie: "" }
+    });
+    assert(hiddenPortal.client.name === client.name, "Portal should expose the invited client.");
+    assert(!hiddenPortal.messages.some((item) => item.subject === conceptMessage.subject), "Portal should hide concept messages.");
+    assert(!hiddenPortal.documents.some((item) => item.title === reviewDocument.title), "Portal should hide review documents.");
+
+    const releasedMessage = await request(`/api/messages/${conceptMessage.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Klaar voor verzending" })
+    });
+    assert(releasedMessage.status === "Klaar voor verzending", "Message should be releasable.");
+
+    const releasedDocument = await request(`/api/documents/${reviewDocument.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Klaar voor delen" })
+    });
+    assert(releasedDocument.status === "Klaar voor delen", "Document should be releasable.");
+
     const publicPortal = await request(`/api/portal/${invite.token}`, {
       headers: { Cookie: "" }
     });
-    assert(publicPortal.client.name === client.name, "Portal should expose the invited client.");
-    assert(publicPortal.messages.some((item) => item.subject === message.subject), "Portal should expose released messages.");
+    assert(publicPortal.messages.some((item) => item.subject === conceptMessage.subject), "Portal should expose released messages.");
+    assert(publicPortal.documents.some((item) => item.title === reviewDocument.title), "Portal should expose released documents.");
 
     const draft = await request("/api/ai/generate", {
       method: "POST",

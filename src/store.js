@@ -19,7 +19,9 @@ import {
   logout,
   sendInvoiceReminder,
   updateAppointment,
+  updateDocument,
   updateInvoice,
+  updateMessage,
   updatePractice
 } from "./api.js";
 import { generateDraft } from "./ai.js";
@@ -760,6 +762,33 @@ export async function addMessage(formData) {
   return { ok: true, message: "Bericht lokaal aangemaakt." };
 }
 
+export async function changeMessageStatus(messageId, status) {
+  const message = state.messages.find((item) => item.id === messageId);
+  if (!message || !status) {
+    return { ok: false, message: "Berichtstatus kon niet worden bijgewerkt." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updateMessage(messageId, { status });
+      await refreshFromApi();
+      return { ok: true, message: "Berichtstatus bijgewerkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  commit(pushAudit(
+    {
+      ...state,
+      messages: state.messages.map((item) => item.id === messageId ? { ...item, status } : item)
+    },
+    "Berichtstatus bijgewerkt",
+    `${message.subject}: ${status}.`
+  ));
+  return { ok: true, message: "Berichtstatus lokaal bijgewerkt." };
+}
+
 export async function addPortalInvite(formData) {
   const payload = formPayload(formData);
   const client = state.clients.find((item) => item.id === payload.clientId);
@@ -830,6 +859,33 @@ export async function addDocument(formData) {
     `${document.title} lokaal aangemaakt.`
   ));
   return { ok: true, message: "Document lokaal aangemaakt." };
+}
+
+export async function changeDocumentStatus(documentId, status) {
+  const document = state.documents.find((item) => item.id === documentId);
+  if (!document || !status) {
+    return { ok: false, message: "Documentstatus kon niet worden bijgewerkt." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updateDocument(documentId, { status });
+      await refreshFromApi();
+      return { ok: true, message: "Documentstatus bijgewerkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  commit(pushAudit(
+    {
+      ...state,
+      documents: state.documents.map((item) => item.id === documentId ? { ...item, status } : item)
+    },
+    "Documentstatus bijgewerkt",
+    `${document.title}: ${status}.`
+  ));
+  return { ok: true, message: "Documentstatus lokaal bijgewerkt." };
 }
 
 export async function addNote(formData) {

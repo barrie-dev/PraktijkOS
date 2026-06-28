@@ -33,6 +33,8 @@ function badge(label, signal = "success") {
 }
 
 const appointmentStatuses = ["Nieuw", "Aanwezig", "Klaar voor facturatie", "Intake ontbreekt", "Opvolging nodig", "No-show risico", "Geannuleerd"];
+const messageStatuses = ["Concept", "Klaar voor verzending", "Verzonden", "Gearchiveerd"];
+const documentStatuses = ["Review nodig", "Klaar voor delen", "Gedeeld", "Gearchiveerd"];
 
 const permissionsByRole = {
   Praktijkhouder: ["practice", "team", "care", "scheduling", "billing", "ai", "tasks"],
@@ -554,7 +556,12 @@ function portalView(state) {
           ${state.messages.map((message) => `
             <article class="portal-item">
               <div><strong>${escapeHtml(message.subject)}</strong><span>${escapeHtml(message.client)} / ${escapeHtml(message.channel)} / ${escapeHtml(message.status)}</span><p>${escapeHtml(message.body)}</p></div>
-              ${badge(message.status, message.status === "Concept" ? "warning" : "success")}
+              <div class="status-stack">
+                ${badge(message.status, message.status === "Concept" ? "warning" : "success")}
+                <label class="compact-select"><span>Status</span><select data-action="message-status" data-message-id="${escapeHtml(message.id)}">
+                  ${messageStatuses.map((status) => `<option ${message.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
+                </select></label>
+              </div>
             </article>
           `).join("")}
         </div>
@@ -566,7 +573,12 @@ function portalView(state) {
           ${state.documents.map((document) => `
             <article class="portal-item">
               <div><strong>${escapeHtml(document.title)}</strong><span>${escapeHtml(document.client)} / ${escapeHtml(document.type)}</span></div>
-              ${badge(document.status, document.status === "Review nodig" ? "warning" : "success")}
+              <div class="status-stack">
+                ${badge(document.status, document.status === "Review nodig" ? "warning" : "success")}
+                <label class="compact-select"><span>Status</span><select data-action="document-status" data-document-id="${escapeHtml(document.id)}">
+                  ${documentStatuses.map((status) => `<option ${document.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
+                </select></label>
+              </div>
             </article>
           `).join("")}
         </div>

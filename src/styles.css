@@ -906,6 +906,12 @@ textarea {
   padding: 0 10px;
 }
 
+.status-stack {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
 .team-row {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) 160px 220px;

@@ -371,6 +371,37 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/messages\/[^/]+$/)) {
+    if (!requirePermission(response, user, "care")) return;
+    const messageId = url.pathname.split("/")[3];
+    const payload = await readJson(request);
+    const message = store.messages.find((item) => item.id === messageId);
+
+    if (!message) {
+      sendJson(response, 404, { error: "Message not found" });
+      return;
+    }
+
+    const updatedMessage = {
+      ...message,
+      status: payload.status || message.status,
+      channel: payload.channel || message.channel
+    };
+
+    const nextStore = appendAudit(
+      {
+        ...store,
+        messages: store.messages.map((item) => item.id === messageId ? updatedMessage : item)
+      },
+      "Berichtstatus bijgewerkt",
+      `${updatedMessage.subject}: ${updatedMessage.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedMessage);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/portal/invites") {
     if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);
@@ -460,6 +491,37 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, document);
+    return;
+  }
+
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/documents\/[^/]+$/)) {
+    if (!requirePermission(response, user, "care")) return;
+    const documentId = url.pathname.split("/")[3];
+    const payload = await readJson(request);
+    const document = store.documents.find((item) => item.id === documentId);
+
+    if (!document) {
+      sendJson(response, 404, { error: "Document not found" });
+      return;
+    }
+
+    const updatedDocument = {
+      ...document,
+      status: payload.status || document.status,
+      type: payload.type || document.type
+    };
+
+    const nextStore = appendAudit(
+      {
+        ...store,
+        documents: store.documents.map((item) => item.id === documentId ? updatedDocument : item)
+      },
+      "Documentstatus bijgewerkt",
+      `${updatedDocument.title}: ${updatedDocument.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedDocument);
     return;
   }
 

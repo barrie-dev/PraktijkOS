@@ -11,7 +11,9 @@ import {
   approveCurrentDraft,
   bootstrapState,
   changeAppointmentStatus,
+  changeDocumentStatus,
   changeInvoiceChannel,
+  changeMessageStatus,
   closeModal,
   completeTask,
   completeOnboarding,
@@ -196,6 +198,14 @@ function handleChange(event) {
 
   if (target.dataset.action === "appointment-status") {
     changeAppointmentStatus(target.dataset.appointmentId, target.value).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "message-status") {
+    changeMessageStatus(target.dataset.messageId, target.value).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "document-status") {
+    changeDocumentStatus(target.dataset.documentId, target.value).then((result) => showToast(result.message));
   }
 }
 

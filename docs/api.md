@@ -38,10 +38,12 @@ npm run verify
 - `POST /api/team`
 - `POST /api/intakes`
 - `POST /api/messages`
+- `PATCH /api/messages/:id`
 - `POST /api/notes`
 - `POST /api/portal/invites`
 - `GET /api/portal/:token`
 - `POST /api/documents`
+- `PATCH /api/documents/:id`
 
 ## Local Database
 
