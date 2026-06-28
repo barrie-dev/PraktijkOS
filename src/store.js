@@ -239,7 +239,7 @@ export async function addClient(formData) {
       const client = await createClient(payload);
       await refreshFromApi();
       setState({ selectedClientId: client.id, view: "clients" });
-      return { ok: true, message: "Client aangemaakt via API." };
+      return { ok: true, message: "Client aangemaakt." };
     } catch {
       setState({ apiStatus: "local" });
     }
@@ -285,7 +285,7 @@ export async function addAppointment(formData) {
       await createAppointment(payload);
       await refreshFromApi();
       setState({ view: "agenda" });
-      return { ok: true, message: "Afspraak gepland via API." };
+      return { ok: true, message: "Afspraak gepland." };
     } catch {
       setState({ apiStatus: "local" });
     }
@@ -370,7 +370,7 @@ export async function approveCurrentDraft() {
     try {
       await approveDraft(state.currentDraftId);
       await refreshFromApi();
-      return { ok: true, message: "Concept goedgekeurd via API." };
+      return { ok: true, message: "Concept goedgekeurd." };
     } catch {
       setState({ apiStatus: "local" });
     }
@@ -404,7 +404,7 @@ export async function createInvoiceProposals() {
     }
   }
 
-  return { ok: true, message: "Factuurvoorstellen staan klaar voor API-koppeling." };
+  return { ok: true, message: "Factuurvoorstellen staan klaar zodra de opslag opnieuw verbonden is." };
 }
 
 export async function markInvoicePaid(invoiceId) {

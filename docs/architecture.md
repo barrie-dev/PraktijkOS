@@ -6,8 +6,7 @@ The current codebase is a dependency-free SPA so the product can be iterated qui
 
 - `index.html`: application shell
 - `src/styles.css`: product UI styling
-- `src/data.js`: demo domain data
-- `src/store.js`: tiny local state container
+- `src/data.js`: seed domain data
 - `src/store.js`: local state container with persistence and domain actions
 - `src/ai.js`: AI workflow adapter and draft generator
 - `src/render.js`: view rendering functions
@@ -18,7 +17,7 @@ The current codebase is a dependency-free SPA so the product can be iterated qui
 
 ## Intended Backend Boundary
 
-The frontend currently uses local demo state, and the development API now exposes:
+The frontend uses the development server for normal product work, with an offline fallback for local resilience. The development API now exposes:
 
 - `GET /dashboard`
 - `GET /appointments`
@@ -45,7 +44,7 @@ The frontend currently uses local demo state, and the development API now expose
 ## Current Persistence
 
 The development API stores data in `data/praktijkos.sqlite` using Node's built-in `node:sqlite` module.
-The frontend still has an offline fallback in `localStorage`, but normal development mode uses the API and SQLite.
+Clients and appointments are stored in relational tables with a foreign-key link. The remaining product areas still use flexible SQLite records while the workflows are being shaped.
 
 ## Security Baseline
 

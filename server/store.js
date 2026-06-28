@@ -12,8 +12,6 @@ const collections = [
   "intakes",
   "messages",
   "documents",
-  "appointments",
-  "clients",
   "invoices",
   "workQueue",
   "aiDrafts",
@@ -77,6 +75,37 @@ function migrate() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+
+    CREATE TABLE IF NOT EXISTS clients (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      age INTEGER NOT NULL DEFAULT 0,
+      track TEXT NOT NULL,
+      status TEXT NOT NULL,
+      clinician TEXT NOT NULL,
+      next_appointment TEXT NOT NULL,
+      admin_status TEXT NOT NULL,
+      ai_suggestion TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS appointments (
+      id TEXT PRIMARY KEY,
+      client_id TEXT NOT NULL,
+      time TEXT NOT NULL,
+      type TEXT NOT NULL,
+      clinician TEXT NOT NULL,
+      location TEXT NOT NULL,
+      status TEXT NOT NULL,
+      signal TEXT NOT NULL,
+      ai_hint TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_appointments_client ON appointments(client_id);
   `);
 }
 
@@ -106,6 +135,8 @@ function seedIfEmpty() {
     }
   }
 
+  seedRelationalTables();
+
   const users = instance.prepare("SELECT COUNT(*) AS count FROM users").get();
   if (users.count === 0) {
     const salt = crypto.randomBytes(16).toString("hex");
@@ -120,6 +151,100 @@ function seedIfEmpty() {
         salt
       );
   }
+}
+
+function seedRelationalTables() {
+  const instance = db;
+  const clientsCount = instance.prepare("SELECT COUNT(*) AS count FROM clients").get().count;
+  if (clientsCount === 0) {
+    const legacyClients = readCollection("clients");
+    const sourceClients = legacyClients.length ? legacyClients : seedData.clients;
+    const insertClient = instance.prepare(`
+      INSERT INTO clients(id, name, age, track, status, clinician, next_appointment, admin_status, ai_suggestion)
+      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    sourceClients.forEach((client) => {
+      insertClient.run(
+        client.id,
+        client.name,
+        Number(client.age || 0),
+        client.track,
+        client.status,
+        client.clinician,
+        client.nextAppointment,
+        client.adminStatus,
+        client.aiSuggestion
+      );
+    });
+  }
+
+  const appointmentsCount = instance.prepare("SELECT COUNT(*) AS count FROM appointments").get().count;
+  if (appointmentsCount === 0) {
+    const legacyAppointments = readCollection("appointments");
+    const sourceAppointments = legacyAppointments.length ? legacyAppointments : seedData.appointments;
+    const insertAppointment = instance.prepare(`
+      INSERT INTO appointments(id, client_id, time, type, clinician, location, status, signal, ai_hint)
+      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    sourceAppointments.forEach((appointment) => {
+      insertAppointment.run(
+        appointment.id,
+        appointment.clientId,
+        appointment.time,
+        appointment.type,
+        appointment.clinician,
+        appointment.location,
+        appointment.status,
+        appointment.signal,
+        appointment.aiHint
+      );
+    });
+  }
+}
+
+function readClients() {
+  return database()
+    .prepare(`
+      SELECT id, name, age, track, status, clinician, next_appointment, admin_status, ai_suggestion
+      FROM clients
+      ORDER BY created_at DESC
+    `)
+    .all()
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      age: row.age,
+      track: row.track,
+      status: row.status,
+      clinician: row.clinician,
+      nextAppointment: row.next_appointment,
+      adminStatus: row.admin_status,
+      aiSuggestion: row.ai_suggestion
+    }));
+}
+
+function readAppointments() {
+  return database()
+    .prepare(`
+      SELECT appointments.id, appointments.client_id, clients.name AS client, appointments.time, appointments.type,
+             appointments.clinician, appointments.location, appointments.status, appointments.signal, appointments.ai_hint
+      FROM appointments
+      JOIN clients ON clients.id = appointments.client_id
+      ORDER BY appointments.time ASC
+    `)
+    .all()
+    .map((row) => ({
+      id: row.id,
+      clientId: row.client_id,
+      client: row.client,
+      time: row.time,
+      type: row.type,
+      clinician: row.clinician,
+      location: row.location,
+      status: row.status,
+      signal: row.signal,
+      aiHint: row.ai_hint
+    }));
 }
 
 function hashPassword(password, salt) {
@@ -201,6 +326,8 @@ function readStore() {
   collections.forEach((collection) => {
     store[collection] = readCollection(collection);
   });
+  store.clients = readClients();
+  store.appointments = readAppointments();
 
   return store;
 }
@@ -235,6 +362,9 @@ function writeStore(nextStore) {
       replaceCollection(collection, nextStore[collection] || []);
     });
 
+    replaceClients(nextStore.clients || []);
+    replaceAppointments(nextStore.appointments || []);
+
     instance.exec("COMMIT");
   } catch (error) {
     instance.exec("ROLLBACK");
@@ -242,6 +372,50 @@ function writeStore(nextStore) {
   }
 
   return readStore();
+}
+
+function replaceClients(rows) {
+  const instance = database();
+  instance.prepare("DELETE FROM appointments").run();
+  instance.prepare("DELETE FROM clients").run();
+  const insertClient = instance.prepare(`
+    INSERT INTO clients(id, name, age, track, status, clinician, next_appointment, admin_status, ai_suggestion, updated_at)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+  `);
+  rows.forEach((client) => {
+    insertClient.run(
+      client.id,
+      client.name,
+      Number(client.age || 0),
+      client.track,
+      client.status,
+      client.clinician,
+      client.nextAppointment,
+      client.adminStatus,
+      client.aiSuggestion
+    );
+  });
+}
+
+function replaceAppointments(rows) {
+  const instance = database();
+  const insertAppointment = instance.prepare(`
+    INSERT INTO appointments(id, client_id, time, type, clinician, location, status, signal, ai_hint, updated_at)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+  `);
+  rows.forEach((appointment) => {
+    insertAppointment.run(
+      appointment.id,
+      appointment.clientId,
+      appointment.time,
+      appointment.type,
+      appointment.clinician,
+      appointment.location,
+      appointment.status,
+      appointment.signal,
+      appointment.aiHint
+    );
+  });
 }
 
 function uid(prefix) {

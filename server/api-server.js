@@ -322,7 +322,7 @@ async function handleApi(request, response) {
     const nextStore = appendAudit(
       { ...store, clients: [client, ...store.clients] },
       "Client aangemaakt",
-      `${client.name} toegevoegd via API.`
+      `${client.name} toegevoegd aan het cliëntenbestand.`
     );
     writeStore(nextStore);
     sendJson(response, 201, client);
@@ -353,7 +353,7 @@ async function handleApi(request, response) {
     const nextStore = appendAudit(
       { ...store, appointments: [...store.appointments, appointment].sort((a, b) => a.time.localeCompare(b.time)) },
       "Afspraak gepland",
-      `${appointment.client} om ${appointment.time} via API.`
+      `${appointment.client} om ${appointment.time} ingepland.`
     );
     writeStore(nextStore);
     sendJson(response, 201, appointment);

@@ -136,8 +136,8 @@ function loginView(state) {
           <p class="login-copy">Meld je aan om agenda, dossiers, facturatie en AI-concepten te beheren.</p>
         </div>
         <form data-form="login" class="login-form">
-          <label class="field"><span>E-mail</span><input name="email" type="email" value="admin@praktijkos.local" autocomplete="username" required></label>
-          <label class="field"><span>Wachtwoord</span><input name="password" type="password" value="praktijkos" autocomplete="current-password" required></label>
+          <label class="field"><span>E-mail</span><input name="email" type="email" placeholder="naam@praktijk.be" autocomplete="username" required></label>
+          <label class="field"><span>Wachtwoord</span><input name="password" type="password" placeholder="Je wachtwoord" autocomplete="current-password" required></label>
           ${state.loginError ? `<p class="form-error">${escapeHtml(state.loginError)}</p>` : ""}
           <button class="primary-action" type="submit">Aanmelden</button>
         </form>
