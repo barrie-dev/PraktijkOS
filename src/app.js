@@ -26,6 +26,7 @@ import {
   loginUser,
   logoutUser,
   openModal,
+  prepareImportPreview,
   markInvoicePaid,
   remindInvoice,
   resetDemoState,
@@ -345,6 +346,8 @@ async function handleSubmit(event) {
     result = await addNote(formData);
   } else if (form.dataset.form === "document") {
     result = await addDocument(formData);
+  } else if (form.dataset.form === "import-preview") {
+    result = await prepareImportPreview(formData);
   }
   showToast(result.message);
 }

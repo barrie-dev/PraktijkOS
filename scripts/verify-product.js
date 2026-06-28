@@ -113,6 +113,16 @@ async function verify() {
     assert(completedDayCheck.status === "Klaar", "Day close item should be completable.");
     assert(completedDayCheck.completedAt, "Completed day close item should include completion metadata.");
 
+    const importPreview = await request("/api/import/preview", {
+      method: "POST",
+      body: JSON.stringify({
+        kind: "clients",
+        csv: "naam;leeftijd;traject;status;zorgverlener\nImport Client;38;Migratie test;Intakefase;L. Janssens"
+      })
+    });
+    assert(importPreview.rowCount === 1, "Import preview should parse one row.");
+    assert(importPreview.mappedRows[0].values.name === "Import Client", "Import preview should map client name.");
+
     const waitlistEntry = state.waitlist[0];
     const waitlistAppointment = await request(`/api/waitlist/${waitlistEntry.id}/schedule`, {
       method: "POST",

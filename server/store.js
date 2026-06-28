@@ -18,6 +18,7 @@ const collections = [
   "waitlist",
   "workQueue",
   "dayClose",
+  "importRuns",
   "aiDrafts",
   "auditLog"
 ];

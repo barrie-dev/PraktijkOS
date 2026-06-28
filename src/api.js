@@ -140,6 +140,13 @@ export async function completeDayCloseCheck(itemId) {
   });
 }
 
+export async function previewImport(payload) {
+  return request("/api/import/preview", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function updatePractice(payload) {
   return request("/api/practice", {
     method: "PUT",

@@ -20,6 +20,7 @@ import {
   generateBillingProposals,
   login,
   logout,
+  previewImport,
   scheduleWaitlistEntry,
   sendInvoiceReminder,
   updateAppointment,
@@ -46,6 +47,9 @@ const initialState = {
   appointmentFilter: "",
   clientFilter: "",
   commandQuery: "",
+  importKind: "clients",
+  importCsv: "naam;leeftijd;traject;status;zorgverlener\nNieuwe Client;34;Stress en slaap;Intakefase;L. Janssens",
+  importPreview: null,
   modal: null,
   aiDraft: "Kies een workflow en genereer een concept.",
   aiSource: "",
@@ -126,6 +130,7 @@ const initialState = {
   waitlist,
   workQueue,
   dayClose,
+  importRuns: [],
   auditLog: [
     {
       id: "audit-001",
@@ -446,6 +451,54 @@ function buildLocalBillingExport() {
 function downloadBillingExport(payload) {
   downloadJson(payload.files.jsonFilename, payload);
   downloadText(payload.files.csvFilename, payload.files.csv, "text/csv");
+}
+
+function splitDelimitedLine(line, delimiter) {
+  const cells = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+    if (char === '"' && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === delimiter && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  cells.push(current.trim());
+  return cells;
+}
+
+function buildLocalImportPreview(kind, csv) {
+  const lines = String(csv || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const delimiter = (lines[0]?.match(/;/g) || []).length >= (lines[0]?.match(/,/g) || []).length ? ";" : ",";
+  const headers = splitDelimitedLine(lines[0] || "", delimiter);
+  const rows = lines.slice(1).map((line, index) => ({ row: index + 1, values: Object.fromEntries(headers.map((header, column) => [header, splitDelimitedLine(line, delimiter)[column] || ""])), issues: [] }));
+  return {
+    id: uid("import"),
+    kind,
+    label: kind === "appointments" ? "Afspraken" : kind === "invoices" ? "Facturen" : "Clienten",
+    createdAt: nowLabel(),
+    createdBy: state.currentUser?.name || "PraktijkOS",
+    delimiter,
+    rowCount: rows.length,
+    headers,
+    mappedFields: {},
+    requiredHeaders: [],
+    missingHeaders: [],
+    warnings: rows.length ? [] : ["Geen datarijen gevonden."],
+    mappedRows: rows,
+    suggestedAction: "Lokale preview klaar. Verbind opslag voor volledige mapping en audit."
+  };
 }
 
 function localClientExport(clientId) {
@@ -927,6 +980,39 @@ export async function completeDayClose(itemId) {
     `${item?.label || itemId} lokaal afgevinkt.`
   ));
   return { ok: true, message: "Dagcheck lokaal afgevinkt." };
+}
+
+export async function prepareImportPreview(formData) {
+  const payload = formPayload(formData);
+  if (!payload.csv || payload.csv.split(/\r?\n/).filter(Boolean).length < 2) {
+    return { ok: false, message: "Plak minstens een header en een datarij." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const preview = await previewImport({ kind: payload.kind, csv: payload.csv });
+      await refreshFromApi();
+      setState({ importKind: payload.kind, importCsv: payload.csv, importPreview: preview, view: "import" });
+      return { ok: true, message: `${preview.rowCount} rijen geanalyseerd.` };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const preview = buildLocalImportPreview(payload.kind, payload.csv);
+  commit(pushAudit(
+    {
+      ...state,
+      importKind: payload.kind,
+      importCsv: payload.csv,
+      importPreview: preview,
+      importRuns: [preview, ...(state.importRuns || [])].slice(0, 20),
+      view: "import"
+    },
+    "Importpreview aangemaakt",
+    `${preview.label}: ${preview.rowCount} rijen lokaal geanalyseerd.`
+  ));
+  return { ok: true, message: "Lokale importpreview aangemaakt." };
 }
 
 export async function savePracticeSettings(formData) {

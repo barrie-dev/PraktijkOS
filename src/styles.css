@@ -1148,6 +1148,49 @@ textarea {
   margin: 0 0 12px;
 }
 
+.import-help {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.import-help span,
+.warning-list p,
+.import-row span {
+  color: var(--muted);
+}
+
+.warning-list {
+  display: grid;
+  gap: 6px;
+}
+
+.warning-list p {
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.import-table {
+  display: grid;
+  gap: 8px;
+}
+
+.import-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
 .insight-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1507,6 +1550,7 @@ pre {
   .forecast-grid,
   .invoice-row,
   .invoice-row.rich-row,
+  .import-row,
   .task-item.rich-task,
   .waitlist-item,
   .day-close-item,

@@ -33,11 +33,12 @@
 - Guided task screen with owner, due date, dossier context and direct actions
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
 - Dashboard workload forecast and day-closing checklist
+- Import preparation for spreadsheet migration with mapped preview
 - Migration tooling from spreadsheets and calendar exports
 
 ## Next Product Slice
 
-- Add import preparation for spreadsheet migration.
+- Add controlled import execution for approved preview rows.
 
 ## Phase 4: Belgian Integrations
 

@@ -10,6 +10,7 @@ const viewTitles = {
   portal: "Berichten",
   billing: "Facturatie",
   ai: "Assistent",
+  import: "Import",
   settings: "Instellingen"
 };
 
@@ -61,6 +62,7 @@ const viewPermissions = {
   portal: "care",
   billing: "billing",
   ai: "ai",
+  import: "practice",
   settings: "practice"
 };
 
@@ -73,7 +75,7 @@ function canView(state, view) {
 }
 
 function firstAvailableView(state) {
-  return ["dashboard", "work", "agenda", "waiting", "clients", "billing", "ai", "settings"].find((view) => canView(state, view)) || "dashboard";
+  return ["dashboard", "work", "agenda", "waiting", "clients", "billing", "ai", "import", "settings"].find((view) => canView(state, view)) || "dashboard";
 }
 
 function commandResults(state) {
@@ -180,6 +182,7 @@ function shell(state) {
     ["portal", "B", "Berichten"],
     ["billing", "E", "Facturatie"],
     ["ai", "AI", "Assistent"],
+    ["import", "M", "Import"],
     ["settings", "S", "Instellingen"]
   ].filter(([view]) => canView(state, view));
 
@@ -292,6 +295,7 @@ function renderView(state) {
   if (state.view === "portal") return portalView(state);
   if (state.view === "billing") return billingView(state);
   if (state.view === "ai") return aiView(state);
+  if (state.view === "import") return importView(state);
   if (state.view === "settings") return settingsView(state);
   return dashboardView(state);
 }
@@ -1071,6 +1075,73 @@ function aiView(state) {
       <div class="panel wide">
         <div class="panel-header"><div><h2>Wijzigingen</h2><p>Laatste acties in de praktijk.</p></div></div>
         ${auditList(state)}
+      </div>
+    </section>
+  `;
+}
+
+function importView(state) {
+  const preview = state.importPreview || (state.importRuns || [])[0];
+  const previewRows = preview?.mappedRows || [];
+  const importRuns = state.importRuns || [];
+
+  return `
+    <section class="content-grid">
+      <form class="panel wide" data-form="import-preview">
+        <div class="panel-header"><div><h2>Migratie voorbereiden</h2><p>Plak CSV uit Excel, agenda of boekhouding en controleer de mapping voor import.</p></div></div>
+        <div class="form-grid">
+          <label class="field"><span>Type data</span><select name="kind">
+            ${[
+              ["clients", "Clienten"],
+              ["appointments", "Afspraken"],
+              ["invoices", "Facturen"]
+            ].map(([value, label]) => `<option value="${value}" ${state.importKind === value ? "selected" : ""}>${label}</option>`).join("")}
+          </select></label>
+          <div class="import-help"><strong>Veilige preview</strong><span>Deze stap analyseert alleen. Er wordt nog niets in dossiers, agenda of facturatie geschreven.</span></div>
+        </div>
+        <label class="field"><span>CSV</span><textarea name="csv" rows="9" required>${escapeHtml(state.importCsv || "")}</textarea></label>
+        <button class="primary-action" type="submit">Analyseer bestand</button>
+      </form>
+
+      <div class="panel">
+        <div class="panel-header"><div><h2>Preview</h2><p>Controleer kolommen en waarschuwingen.</p></div></div>
+        ${preview ? `
+          <div class="handoff-summary">
+            <div><strong>${escapeHtml(preview.rowCount)}</strong><span>rijen gevonden</span></div>
+            <div><strong>${escapeHtml(preview.headers.length)}</strong><span>kolommen herkend</span></div>
+            <div><strong>${escapeHtml(preview.warnings.length)}</strong><span>waarschuwingen</span></div>
+          </div>
+          <p class="handoff-note">${escapeHtml(preview.suggestedAction)}</p>
+          <div class="warning-list">
+            ${preview.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("") || `<p>Geen blokkerende waarschuwingen.</p>`}
+          </div>
+        ` : `<p class="empty-state">Nog geen preview. Plak CSV en analyseer eerst.</p>`}
+      </div>
+
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Gemapte rijen</h2><p>Eerste rijen zoals PraktijkOS ze begrijpt.</p></div></div>
+        <div class="import-table">
+          ${previewRows.slice(0, 8).map((row) => `
+            <article class="import-row">
+              <strong>Rij ${escapeHtml(row.row)}</strong>
+              <span>${escapeHtml(Object.entries(row.values).filter(([, value]) => value).map(([key, value]) => `${key}: ${value}`).join(" / ") || "Geen waarden gemapt")}</span>
+              ${row.issues?.length ? badge(`${row.issues.length} issue`, "warning") : badge("OK", "success")}
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen gemapte rijen.</p>`}
+        </div>
+      </div>
+
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Importgeschiedenis</h2><p>Recente previews zonder ruwe bestandsdata.</p></div></div>
+        <div class="import-table">
+          ${importRuns.slice(0, 5).map((run) => `
+            <article class="import-row">
+              <strong>${escapeHtml(run.label || run.kind)}</strong>
+              <span>${escapeHtml(run.createdAt || "")} / ${escapeHtml(run.createdBy || "PraktijkOS")} / ${escapeHtml(run.rowCount || 0)} rijen</span>
+              ${badge(run.warnings?.length ? "Controleer" : "Klaar", run.warnings?.length ? "warning" : "success")}
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen importpreviews.</p>`}
+        </div>
       </div>
     </section>
   `;

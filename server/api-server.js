@@ -261,6 +261,140 @@ function buildBillingExport(store, user, options = {}) {
   };
 }
 
+function splitDelimitedLine(line, delimiter) {
+  const cells = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+    if (char === '"' && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === delimiter && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  cells.push(current.trim());
+  return cells;
+}
+
+function parseDelimitedText(text = "") {
+  const lines = String(text)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return { headers: [], rows: [], delimiter: ";" };
+
+  const delimiter = (lines[0].match(/;/g) || []).length >= (lines[0].match(/,/g) || []).length ? ";" : ",";
+  const headers = splitDelimitedLine(lines[0], delimiter).map((header) => header.trim());
+  const rows = lines.slice(1).map((line) => {
+    const values = splitDelimitedLine(line, delimiter);
+    return Object.fromEntries(headers.map((header, index) => [header, values[index] || ""]));
+  });
+  return { headers, rows, delimiter };
+}
+
+function normalizeImportHeader(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+const importSchemas = {
+  clients: {
+    label: "Clienten",
+    fields: {
+      name: ["naam", "name", "client"],
+      age: ["leeftijd", "age"],
+      track: ["traject", "track", "zorgvraag"],
+      status: ["status"],
+      clinician: ["zorgverlener", "behandelaar", "clinician"],
+      nextAppointment: ["volgendeafspraak", "nextappointment"]
+    },
+    required: ["name"]
+  },
+  appointments: {
+    label: "Afspraken",
+    fields: {
+      client: ["client", "naam", "patient"],
+      time: ["tijd", "time", "uur"],
+      type: ["type", "afspraaktype", "prestatie"],
+      clinician: ["zorgverlener", "behandelaar", "clinician"],
+      location: ["locatie", "location", "plaats"],
+      status: ["status"]
+    },
+    required: ["client", "time"]
+  },
+  invoices: {
+    label: "Facturen",
+    fields: {
+      client: ["client", "naam", "patient"],
+      amount: ["bedrag", "amount", "prijs"],
+      channel: ["kanaal", "betaalmethode", "channel"],
+      status: ["status"],
+      dueAt: ["vervaldag", "dueat"]
+    },
+    required: ["client", "amount"]
+  }
+};
+
+function headerMap(headers, schema) {
+  const normalized = Object.fromEntries(headers.map((header) => [normalizeImportHeader(header), header]));
+  return Object.fromEntries(Object.entries(schema.fields).map(([field, aliases]) => [
+    field,
+    aliases.map(normalizeImportHeader).map((alias) => normalized[alias]).find(Boolean) || ""
+  ]));
+}
+
+function buildImportPreview(store, user, payload = {}) {
+  const kind = importSchemas[payload.kind] ? payload.kind : "clients";
+  const schema = importSchemas[kind];
+  const parsed = parseDelimitedText(payload.csv);
+  const map = headerMap(parsed.headers, schema);
+  const missingHeaders = schema.required.filter((field) => !map[field]);
+  const mappedRows = parsed.rows.slice(0, 100).map((row, index) => {
+    const values = Object.fromEntries(Object.entries(map).map(([field, header]) => [field, header ? row[header] || "" : ""]));
+    const issues = schema.required
+      .filter((field) => !String(values[field] || "").trim())
+      .map((field) => `${field} ontbreekt`);
+    return { row: index + 1, values, issues };
+  });
+  const warnings = [
+    ...(parsed.rows.length > 100 ? [`Alleen de eerste 100 van ${parsed.rows.length} rijen zijn geanalyseerd.`] : []),
+    ...(missingHeaders.length ? [`Ontbrekende verplichte kolommen: ${missingHeaders.join(", ")}.`] : []),
+    ...mappedRows.filter((row) => row.issues.length).slice(0, 5).map((row) => `Rij ${row.row}: ${row.issues.join(", ")}.`)
+  ];
+
+  return {
+    id: uid("import"),
+    kind,
+    label: schema.label,
+    createdAt: timestampLabel(),
+    createdBy: user.name,
+    delimiter: parsed.delimiter,
+    rowCount: parsed.rows.length,
+    headers: parsed.headers,
+    mappedFields: map,
+    requiredHeaders: schema.required,
+    missingHeaders,
+    warnings,
+    mappedRows,
+    suggestedAction: missingHeaders.length || warnings.length
+      ? "Corrigeer kolommen of lege verplichte waarden voor je importeert."
+      : "Preview is klaar voor gecontroleerde import in een volgende stap."
+  };
+}
+
 function activePortalInvite(store, token) {
   return store.portalInvites.find((item) => item.token === token && item.status === "Actief" && Number(item.expiresAt || 0) >= Date.now());
 }
@@ -1077,6 +1211,29 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, billingExport);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/import/preview") {
+    if (!requirePermission(response, user, "practice")) return;
+    const payload = await readJson(request);
+    if (!payload.csv || String(payload.csv).trim().split(/\r?\n/).length < 2) {
+      sendJson(response, 422, { error: "CSV met header en minstens een datarij is verplicht" });
+      return;
+    }
+
+    const preview = buildImportPreview(store, user, payload);
+    const nextStore = appendAudit(
+      {
+        ...store,
+        importRuns: [preview, ...(store.importRuns || [])].slice(0, 20)
+      },
+      "Importpreview aangemaakt",
+      `${preview.label}: ${preview.rowCount} rijen geanalyseerd.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, preview);
     return;
   }
 
