@@ -282,7 +282,7 @@ function clientsView(state) {
   const clientNotes = (state.notes || []).filter((item) => item.clientId === selected.id);
   const clientMessages = state.messages.filter((item) => item.clientId === selected.id);
   const clientDocuments = state.documents.filter((item) => item.clientId === selected.id);
-  const clientInvoices = state.invoices.filter((item) => item.client === selected.name);
+  const clientInvoices = state.invoices.filter((item) => item.clientId === selected.id || item.client === selected.name);
   const nextAppointment = clientAppointments[0];
   const openInvoiceTotal = clientInvoices
     .filter((item) => item.status !== "Betaald")
@@ -512,6 +512,9 @@ function portalView(state) {
 function billingView(state) {
   const paid = state.invoices.filter((invoice) => invoice.status === "Betaald").reduce((total, invoice) => total + invoice.amount, 0);
   const open = state.invoices.filter((invoice) => invoice.status !== "Betaald").reduce((total, invoice) => total + invoice.amount, 0);
+  const invoiceAppointments = state.appointments.filter((appointment) =>
+    !state.invoices.some((invoice) => invoice.appointmentId === appointment.id)
+  );
 
   return `
     <section class="content-grid">
@@ -520,7 +523,7 @@ function billingView(state) {
         <div class="invoice-table">
           ${state.invoices.map((invoice) => `
             <article class="invoice-row rich-row">
-              <div><strong>${escapeHtml(invoice.client)}</strong><span>${invoice.paidAt ? `Betaald ${escapeHtml(invoice.paidAt)}` : invoice.reminderSentAt ? `Herinnerd ${escapeHtml(invoice.reminderSentAt)}` : "Nog op te volgen"}</span></div>
+              <div><strong>${escapeHtml(invoice.client)}</strong><span>${invoice.paidAt ? `Betaald ${escapeHtml(invoice.paidAt)}` : invoice.reminderSentAt ? `Herinnerd ${escapeHtml(invoice.reminderSentAt)}` : invoice.dueAt ? `Vervalt ${escapeHtml(invoice.dueAt)}` : "Nog op te volgen"}</span></div>
               <span>${formatEuro(invoice.amount)}</span>
               <label class="compact-select"><span>Methode</span><select data-action="invoice-channel" data-invoice-id="${escapeHtml(invoice.id)}">
                 ${["Bancontact", "Wero", "Peppol", "Overschrijving"].map((channel) => `<option ${invoice.channel === channel ? "selected" : ""}>${channel}</option>`).join("")}
@@ -542,6 +545,20 @@ function billingView(state) {
           <div><strong>${state.invoices.filter((invoice) => invoice.status === "Herinnering").length}</strong><span>herinneringen actief</span></div>
         </div>
       </div>
+      <form class="panel" data-form="invoice">
+        <div class="panel-header"><div><h2>Nieuwe factuur</h2><p>Maak een factuur of voorschot buiten de automatische voorstellen.</p></div></div>
+        <label class="field"><span>Client</span><select name="clientId" required>${state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`).join("")}</select></label>
+        <label class="field"><span>Afspraak</span><select name="appointmentId"><option value="">Geen afspraak koppelen</option>${invoiceAppointments.map((appointment) => `<option value="${escapeHtml(appointment.id)}">${escapeHtml(`${appointment.client} / ${appointment.time} / ${appointment.type}`)}</option>`).join("")}</select></label>
+        <div class="form-grid">
+          <label class="field"><span>Bedrag</span><input name="amount" type="number" min="1" step="1" value="75" required></label>
+          <label class="field"><span>Betaalmethode</span><select name="channel"><option>Bancontact</option><option>Wero</option><option>Peppol</option><option>Overschrijving</option></select></label>
+        </div>
+        <div class="form-grid">
+          <label class="field"><span>Status</span><select name="status"><option>Voorstel</option><option>Open</option><option>Klaar</option></select></label>
+          <label class="field"><span>Vervaldag</span><input name="dueAt" placeholder="Bijv. 15/07"></label>
+        </div>
+        <button class="primary-action" type="submit">Factuur maken</button>
+      </form>
     </section>
   `;
 }

@@ -5,6 +5,7 @@ import {
   createClient,
   createDocument,
   createIntake,
+  createInvoice,
   createMessage,
   createNote,
   createTeamMember,
@@ -407,6 +408,48 @@ export async function createInvoiceProposals() {
   }
 
   return { ok: true, message: "Factuurvoorstellen staan klaar zodra de opslag opnieuw verbonden is." };
+}
+
+export async function addInvoice(formData) {
+  const payload = formPayload(formData);
+  const client = state.clients.find((item) => item.id === payload.clientId);
+  const amount = Number(payload.amount || 0);
+
+  if (!client || amount <= 0) {
+    return { ok: false, message: "Client en positief bedrag zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createInvoice({ ...payload, amount });
+      await refreshFromApi();
+      setState({ view: "billing" });
+      return { ok: true, message: "Factuur aangemaakt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const invoice = {
+    id: uid("inv"),
+    clientId: client.id,
+    appointmentId: payload.appointmentId || null,
+    client: client.name,
+    amount,
+    channel: payload.channel || "Bancontact",
+    status: payload.status || "Voorstel",
+    issuedAt: nowLabel(),
+    dueAt: payload.dueAt || "",
+    paidAt: null,
+    reminderSentAt: null
+  };
+
+  commit(pushAudit(
+    { ...state, invoices: [invoice, ...state.invoices], view: "billing" },
+    "Factuur aangemaakt",
+    `${invoice.client} lokaal gefactureerd.`
+  ));
+  return { ok: true, message: "Factuur lokaal aangemaakt." };
 }
 
 export async function markInvoicePaid(invoiceId) {

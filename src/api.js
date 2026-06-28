@@ -73,6 +73,13 @@ export async function generateBillingProposals() {
   });
 }
 
+export async function createInvoice(payload) {
+  return request("/api/invoices", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function updateInvoice(invoiceId, payload) {
   return request(`/api/invoices/${invoiceId}`, {
     method: "PATCH",

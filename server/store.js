@@ -13,7 +13,6 @@ const collections = [
   "notes",
   "messages",
   "documents",
-  "invoices",
   "workQueue",
   "aiDrafts",
   "auditLog"
@@ -107,6 +106,27 @@ function migrate() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_appointments_client ON appointments(client_id);
+
+    CREATE TABLE IF NOT EXISTS invoices (
+      id TEXT PRIMARY KEY,
+      client_id TEXT,
+      appointment_id TEXT,
+      client_name TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      channel TEXT NOT NULL,
+      status TEXT NOT NULL,
+      issued_at TEXT,
+      due_at TEXT,
+      paid_at TEXT,
+      reminder_sent_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL,
+      FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_invoices_client ON invoices(client_id);
+    CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
   `);
 }
 
@@ -137,10 +157,21 @@ function seedIfEmpty() {
   }
 
   seedRelationalTables();
+  seedInvoicesTable();
 
   ensureSeedUser("usr-admin", "admin@praktijkos.local", "Praktijkhouder", "Praktijkhouder");
   ensureSeedUser("usr-care", "zorg@praktijkos.local", "Zorgverlener", "Zorgverlener");
   ensureSeedUser("usr-admin-office", "onthaal@praktijkos.local", "Onthaal", "Administratie");
+}
+
+function seedInvoicesTable() {
+  const instance = db;
+  const invoicesCount = instance.prepare("SELECT COUNT(*) AS count FROM invoices").get().count;
+  if (invoicesCount > 0) return;
+
+  const legacyInvoices = readCollection("invoices");
+  const sourceInvoices = legacyInvoices.length ? legacyInvoices : seedData.invoices;
+  replaceInvoices(sourceInvoices);
 }
 
 function ensureSeedUser(id, email, name, role) {
@@ -248,6 +279,33 @@ function readAppointments() {
     }));
 }
 
+function readInvoices() {
+  return database()
+    .prepare(`
+      SELECT invoices.id, invoices.client_id, invoices.appointment_id,
+             COALESCE(clients.name, invoices.client_name) AS client,
+             invoices.amount, invoices.channel, invoices.status,
+             invoices.issued_at, invoices.due_at, invoices.paid_at, invoices.reminder_sent_at
+      FROM invoices
+      LEFT JOIN clients ON clients.id = invoices.client_id
+      ORDER BY invoices.created_at DESC
+    `)
+    .all()
+    .map((row) => ({
+      id: row.id,
+      clientId: row.client_id,
+      appointmentId: row.appointment_id,
+      client: row.client,
+      amount: Number(row.amount || 0),
+      channel: row.channel,
+      status: row.status,
+      issuedAt: row.issued_at,
+      dueAt: row.due_at,
+      paidAt: row.paid_at,
+      reminderSentAt: row.reminder_sent_at
+    }));
+}
+
 function hashPassword(password, salt) {
   return crypto.pbkdf2Sync(password, salt, 120000, 32, "sha256").toString("hex");
 }
@@ -329,6 +387,7 @@ function readStore() {
   });
   store.clients = readClients();
   store.appointments = readAppointments();
+  store.invoices = readInvoices();
 
   return store;
 }
@@ -365,6 +424,7 @@ function writeStore(nextStore) {
 
     replaceClients(nextStore.clients || []);
     replaceAppointments(nextStore.appointments || []);
+    replaceInvoices(nextStore.invoices || []);
 
     instance.exec("COMMIT");
   } catch (error) {
@@ -373,6 +433,36 @@ function writeStore(nextStore) {
   }
 
   return readStore();
+}
+
+function clientIdForInvoice(invoice) {
+  if (invoice.clientId) return invoice.clientId;
+  const row = database().prepare("SELECT id FROM clients WHERE name = ?").get(invoice.client);
+  return row?.id || null;
+}
+
+function replaceInvoices(rows) {
+  const instance = database();
+  instance.prepare("DELETE FROM invoices").run();
+  const insertInvoice = instance.prepare(`
+    INSERT INTO invoices(id, client_id, appointment_id, client_name, amount, channel, status, issued_at, due_at, paid_at, reminder_sent_at, updated_at)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+  `);
+  rows.forEach((invoice) => {
+    insertInvoice.run(
+      invoice.id,
+      clientIdForInvoice(invoice),
+      invoice.appointmentId || null,
+      invoice.client || "Onbekende client",
+      Number(invoice.amount || 0),
+      invoice.channel || "Bancontact",
+      invoice.status || "Voorstel",
+      invoice.issuedAt || null,
+      invoice.dueAt || null,
+      invoice.paidAt || null,
+      invoice.reminderSentAt || null
+    );
+  });
 }
 
 function replaceClients(rows) {

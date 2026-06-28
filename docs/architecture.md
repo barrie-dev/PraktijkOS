@@ -44,7 +44,7 @@ The frontend uses the development server for normal product work, with an offlin
 ## Current Persistence
 
 The development API stores data in `data/praktijkos.sqlite` using Node's built-in `node:sqlite` module.
-Clients and appointments are stored in relational tables with a foreign-key link. The remaining product areas still use flexible SQLite records while the workflows are being shaped.
+Clients, appointments and invoices are stored in relational tables with foreign-key links where available. The remaining product areas still use flexible SQLite records while the workflows are being shaped.
 
 ## Security Baseline
 

@@ -93,6 +93,15 @@ function requirePermission(response, user, permission) {
   return false;
 }
 
+function timestampLabel() {
+  return new Intl.DateTimeFormat("nl-BE", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date());
+}
+
 function serveStatic(request, response) {
   const url = new URL(request.url, `http://127.0.0.1:${port}`);
   const relative = url.pathname === "/" ? "index.html" : url.pathname.replace(/^\/+/, "");
@@ -246,7 +255,7 @@ async function handleApi(request, response) {
       clientId: client.id,
       client: client.name,
       status: payload.status || "Ingediend",
-      submittedAt: new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date()),
+      submittedAt: timestampLabel(),
       answers: {
         hulpvraag: payload.hulpvraag,
         voorkeur: payload.voorkeur || "",
@@ -310,7 +319,7 @@ async function handleApi(request, response) {
       body: payload.body,
       author: user.name,
       status: payload.status || "Concept",
-      createdAt: new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date())
+      createdAt: timestampLabel()
     };
 
     const nextStore = appendAudit(
@@ -428,7 +437,7 @@ async function handleApi(request, response) {
       source: payload.source || "",
       output: payload.output,
       status: "Concept",
-      createdAt: new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date()),
+      createdAt: timestampLabel(),
       approvedAt: null
     };
 
@@ -446,7 +455,7 @@ async function handleApi(request, response) {
   if (request.method === "POST" && url.pathname.match(/^\/api\/ai\/drafts\/[^/]+\/approve$/)) {
     if (!requirePermission(response, user, "ai")) return;
     const draftId = url.pathname.split("/")[4];
-    const approvedAt = new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date());
+    const approvedAt = timestampLabel();
     const draftExists = store.aiDrafts.some((draft) => draft.id === draftId);
 
     if (!draftExists) {
@@ -469,16 +478,60 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/invoices") {
+    if (!requirePermission(response, user, "billing")) return;
+    const payload = await readJson(request);
+    const client = store.clients.find((item) => item.id === payload.clientId);
+    const amount = Number(payload.amount || 0);
+
+    if (!client || amount <= 0) {
+      sendJson(response, 422, { error: "clientId and positive amount are required" });
+      return;
+    }
+
+    const invoice = {
+      id: uid("inv"),
+      clientId: client.id,
+      appointmentId: payload.appointmentId || null,
+      client: client.name,
+      amount,
+      channel: payload.channel || "Bancontact",
+      status: payload.status || "Voorstel",
+      issuedAt: payload.issuedAt || timestampLabel(),
+      dueAt: payload.dueAt || "",
+      paidAt: null,
+      reminderSentAt: null
+    };
+
+    const nextStore = appendAudit(
+      { ...store, invoices: [invoice, ...store.invoices] },
+      "Factuur aangemaakt",
+      `${invoice.client}: ${invoice.amount} euro via ${invoice.channel}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, invoice);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/billing/proposals") {
     if (!requirePermission(response, user, "billing")) return;
     const proposalInvoices = store.appointments
-      .filter((appointment) => !store.invoices.some((invoice) => invoice.client === appointment.client && invoice.status === "Voorstel"))
+      .filter((appointment) => !store.invoices.some((invoice) =>
+        invoice.appointmentId === appointment.id || (invoice.clientId === appointment.clientId && invoice.status === "Voorstel")
+      ))
       .map((appointment) => ({
         id: uid("inv"),
+        clientId: appointment.clientId,
+        appointmentId: appointment.id,
         client: appointment.client,
         amount: appointment.type.toLowerCase().includes("intake") ? 90 : 75,
         channel: "Bancontact",
-        status: "Voorstel"
+        status: "Voorstel",
+        issuedAt: timestampLabel(),
+        dueAt: "",
+        paidAt: null,
+        reminderSentAt: null
       }));
 
     const nextStore = appendAudit(
@@ -508,7 +561,7 @@ async function handleApi(request, response) {
       channel: payload.channel || invoice.channel,
       reminderSentAt: payload.reminderSentAt || invoice.reminderSentAt,
       paidAt: payload.status === "Betaald"
-        ? new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date())
+        ? timestampLabel()
         : invoice.paidAt
     };
 
@@ -535,7 +588,7 @@ async function handleApi(request, response) {
       return;
     }
 
-    const reminderSentAt = new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date());
+    const reminderSentAt = timestampLabel();
     const updatedInvoice = { ...invoice, status: "Herinnering", reminderSentAt };
     const nextStore = appendAudit(
       {

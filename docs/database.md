@@ -23,7 +23,8 @@ The SQLite database, WAL and shared-memory files are ignored by git.
 - `practice`: one row containing practice configuration.
 - `clients`: relational client records.
 - `appointments`: relational appointments linked to clients with a foreign key.
-- `records`: collection-based records for team, invoices, work queue, intakes, notes, messages, documents, AI drafts and audit log.
+- `invoices`: relational billing records linked to clients and appointments where available.
+- `records`: collection-based records for team, work queue, intakes, notes, messages, documents, AI drafts and audit log.
 
 This gives us durable database persistence now, with strict tables for the first high-value entities and flexible records for areas still moving quickly.
 
@@ -46,4 +47,4 @@ The password is the same in local development only. The roles are `Praktijkhoude
 
 ## Next Step
 
-As the domain stabilizes, split billing, messages and documents into stricter relational tables with foreign keys and versioned migrations.
+As the domain stabilizes, split messages and documents into stricter relational tables with foreign keys and versioned migrations.

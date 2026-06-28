@@ -4,6 +4,7 @@ import {
   addClient,
   addDocument,
   addIntake,
+  addInvoice,
   addMessage,
   addNote,
   addTeamMember,
@@ -216,6 +217,8 @@ async function handleSubmit(event) {
     result = await addTeamMember(formData);
   } else if (form.dataset.form === "intake") {
     result = await addIntake(formData);
+  } else if (form.dataset.form === "invoice") {
+    result = await addInvoice(formData);
   } else if (form.dataset.form === "message") {
     result = await addMessage(formData);
   } else if (form.dataset.form === "note") {
