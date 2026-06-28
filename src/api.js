@@ -59,6 +59,13 @@ export async function createDraft(payload) {
   });
 }
 
+export async function generateAiDraft(payload) {
+  return request("/api/ai/generate", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function approveDraft(draftId) {
   return request(`/api/ai/drafts/${draftId}/approve`, {
     method: "POST",

@@ -19,6 +19,7 @@ npm run api
 - `POST /api/clients`
 - `POST /api/appointments`
 - `POST /api/invoices`
+- `POST /api/ai/generate`
 - `POST /api/ai/drafts`
 - `POST /api/ai/drafts/:id/approve`
 - `POST /api/billing/proposals`

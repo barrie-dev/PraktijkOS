@@ -13,6 +13,7 @@ import {
   createDraft,
   fetchApiState,
   fetchSession,
+  generateAiDraft,
   generateBillingProposals,
   login,
   logout,
@@ -20,6 +21,7 @@ import {
   updateInvoice,
   updatePractice
 } from "./api.js";
+import { generateDraft } from "./ai.js";
 import { appointments, clients, invoices, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
@@ -364,6 +366,25 @@ export async function recordDraft({ workflow, source, output }) {
     `${workflow} concept staat klaar voor review.`,
     "AI Copilot"
   ));
+}
+
+export async function runAiWorkflow(source) {
+  const workflow = state.aiWorkflow;
+
+  if (state.apiStatus === "connected") {
+    try {
+      const draft = await generateAiDraft({ workflow, source });
+      await refreshFromApi();
+      setState({ aiDraft: draft.output, aiApproved: false, currentDraftId: draft.id });
+      return { ok: true, message: "AI concept gegenereerd. Review blijft verplicht." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const output = generateDraft({ workflow, input: source });
+  await recordDraft({ workflow, source, output });
+  return { ok: true, message: "AI concept lokaal gegenereerd. Review blijft verplicht." };
 }
 
 export async function approveCurrentDraft() {

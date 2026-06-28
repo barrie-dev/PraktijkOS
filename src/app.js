@@ -1,4 +1,3 @@
-import { generateDraft } from "./ai.js";
 import {
   addAppointment,
   addClient,
@@ -20,10 +19,10 @@ import {
   loginUser,
   logoutUser,
   openModal,
-  recordDraft,
   markInvoicePaid,
   remindInvoice,
   resetDemoState,
+  runAiWorkflow,
   savePracticeSettings,
   setState,
   subscribe
@@ -115,11 +114,9 @@ async function handleClick(event) {
   }
 
   if (action === "run-ai") {
-    const state = getState();
     const source = inputValue("ai-input");
-    const output = generateDraft({ workflow: state.aiWorkflow, input: source });
-    await recordDraft({ workflow: state.aiWorkflow, source, output });
-    showToast("AI concept gegenereerd. Review blijft verplicht.");
+    const result = await runAiWorkflow(source);
+    showToast(result.message);
     return;
   }
 

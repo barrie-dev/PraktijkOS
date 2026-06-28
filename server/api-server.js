@@ -12,6 +12,7 @@ const {
   verifyUser,
   writeStore
 } = require("./store");
+const { generateDraft } = require("./ai-engine");
 
 const root = path.resolve(__dirname, "..");
 const port = Number(process.argv[2] || process.env.PORT || 8128);
@@ -495,6 +496,36 @@ async function handleApi(request, response) {
       workflow: payload.workflow,
       source: payload.source || "",
       output: payload.output,
+      status: "Concept",
+      createdAt: timestampLabel(),
+      approvedAt: null
+    };
+
+    const nextStore = appendAudit(
+      { ...store, aiDrafts: [draft, ...store.aiDrafts].slice(0, 100) },
+      "AI concept gegenereerd",
+      `${draft.workflow} concept staat klaar voor review.`,
+      "AI Copilot"
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, draft);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/ai/generate") {
+    if (!requirePermission(response, user, "ai")) return;
+    const payload = await readJson(request);
+    if (!payload.workflow) {
+      sendJson(response, 422, { error: "workflow is required" });
+      return;
+    }
+
+    const output = generateDraft({ workflow: payload.workflow, input: payload.source || "" });
+    const draft = {
+      id: uid("draft"),
+      workflow: payload.workflow,
+      source: payload.source || "",
+      output,
       status: "Concept",
       createdAt: timestampLabel(),
       approvedAt: null
