@@ -51,6 +51,7 @@ const initialState = {
   aiApproved: false,
   currentDraftId: null,
   selectedWaitlistId: null,
+  selectedWaitlistSlot: null,
   billingExport: null,
   analytics: {
     occupancyRate: 0,
@@ -546,7 +547,7 @@ export async function scheduleFromWaitlist(formData) {
     try {
       await scheduleWaitlistEntry(entry.id, payload);
       await refreshFromApi();
-      setState({ view: "agenda", modal: null, selectedWaitlistId: null });
+      setState({ view: "agenda", modal: null, selectedWaitlistId: null, selectedWaitlistSlot: null });
       return { ok: true, message: "Wachtlijstitem ingepland." };
     } catch {
       setState({ apiStatus: "local" });
@@ -573,6 +574,7 @@ export async function scheduleFromWaitlist(formData) {
       appointments: [...state.appointments, appointment].sort((a, b) => a.time.localeCompare(b.time)),
       waitlist: state.waitlist.filter((item) => item.id !== entry.id),
       selectedWaitlistId: null,
+      selectedWaitlistSlot: null,
       modal: null,
       view: "agenda"
     },

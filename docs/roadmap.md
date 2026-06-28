@@ -7,6 +7,7 @@
 - Client records and basic care tracks
 - Appointment statuses, waiting list and reminders
 - Wachtlijst naar afspraak-flow met dossiercontext
+- Beschikbaarheidssuggesties vanuit agenda en wachtlijstvoorkeuren
 - Billing proposals and payment follow-up
 - Boekhouderpakket met CSV/JSON export en auditlog
 - NL/FR interface foundation
@@ -33,7 +34,7 @@
 
 ## Next Product Slice
 
-- Add calendar availability suggestions from agenda and waiting list.
+- Add consent-aware client communication templates.
 
 ## Phase 4: Belgian Integrations
 

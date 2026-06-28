@@ -642,6 +642,29 @@ h2 {
   color: var(--muted);
 }
 
+.slot-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.slot-pill {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.slot-pill:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
 .task-item.rich-task {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;

@@ -383,6 +383,33 @@ function agendaView(state) {
   `;
 }
 
+function waitlistSlotSuggestions(state, entry) {
+  const usedTimes = new Set(
+    state.appointments
+      .filter((appointment) => appointment.status !== "Geannuleerd")
+      .map((appointment) => appointment.time)
+  );
+  const preferred = `${entry.preferred || ""}`.toLowerCase();
+  let candidates = ["09:00", "11:30", "13:00", "14:30", "16:00", "18:00"];
+
+  if (preferred.includes("avond")) {
+    candidates = ["18:00", "16:00", "14:30", "11:30", "09:00"];
+  } else if (preferred.includes("voormiddag")) {
+    candidates = ["09:00", "11:30", "13:00", "14:30", "16:00"];
+  } else if (preferred.includes("namiddag")) {
+    candidates = ["13:00", "14:30", "16:00", "18:00", "11:30"];
+  }
+
+  const location = preferred.includes("online") ? "Online" : "Praktijk";
+  const openSlots = candidates.filter((time) => !usedTimes.has(time));
+  return (openSlots.length ? openSlots : ["18:30"]).slice(0, 3).map((time) => ({
+    time,
+    location,
+    type: entry.type || "Opvolggesprek",
+    label: `${time} / ${location}`
+  }));
+}
+
 function waitingView(state) {
   const entries = state.waitlist || [];
   const highPriority = entries.filter((entry) => entry.priority === "Hoog").length;
@@ -406,6 +433,11 @@ function waitingView(state) {
               </div>
               <span>${escapeHtml(entry.request)} / ${escapeHtml(entry.preferred)} / sinds ${escapeHtml(entry.addedAt)}</span>
               <p>${escapeHtml(entry.type || "Opvolggesprek")}</p>
+              <div class="slot-suggestions">
+                ${waitlistSlotSuggestions(state, entry).map((slot) => `
+                  <button class="slot-pill" data-action="suggest-waitlist-slot" data-waitlist-id="${escapeHtml(entry.id)}" data-time="${escapeHtml(slot.time)}" data-location="${escapeHtml(slot.location)}" data-type="${escapeHtml(slot.type)}" type="button">${escapeHtml(slot.label)}</button>
+                `).join("")}
+              </div>
             </div>
             <div class="inline-actions">
               <button class="ghost-action" data-action="open-client" data-client-id="${escapeHtml(entry.clientId)}" type="button">Dossier</button>
@@ -991,6 +1023,7 @@ function appointmentModal(state) {
 function waitlistModal(state) {
   const entry = (state.waitlist || []).find((item) => item.id === state.selectedWaitlistId);
   if (!entry) return "";
+  const slot = state.selectedWaitlistSlot || {};
 
   return `
     <div class="modal-backdrop" data-action="close-modal">
@@ -1002,10 +1035,10 @@ function waitlistModal(state) {
         <input type="hidden" name="waitlistId" value="${escapeHtml(entry.id)}">
         <label class="field"><span>Client</span><input value="${escapeHtml(entry.client)}" disabled></label>
         <div class="form-grid">
-          <label class="field"><span>Tijd</span><input name="time" type="time" value="09:00" required></label>
-          <label class="field"><span>Locatie</span><input name="location" value="Praktijk" required></label>
+          <label class="field"><span>Tijd</span><input name="time" type="time" value="${escapeHtml(slot.time || "09:00")}" required></label>
+          <label class="field"><span>Locatie</span><input name="location" value="${escapeHtml(slot.location || "Praktijk")}" required></label>
         </div>
-        <label class="field"><span>Afspraaktype</span><input name="type" value="${escapeHtml(entry.type || "Opvolggesprek")}" required></label>
+        <label class="field"><span>Afspraaktype</span><input name="type" value="${escapeHtml(slot.type || entry.type || "Opvolggesprek")}" required></label>
         <label class="field"><span>Zorgverlener</span><input name="clinician" value="L. Janssens" required></label>
         <div class="modal-actions">
           <button class="ghost-action" data-action="close-modal" type="button">Annuleer</button>

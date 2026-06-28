@@ -98,7 +98,20 @@ async function handleClick(event) {
   }
 
   if (action === "schedule-waitlist") {
-    setState({ selectedWaitlistId: target.dataset.waitlistId, modal: "waitlist" });
+    setState({ selectedWaitlistId: target.dataset.waitlistId, selectedWaitlistSlot: null, modal: "waitlist" });
+    return;
+  }
+
+  if (action === "suggest-waitlist-slot") {
+    setState({
+      selectedWaitlistId: target.dataset.waitlistId,
+      selectedWaitlistSlot: {
+        time: target.dataset.time,
+        location: target.dataset.location,
+        type: target.dataset.type
+      },
+      modal: "waitlist"
+    });
     return;
   }
 
