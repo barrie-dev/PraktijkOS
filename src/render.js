@@ -783,6 +783,7 @@ function billingView(state) {
   const invoiceAppointments = state.appointments.filter((appointment) =>
     !state.invoices.some((invoice) => invoice.appointmentId === appointment.id)
   );
+  const exportSummary = state.billingExport?.summary;
 
   return `
     <section class="content-grid">
@@ -812,6 +813,16 @@ function billingView(state) {
           <div><strong>${formatEuro(open)}</strong><span>openstaand of in voorstel</span></div>
           <div><strong>${state.invoices.filter((invoice) => invoice.status === "Herinnering").length}</strong><span>herinneringen actief</span></div>
         </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div><h2>Boekhouderpakket</h2><p>CSV en JSON met facturen, statussen en afspraakkoppelingen.</p></div></div>
+        <div class="handoff-summary">
+          <div><strong>${exportSummary ? exportSummary.invoiceCount : state.invoices.length}</strong><span>facturen in pakket</span></div>
+          <div><strong>${exportSummary ? formatEuro(exportSummary.openAmount) : formatEuro(open)}</strong><span>openstaand mee te geven</span></div>
+          <div><strong>${exportSummary ? exportSummary.peppolCount : state.invoices.filter((invoice) => invoice.channel === "Peppol").length}</strong><span>Peppol-regels</span></div>
+        </div>
+        ${state.billingExport ? `<p class="handoff-note">${escapeHtml(state.billingExport.accountantMessage)}</p>` : `<p class="handoff-note">Maak een export wanneer de boekhouder of accountant om een actuele stand vraagt.</p>`}
+        <button class="primary-action" data-action="export-billing" type="button">Maak boekhouderpakket</button>
       </div>
       <form class="panel" data-form="invoice">
         <div class="panel-header"><div><h2>Nieuwe factuur</h2><p>Maak een factuur of voorschot buiten de automatische voorstellen.</p></div></div>

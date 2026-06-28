@@ -179,6 +179,17 @@ async function verify() {
       "Billable appointment should create an invoice proposal."
     );
 
+    const billingExport = await request("/api/billing/export", {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(billingExport.summary.invoiceCount >= 1, "Billing export should summarize invoices.");
+    assert(billingExport.files.csv.includes("factuur_id"), "Billing export should include CSV headers.");
+    assert(
+      billingExport.lines.some((invoice) => invoice.appointmentId === appointment.id),
+      "Billing export should include the generated invoice."
+    );
+
     const analytics = await request("/api/analytics");
     assert(analytics.billableAppointments >= 1, "Analytics should count billable appointments.");
     assert(analytics.adminBacklog >= 0, "Analytics should expose admin backlog.");

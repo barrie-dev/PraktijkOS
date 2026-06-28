@@ -8,6 +8,7 @@
 - Appointment statuses, waiting list and reminders
 - Wachtlijst naar afspraak-flow met dossiercontext
 - Billing proposals and payment follow-up
+- Boekhouderpakket met CSV/JSON export en auditlog
 - NL/FR interface foundation
 - Dossier-first daily workflow: dashboard and agenda actions open the right client context
 
@@ -32,7 +33,7 @@
 
 ## Next Product Slice
 
-- Add payment export and accountant handoff from the billing screen.
+- Add calendar availability suggestions from agenda and waiting list.
 
 ## Phase 4: Belgian Integrations
 

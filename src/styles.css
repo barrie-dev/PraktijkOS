@@ -473,6 +473,8 @@ h2 {
 .schedule-card p,
 .schedule-card span,
 .payment-stack span,
+.handoff-summary span,
+.handoff-note,
 .audit-item span,
 .audit-meta,
 .empty-state {
@@ -485,6 +487,7 @@ h2 {
 .client-list,
 .invoice-table,
 .payment-stack,
+.handoff-summary,
 .audit-list,
 .team-table,
 .intake-list,
@@ -1021,6 +1024,23 @@ textarea {
   background: var(--surface-soft);
 }
 
+.handoff-summary {
+  margin-bottom: 12px;
+}
+
+.handoff-summary div {
+  display: grid;
+  gap: 4px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.handoff-note {
+  margin: 0 0 12px;
+}
+
 .insight-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1048,6 +1068,10 @@ textarea {
 
 .payment-stack strong {
   font-size: 21px;
+}
+
+.handoff-summary strong {
+  font-size: 18px;
 }
 
 .ai-output-panel {

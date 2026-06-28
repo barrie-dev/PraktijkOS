@@ -171,6 +171,96 @@ function buildClientExport(store, clientId, user) {
   };
 }
 
+function csvValue(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function buildBillingExport(store, user, options = {}) {
+  const exportedAt = new Date().toISOString();
+  const lines = store.invoices.map((invoice) => {
+    const appointment = store.appointments.find((item) => item.id === invoice.appointmentId);
+    return {
+      invoiceId: invoice.id,
+      clientId: invoice.clientId || "",
+      client: invoice.client,
+      amount: Number(invoice.amount || 0),
+      channel: invoice.channel,
+      status: invoice.status,
+      issuedAt: invoice.issuedAt || "",
+      dueAt: invoice.dueAt || "",
+      paidAt: invoice.paidAt || "",
+      appointmentId: invoice.appointmentId || "",
+      appointmentType: appointment?.type || "",
+      clinician: appointment?.clinician || ""
+    };
+  });
+
+  const openLines = lines.filter((line) => line.status !== "Betaald");
+  const paidLines = lines.filter((line) => line.status === "Betaald");
+  const peppolLines = lines.filter((line) => line.channel === "Peppol");
+  const headers = [
+    "factuur_id",
+    "client_id",
+    "client",
+    "bedrag",
+    "kanaal",
+    "status",
+    "uitgegeven",
+    "vervaldag",
+    "betaald_op",
+    "afspraak_id",
+    "prestatie",
+    "zorgverlener"
+  ];
+  const csvRows = [
+    headers.map(csvValue).join(";"),
+    ...lines.map((line) => [
+      line.invoiceId,
+      line.clientId,
+      line.client,
+      line.amount.toFixed(2).replace(".", ","),
+      line.channel,
+      line.status,
+      line.issuedAt,
+      line.dueAt,
+      line.paidAt,
+      line.appointmentId,
+      line.appointmentType,
+      line.clinician
+    ].map(csvValue).join(";"))
+  ];
+
+  return {
+    id: uid("billing-export"),
+    exportedAt,
+    period: options.period || "Huidige praktijkstand",
+    exportedBy: {
+      id: user.id,
+      name: user.name,
+      role: user.role
+    },
+    practice: {
+      name: store.practice.name,
+      language: store.practice.language
+    },
+    summary: {
+      invoiceCount: lines.length,
+      openCount: openLines.length,
+      paidCount: paidLines.length,
+      peppolCount: peppolLines.length,
+      openAmount: openLines.reduce((total, line) => total + line.amount, 0),
+      paidAmount: paidLines.reduce((total, line) => total + line.amount, 0)
+    },
+    accountantMessage: `${store.practice.name}: ${lines.length} facturen in export, ${openLines.length} openstaand en ${peppolLines.length} via Peppol.`,
+    files: {
+      csvFilename: "praktijkos-boekhouding.csv",
+      jsonFilename: "praktijkos-boekhouding.json",
+      csv: csvRows.join("\n")
+    },
+    lines
+  };
+}
+
 function activePortalInvite(store, token) {
   return store.portalInvites.find((item) => item.token === token && item.status === "Actief" && Number(item.expiresAt || 0) >= Date.now());
 }
@@ -971,6 +1061,21 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, { created: proposalInvoices.length, invoices: proposalInvoices });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/billing/export") {
+    if (!requirePermission(response, user, "billing")) return;
+    const payload = await readJson(request);
+    const billingExport = buildBillingExport(store, user, payload);
+    const nextStore = appendAudit(
+      store,
+      "Boekhouderexport aangemaakt",
+      `${billingExport.summary.invoiceCount} facturen geexporteerd, ${billingExport.summary.openCount} openstaand.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, billingExport);
     return;
   }
 

@@ -11,6 +11,7 @@ import {
   createPortalInvite,
   createTeamMember,
   createDraft,
+  exportBillingPackage,
   exportClient,
   fetchApiState,
   fetchSession,
@@ -50,6 +51,7 @@ const initialState = {
   aiApproved: false,
   currentDraftId: null,
   selectedWaitlistId: null,
+  billingExport: null,
   analytics: {
     occupancyRate: 0,
     noShowRisk: 0,
@@ -331,7 +333,11 @@ export async function addClient(formData) {
 }
 
 function downloadJson(filename, payload) {
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  downloadText(filename, JSON.stringify(payload, null, 2), "application/json");
+}
+
+function downloadText(filename, content, type = "text/plain") {
+  const blob = new Blob([content], { type });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -340,6 +346,95 @@ function downloadJson(filename, payload) {
   link.click();
   link.remove();
   window.URL.revokeObjectURL(url);
+}
+
+function csvValue(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function buildLocalBillingExport() {
+  const lines = state.invoices.map((invoice) => {
+    const appointment = state.appointments.find((item) => item.id === invoice.appointmentId);
+    return {
+      invoiceId: invoice.id,
+      clientId: invoice.clientId || "",
+      client: invoice.client,
+      amount: Number(invoice.amount || 0),
+      channel: invoice.channel,
+      status: invoice.status,
+      issuedAt: invoice.issuedAt || "",
+      dueAt: invoice.dueAt || "",
+      paidAt: invoice.paidAt || "",
+      appointmentId: invoice.appointmentId || "",
+      appointmentType: appointment?.type || "",
+      clinician: appointment?.clinician || ""
+    };
+  });
+  const openLines = lines.filter((line) => line.status !== "Betaald");
+  const paidLines = lines.filter((line) => line.status === "Betaald");
+  const peppolLines = lines.filter((line) => line.channel === "Peppol");
+  const headers = [
+    "factuur_id",
+    "client_id",
+    "client",
+    "bedrag",
+    "kanaal",
+    "status",
+    "uitgegeven",
+    "vervaldag",
+    "betaald_op",
+    "afspraak_id",
+    "prestatie",
+    "zorgverlener"
+  ];
+  const csv = [
+    headers.map(csvValue).join(";"),
+    ...lines.map((line) => [
+      line.invoiceId,
+      line.clientId,
+      line.client,
+      line.amount.toFixed(2).replace(".", ","),
+      line.channel,
+      line.status,
+      line.issuedAt,
+      line.dueAt,
+      line.paidAt,
+      line.appointmentId,
+      line.appointmentType,
+      line.clinician
+    ].map(csvValue).join(";"))
+  ].join("\n");
+
+  return {
+    id: uid("billing-export"),
+    exportedAt: new Date().toISOString(),
+    period: "Huidige praktijkstand",
+    exportedBy: state.currentUser,
+    practice: {
+      name: state.practice.name,
+      language: state.practice.language
+    },
+    summary: {
+      invoiceCount: lines.length,
+      openCount: openLines.length,
+      paidCount: paidLines.length,
+      peppolCount: peppolLines.length,
+      openAmount: openLines.reduce((total, line) => total + line.amount, 0),
+      paidAmount: paidLines.reduce((total, line) => total + line.amount, 0)
+    },
+    accountantMessage: `${state.practice.name}: ${lines.length} facturen in export, ${openLines.length} openstaand en ${peppolLines.length} via Peppol.`,
+    files: {
+      csvFilename: "praktijkos-boekhouding.csv",
+      jsonFilename: "praktijkos-boekhouding.json",
+      csv
+    },
+    lines
+  };
+}
+
+function downloadBillingExport(payload) {
+  downloadJson(payload.files.jsonFilename, payload);
+  downloadText(payload.files.csvFilename, payload.files.csv, "text/csv");
 }
 
 function localClientExport(clientId) {
@@ -650,6 +745,33 @@ export async function createInvoiceProposals() {
   }
 
   return { ok: true, message: "Factuurvoorstellen staan klaar zodra de opslag opnieuw verbonden is." };
+}
+
+export async function createBillingExport() {
+  if (!state.invoices.length) {
+    return { ok: false, message: "Er zijn nog geen facturen om te exporteren." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const payload = await exportBillingPackage();
+      downloadBillingExport(payload);
+      await refreshFromApi();
+      setState({ billingExport: payload, view: "billing" });
+      return { ok: true, message: "Boekhouderpakket aangemaakt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const payload = buildLocalBillingExport();
+  downloadBillingExport(payload);
+  commit(pushAudit(
+    { ...state, billingExport: payload, view: "billing" },
+    "Boekhouderexport aangemaakt",
+    `${payload.summary.invoiceCount} facturen lokaal geexporteerd.`
+  ));
+  return { ok: true, message: "Lokaal boekhouderpakket aangemaakt." };
 }
 
 export async function addInvoice(formData) {

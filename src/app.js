@@ -18,6 +18,7 @@ import {
   closeModal,
   completeTask,
   completeOnboarding,
+  createBillingExport,
   createInvoiceProposals,
   downloadClientDossier,
   getState,
@@ -177,6 +178,12 @@ async function handleClick(event) {
 
   if (action === "generate-invoices") {
     const result = await createInvoiceProposals();
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "export-billing") {
+    const result = await createBillingExport();
     showToast(result.message);
     return;
   }

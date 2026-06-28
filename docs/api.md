@@ -33,6 +33,7 @@ npm run verify
 - `POST /api/ai/drafts`
 - `POST /api/ai/drafts/:id/approve` optionally stores approved note drafts in a client dossier with `{ clientId, storeAsNote: true }`
 - `POST /api/billing/proposals`
+- `POST /api/billing/export`
 - `PATCH /api/invoices/:id`
 - `POST /api/invoices/:id/reminder`
 - `POST /api/tasks/:id/complete`

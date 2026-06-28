@@ -98,6 +98,13 @@ export async function generateBillingProposals() {
   });
 }
 
+export async function exportBillingPackage(payload = {}) {
+  return request("/api/billing/export", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function createInvoice(payload) {
   return request("/api/invoices", {
     method: "POST",
