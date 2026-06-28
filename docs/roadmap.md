@@ -34,11 +34,12 @@
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
 - Dashboard workload forecast and day-closing checklist
 - Import preparation for spreadsheet migration with mapped preview
+- Controlled import execution for approved preview rows
 - Migration tooling from spreadsheets and calendar exports
 
 ## Next Product Slice
 
-- Add controlled import execution for approved preview rows.
+- Add import validation review and rollback controls.
 
 ## Phase 4: Belgian Integrations
 

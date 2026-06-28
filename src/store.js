@@ -1,4 +1,5 @@
 import {
+  applyImport,
   approveDraft,
   completeDayCloseCheck,
   completeTask as completeTaskRequest,
@@ -50,6 +51,7 @@ const initialState = {
   importKind: "clients",
   importCsv: "naam;leeftijd;traject;status;zorgverlener\nNieuwe Client;34;Stress en slaap;Intakefase;L. Janssens",
   importPreview: null,
+  importApplySummary: null,
   modal: null,
   aiDraft: "Kies een workflow en genereer een concept.",
   aiSource: "",
@@ -1013,6 +1015,74 @@ export async function prepareImportPreview(formData) {
     `${preview.label}: ${preview.rowCount} rijen lokaal geanalyseerd.`
   ));
   return { ok: true, message: "Lokale importpreview aangemaakt." };
+}
+
+export async function applyPreparedImport(previewId) {
+  const preview = state.importPreview?.id === previewId
+    ? state.importPreview
+    : (state.importRuns || []).find((run) => run.id === previewId);
+  if (!preview) {
+    return { ok: false, message: "Importpreview niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const summary = await applyImport(previewId);
+      await refreshFromApi();
+      setState({ importApplySummary: summary, view: "import" });
+      return { ok: true, message: `${summary.created} rijen geimporteerd.` };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  if (preview.kind !== "clients") {
+    return { ok: false, message: "Lokale import ondersteunt voorlopig alleen clienten." };
+  }
+
+  const existingNames = new Set(state.clients.map((client) => client.name.toLowerCase()));
+  const createdClients = [];
+  let skipped = 0;
+  preview.mappedRows.forEach((row) => {
+    const name = String(row.values.name || row.values.naam || "").trim();
+    if (!name || existingNames.has(name.toLowerCase())) {
+      skipped += 1;
+      return;
+    }
+    existingNames.add(name.toLowerCase());
+    createdClients.push({
+      id: uid("cl"),
+      name,
+      age: Number(row.values.age || row.values.leeftijd || 0),
+      track: row.values.track || row.values.traject || "Geimporteerd traject",
+      status: row.values.status || "Intakefase",
+      clinician: row.values.clinician || row.values.zorgverlener || "Nog toe te wijzen",
+      nextAppointment: "Nog te plannen",
+      adminStatus: "Geimporteerd uit preview",
+      aiSuggestion: "Controleer migratiegegevens en vul ontbrekende dossierinformatie aan."
+    });
+  });
+  const summary = {
+    previewId,
+    kind: preview.kind,
+    appliedAt: nowLabel(),
+    appliedBy: state.currentUser?.name || "PraktijkOS",
+    created: createdClients.length,
+    skipped,
+    errors: []
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      clients: [...createdClients, ...state.clients],
+      importApplySummary: summary,
+      importRuns: (state.importRuns || []).map((run) => run.id === previewId ? { ...run, appliedAt: summary.appliedAt, appliedBy: summary.appliedBy, applySummary: summary } : run),
+      view: "import"
+    },
+    "Import uitgevoerd",
+    `${summary.created} clienten lokaal geimporteerd.`
+  ));
+  return { ok: true, message: `${summary.created} clienten lokaal geimporteerd.` };
 }
 
 export async function savePracticeSettings(formData) {

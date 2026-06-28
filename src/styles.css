@@ -1168,6 +1168,10 @@ textarea {
   gap: 6px;
 }
 
+.import-actions {
+  margin-top: 12px;
+}
+
 .warning-list p {
   margin: 0;
   padding: 9px 10px;

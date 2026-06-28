@@ -1084,6 +1084,7 @@ function importView(state) {
   const preview = state.importPreview || (state.importRuns || [])[0];
   const previewRows = preview?.mappedRows || [];
   const importRuns = state.importRuns || [];
+  const applySummary = state.importApplySummary || preview?.applySummary;
 
   return `
     <section class="content-grid">
@@ -1115,6 +1116,10 @@ function importView(state) {
           <div class="warning-list">
             ${preview.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("") || `<p>Geen blokkerende waarschuwingen.</p>`}
           </div>
+          <div class="import-actions">
+            <button class="primary-action" data-action="apply-import" data-preview-id="${escapeHtml(preview.id)}" type="button" ${preview.missingHeaders?.length ? "disabled" : ""}>Importeer gecontroleerd</button>
+          </div>
+          ${applySummary ? `<p class="handoff-note">${escapeHtml(applySummary.created)} aangemaakt, ${escapeHtml(applySummary.skipped)} overgeslagen door ${escapeHtml(applySummary.appliedBy || "PraktijkOS")}.</p>` : ""}
         ` : `<p class="empty-state">Nog geen preview. Plak CSV en analyseer eerst.</p>`}
       </div>
 

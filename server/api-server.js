@@ -395,6 +395,117 @@ function buildImportPreview(store, user, payload = {}) {
   };
 }
 
+function applyImportPreview(store, user, previewId) {
+  const preview = (store.importRuns || []).find((run) => run.id === previewId);
+  if (!preview) return null;
+
+  const now = timestampLabel();
+  const summary = {
+    id: uid("import-apply"),
+    previewId,
+    kind: preview.kind,
+    appliedAt: now,
+    appliedBy: user.name,
+    created: 0,
+    skipped: 0,
+    errors: []
+  };
+
+  let nextStore = { ...store };
+
+  if (preview.kind === "clients") {
+    const existingNames = new Set(store.clients.map((client) => client.name.toLowerCase()));
+    const createdClients = [];
+    preview.mappedRows.forEach((row) => {
+      const name = String(row.values.name || "").trim();
+      if (!name) {
+        summary.skipped += 1;
+        summary.errors.push(`Rij ${row.row}: naam ontbreekt.`);
+        return;
+      }
+      if (existingNames.has(name.toLowerCase())) {
+        summary.skipped += 1;
+        summary.errors.push(`Rij ${row.row}: ${name} bestaat al.`);
+        return;
+      }
+      existingNames.add(name.toLowerCase());
+      createdClients.push({
+        id: uid("cl"),
+        name,
+        age: Number(row.values.age || 0),
+        track: row.values.track || "Geimporteerd traject",
+        status: row.values.status || "Intakefase",
+        clinician: row.values.clinician || "Nog toe te wijzen",
+        nextAppointment: row.values.nextAppointment || "Nog te plannen",
+        adminStatus: "Geimporteerd uit preview",
+        aiSuggestion: "Controleer migratiegegevens en vul ontbrekende dossierinformatie aan."
+      });
+    });
+    summary.created = createdClients.length;
+    nextStore = { ...nextStore, clients: [...createdClients, ...store.clients] };
+  } else if (preview.kind === "appointments") {
+    const createdAppointments = [];
+    preview.mappedRows.forEach((row) => {
+      const client = store.clients.find((item) => item.name.toLowerCase() === String(row.values.client || "").trim().toLowerCase());
+      if (!client || !row.values.time) {
+        summary.skipped += 1;
+        summary.errors.push(`Rij ${row.row}: client of tijd ontbreekt.`);
+        return;
+      }
+      createdAppointments.push({
+        id: uid("apt"),
+        time: row.values.time,
+        clientId: client.id,
+        client: client.name,
+        type: row.values.type || "Migratie afspraak",
+        clinician: row.values.clinician || client.clinician,
+        location: row.values.location || "Praktijk",
+        status: row.values.status || "Nieuw",
+        signal: appointmentSignal(row.values.status || "Nieuw"),
+        aiHint: "Geimporteerde afspraak. Controleer status en facturatie."
+      });
+    });
+    summary.created = createdAppointments.length;
+    nextStore = { ...nextStore, appointments: [...store.appointments, ...createdAppointments].sort((a, b) => a.time.localeCompare(b.time)) };
+  } else if (preview.kind === "invoices") {
+    const createdInvoices = [];
+    preview.mappedRows.forEach((row) => {
+      const amount = Number(String(row.values.amount || "0").replace(",", "."));
+      if (!row.values.client || amount <= 0) {
+        summary.skipped += 1;
+        summary.errors.push(`Rij ${row.row}: client of bedrag ontbreekt.`);
+        return;
+      }
+      const client = store.clients.find((item) => item.name.toLowerCase() === String(row.values.client || "").trim().toLowerCase());
+      createdInvoices.push({
+        id: uid("inv"),
+        clientId: client?.id || null,
+        appointmentId: null,
+        client: row.values.client,
+        amount,
+        channel: row.values.channel || "Overschrijving",
+        status: row.values.status || "Voorstel",
+        issuedAt: now,
+        dueAt: row.values.dueAt || "",
+        paidAt: null,
+        reminderSentAt: null
+      });
+    });
+    summary.created = createdInvoices.length;
+    nextStore = { ...nextStore, invoices: [...createdInvoices, ...store.invoices] };
+  }
+
+  return {
+    summary,
+    store: {
+      ...nextStore,
+      importRuns: (store.importRuns || []).map((run) =>
+        run.id === previewId ? { ...run, appliedAt: now, appliedBy: user.name, applySummary: summary } : run
+      )
+    }
+  };
+}
+
 function activePortalInvite(store, token) {
   return store.portalInvites.find((item) => item.token === token && item.status === "Actief" && Number(item.expiresAt || 0) >= Date.now());
 }
@@ -1234,6 +1345,26 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, preview);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/import\/[^/]+\/apply$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const previewId = url.pathname.split("/")[3];
+    const applied = applyImportPreview(store, user, previewId);
+    if (!applied) {
+      sendJson(response, 404, { error: "Import preview not found" });
+      return;
+    }
+
+    const nextStore = appendAudit(
+      applied.store,
+      "Import uitgevoerd",
+      `${applied.summary.kind}: ${applied.summary.created} aangemaakt, ${applied.summary.skipped} overgeslagen.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, applied.summary);
     return;
   }
 

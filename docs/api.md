@@ -39,6 +39,7 @@ npm run verify
 - `POST /api/tasks/:id/complete`
 - `POST /api/day-close/:id/complete`
 - `POST /api/import/preview`
+- `POST /api/import/:id/apply`
 - `PUT /api/practice`
 - `POST /api/team`
 - `POST /api/intakes`

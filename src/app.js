@@ -8,6 +8,7 @@ import {
   addNote,
   addPortalInvite,
   addTeamMember,
+  applyPreparedImport,
   approveCurrentDraft,
   bootstrapState,
   changeAppointmentStatus,
@@ -251,6 +252,12 @@ async function handleClick(event) {
 
   if (action === "complete-day-close") {
     const result = await completeDayClose(target.dataset.itemId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "apply-import") {
+    const result = await applyPreparedImport(target.dataset.previewId);
     showToast(result.message);
   }
 }

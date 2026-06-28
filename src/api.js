@@ -147,6 +147,13 @@ export async function previewImport(payload) {
   });
 }
 
+export async function applyImport(previewId) {
+  return request(`/api/import/${previewId}/apply`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function updatePractice(payload) {
   return request("/api/practice", {
     method: "PUT",

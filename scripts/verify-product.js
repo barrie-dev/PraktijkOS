@@ -122,6 +122,13 @@ async function verify() {
     });
     assert(importPreview.rowCount === 1, "Import preview should parse one row.");
     assert(importPreview.mappedRows[0].values.name === "Import Client", "Import preview should map client name.");
+    const appliedImport = await request(`/api/import/${importPreview.id}/apply`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(appliedImport.created === 1, "Import apply should create one client.");
+    const importedState = await request("/api/state");
+    assert(importedState.clients.some((item) => item.name === "Import Client"), "Applied import should add the client.");
 
     const waitlistEntry = state.waitlist[0];
     const waitlistAppointment = await request(`/api/waitlist/${waitlistEntry.id}/schedule`, {
