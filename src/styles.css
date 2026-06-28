@@ -788,9 +788,27 @@ textarea {
   font-size: 14px;
 }
 
+.section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.section-row h3 {
+  margin: 0;
+}
+
+.section-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .activity-item {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
 }
@@ -845,6 +863,18 @@ textarea {
   color: var(--brand-dark);
   font-size: 12px;
   font-weight: 900;
+}
+
+.activity-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.activity-heading strong,
+.activity-item small {
+  overflow-wrap: anywhere;
 }
 
 .activity-item small {

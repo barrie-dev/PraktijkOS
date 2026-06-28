@@ -439,12 +439,23 @@ function clientsView(state) {
           </section>
 
           <section class="dossier-section wide">
-            <h3>Activiteit</h3>
+            <div class="section-row">
+              <h3>Dossiertimeline</h3>
+              <span>${activity.length} items</span>
+            </div>
             <div class="activity-list">
               ${activity.map((item) => `
                 <article class="activity-item">
                   <span>${escapeHtml(item.type)}</span>
-                  <div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></div>
+                  <div>
+                    <div class="activity-heading">
+                      <strong>${escapeHtml(item.title)}</strong>
+                      ${badge(item.status, item.signal)}
+                    </div>
+                    <small>${escapeHtml(item.detail)}</small>
+                    <small>${escapeHtml(item.moment)}</small>
+                  </div>
+                  ${can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(item.source)}" type="button">AI</button>` : ""}
                 </article>
               `).join("") || `<p class="empty-state">Nog geen activiteit.</p>`}
             </div>
@@ -458,22 +469,83 @@ function clientsView(state) {
 function clientActivity(state, client) {
   if (!client) return [];
   const items = [];
+
+  const signalFor = (status = "") => {
+    if (["No-show risico", "Herinnering", "Ingetrokken", "Geannuleerd"].includes(status)) return "danger";
+    if (["Concept", "Review nodig", "Onvolledig", "Intake ontbreekt", "Open", "Voorstel"].includes(status)) return "warning";
+    return "success";
+  };
+
+  const addItem = (item) => {
+    items.push({
+      signal: signalFor(item.status),
+      source: `${client.name}: ${item.type} - ${item.title}. ${item.detail}`,
+      ...item
+    });
+  };
+
   state.appointments.filter((item) => item.clientId === client.id).forEach((item) => {
-    items.push({ type: "Afspraak", title: `${item.time} / ${item.type}`, detail: `${item.clinician} / ${item.status}` });
+    addItem({
+      type: "Afspraak",
+      title: item.type,
+      detail: `${item.clinician} / ${item.location}`,
+      status: item.status,
+      moment: `Vandaag ${item.time}`,
+      order: 70 + Number(item.time.replace(":", "."))
+    });
   });
   state.intakes.filter((item) => item.clientId === client.id).forEach((item) => {
-    items.push({ type: "Intake", title: item.status, detail: item.answers.hulpvraag });
+    addItem({
+      type: "Intake",
+      title: item.answers.hulpvraag,
+      detail: `${item.answers.voorkeur || "Geen voorkeur"} / ${item.answers.voorgeschiedenis || "Geen voorgeschiedenis"}`,
+      status: item.status,
+      moment: item.submittedAt || "Nog niet ingediend",
+      order: item.submittedAt ? 90 : 40
+    });
   });
   state.documents.filter((item) => item.clientId === client.id).forEach((item) => {
-    items.push({ type: "Document", title: item.title, detail: `${item.type} / ${item.status}` });
+    addItem({
+      type: "Document",
+      title: item.title,
+      detail: item.type,
+      status: item.status,
+      moment: item.createdAt || "Document",
+      order: 60
+    });
   });
   (state.notes || []).filter((item) => item.clientId === client.id).forEach((item) => {
-    items.push({ type: "Nota", title: item.title, detail: `${item.author} / ${item.status}` });
+    addItem({
+      type: "Nota",
+      title: item.title,
+      detail: item.body || item.author,
+      status: item.status,
+      moment: item.createdAt || "Sessienota",
+      order: 80
+    });
   });
   state.messages.filter((item) => item.clientId === client.id).forEach((item) => {
-    items.push({ type: "Bericht", title: item.subject, detail: `${item.channel} / ${item.status}` });
+    addItem({
+      type: "Bericht",
+      title: item.subject,
+      detail: item.body || item.channel,
+      status: item.status,
+      moment: item.channel,
+      order: 50
+    });
   });
-  return items.slice(0, 8);
+  state.invoices.filter((item) => item.clientId === client.id || item.client === client.name).forEach((item) => {
+    addItem({
+      type: "Factuur",
+      title: formatEuro(item.amount),
+      detail: item.channel,
+      status: item.status,
+      moment: item.paidAt || item.reminderSentAt || "Facturatie",
+      order: 30
+    });
+  });
+
+  return items.sort((a, b) => b.order - a.order || a.type.localeCompare(b.type)).slice(0, 12);
 }
 
 function intakeView(state) {
