@@ -10,6 +10,7 @@ import {
   addTeamMember,
   approveCurrentDraft,
   bootstrapState,
+  changeAppointmentStatus,
   changeInvoiceChannel,
   closeModal,
   completeTask,
@@ -191,6 +192,10 @@ function handleChange(event) {
 
   if (target.dataset.action === "invoice-channel") {
     changeInvoiceChannel(target.dataset.invoiceId, target.value).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "appointment-status") {
+    changeAppointmentStatus(target.dataset.appointmentId, target.value).then((result) => showToast(result.message));
   }
 }
 

@@ -32,6 +32,8 @@ function badge(label, signal = "success") {
   return `<span class="badge ${signal}">${escapeHtml(label)}</span>`;
 }
 
+const appointmentStatuses = ["Nieuw", "Aanwezig", "Klaar voor facturatie", "Intake ontbreekt", "Opvolging nodig", "No-show risico", "Geannuleerd"];
+
 const permissionsByRole = {
   Praktijkhouder: ["practice", "team", "care", "scheduling", "billing", "ai", "tasks"],
   Zorgverlener: ["care", "scheduling", "ai", "tasks"],
@@ -283,6 +285,9 @@ function agendaView(state) {
           <p>${escapeHtml(appointment.type)}</p>
           <span>${escapeHtml(appointment.clinician)} / ${escapeHtml(appointment.location)}</span>
           <p>${escapeHtml(appointment.aiHint)}</p>
+          <label class="compact-select"><span>Status</span><select data-action="appointment-status" data-appointment-id="${escapeHtml(appointment.id)}">
+            ${appointmentStatuses.map((status) => `<option ${appointment.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
+          </select></label>
           ${can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(`${appointment.client}: ${appointment.aiHint}`)}" type="button">AI actie</button>` : ""}
         </article>
       `).join("")}

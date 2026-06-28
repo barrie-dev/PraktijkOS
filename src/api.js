@@ -52,6 +52,13 @@ export async function createAppointment(payload) {
   });
 }
 
+export async function updateAppointment(appointmentId, payload) {
+  return request(`/api/appointments/${appointmentId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function createDraft(payload) {
   return request("/api/ai/drafts", {
     method: "POST",

@@ -104,6 +104,16 @@ function timestampLabel() {
   }).format(new Date());
 }
 
+function appointmentSignal(status) {
+  if (["No-show risico", "Geannuleerd"].includes(status)) return "danger";
+  if (["Intake ontbreekt", "Opvolging nodig"].includes(status)) return "warning";
+  return "success";
+}
+
+function isBillableAppointment(appointment) {
+  return ["Aanwezig", "Klaar voor facturatie"].includes(appointment.status);
+}
+
 function serveStatic(request, response) {
   const url = new URL(request.url, `http://127.0.0.1:${port}`);
   const relative = url.pathname === "/" ? "index.html" : url.pathname.replace(/^\/+/, "");
@@ -483,6 +493,44 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/appointments\/[^/]+$/)) {
+    if (!requirePermission(response, user, "scheduling")) return;
+    const appointmentId = url.pathname.split("/")[3];
+    const payload = await readJson(request);
+    const appointment = store.appointments.find((item) => item.id === appointmentId);
+
+    if (!appointment) {
+      sendJson(response, 404, { error: "Appointment not found" });
+      return;
+    }
+
+    const status = payload.status || appointment.status;
+    const updatedAppointment = {
+      ...appointment,
+      status,
+      signal: payload.signal || appointmentSignal(status),
+      aiHint: payload.aiHint || appointment.aiHint
+    };
+
+    const nextStore = appendAudit(
+      {
+        ...store,
+        appointments: store.appointments.map((item) => item.id === appointmentId ? updatedAppointment : item),
+        clients: store.clients.map((client) =>
+          client.id === appointment.clientId
+            ? { ...client, adminStatus: `Afspraakstatus: ${status}`, nextAppointment: `${appointment.time} / ${appointment.type}` }
+            : client
+        )
+      },
+      "Afspraakstatus bijgewerkt",
+      `${appointment.client}: ${status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedAppointment);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/ai/drafts") {
     if (!requirePermission(response, user, "ai")) return;
     const payload = await readJson(request);
@@ -607,9 +655,8 @@ async function handleApi(request, response) {
   if (request.method === "POST" && url.pathname === "/api/billing/proposals") {
     if (!requirePermission(response, user, "billing")) return;
     const proposalInvoices = store.appointments
-      .filter((appointment) => !store.invoices.some((invoice) =>
-        invoice.appointmentId === appointment.id || (invoice.clientId === appointment.clientId && invoice.status === "Voorstel")
-      ))
+      .filter(isBillableAppointment)
+      .filter((appointment) => !store.invoices.some((invoice) => invoice.appointmentId === appointment.id))
       .map((appointment) => ({
         id: uid("inv"),
         clientId: appointment.clientId,

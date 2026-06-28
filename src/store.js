@@ -18,6 +18,7 @@ import {
   login,
   logout,
   sendInvoiceReminder,
+  updateAppointment,
   updateInvoice,
   updatePractice
 } from "./api.js";
@@ -330,6 +331,45 @@ export async function addAppointment(formData) {
     `${appointment.client} om ${appointment.time} bij ${appointment.clinician}.`
   ));
   return { ok: true, message: "Afspraak lokaal gepland." };
+}
+
+function appointmentSignal(status) {
+  if (["No-show risico", "Geannuleerd"].includes(status)) return "danger";
+  if (["Intake ontbreekt", "Opvolging nodig"].includes(status)) return "warning";
+  return "success";
+}
+
+export async function changeAppointmentStatus(appointmentId, status) {
+  const appointment = state.appointments.find((item) => item.id === appointmentId);
+  if (!appointment || !status) {
+    return { ok: false, message: "Afspraakstatus kon niet worden bijgewerkt." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updateAppointment(appointmentId, { status });
+      await refreshFromApi();
+      return { ok: true, message: "Afspraakstatus bijgewerkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedAppointment = { ...appointment, status, signal: appointmentSignal(status) };
+  commit(pushAudit(
+    {
+      ...state,
+      appointments: state.appointments.map((item) => item.id === appointmentId ? updatedAppointment : item),
+      clients: state.clients.map((client) =>
+        client.id === appointment.clientId
+          ? { ...client, adminStatus: `Afspraakstatus: ${status}`, nextAppointment: `${appointment.time} / ${appointment.type}` }
+          : client
+      )
+    },
+    "Afspraakstatus bijgewerkt",
+    `${appointment.client}: ${status}.`
+  ));
+  return { ok: true, message: "Afspraakstatus lokaal bijgewerkt." };
 }
 
 export async function recordDraft({ workflow, source, output }) {
