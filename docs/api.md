@@ -27,13 +27,13 @@ npm run api
 - `POST /api/messages`
 - `POST /api/documents`
 
-## Local Storage
+## Local Database
 
-The API writes development data to `data/dev-db.json`. This file is ignored by git.
+The API writes development data to `data/praktijkos.sqlite`. SQLite database files are ignored by git.
 
 ## Next Backend Steps
 
-- Replace file storage with a database.
+- Add migrations as versioned files once the schema stabilizes.
 - Add authentication and practice scoping.
 - Add role-based authorization.
 - Move the remaining offline fallback into a deliberate sync strategy.

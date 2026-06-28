@@ -14,6 +14,7 @@ The first product direction is deliberately focused: help mental-health and para
 - AI Copilot for intake summaries, session notes, referral letters and billing checks
 - Human-in-the-loop approval before AI output is treated as usable
 - API-backed development mode with local fallback
+- SQLite-backed development database
 - AI draft history, task completion and audit logging
 - Practice settings and team role scaffolding
 - Intake capture with AI summarization handoff
@@ -55,3 +56,4 @@ Default API URL: [http://127.0.0.1:8128/api/health](http://127.0.0.1:8128/api/he
 - [AI governance notes](docs/ai-governance.md)
 - [Architecture notes](docs/architecture.md)
 - [Design direction](docs/design-direction.md)
+- [Database notes](docs/database.md)

@@ -6,6 +6,9 @@ node_modules/
 dist/
 coverage/
 data/dev-db.json
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal
 .idea/
 .vscode/
 outputs/

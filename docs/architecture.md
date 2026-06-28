@@ -14,7 +14,7 @@ The current codebase is a dependency-free SPA so the product can be iterated qui
 - `src/app.js`: routing, interactions and bootstrap
 - `scripts/dev-server.js`: local static preview server
 - `server/api-server.js`: dependency-free development API and static server
-- `server/store.js`: local JSON store used by the development API
+- `server/store.js`: SQLite-backed persistence used by the development API
 
 ## Intended Backend Boundary
 
@@ -42,10 +42,10 @@ The frontend currently uses local demo state, and the development API now expose
 - AIDraft
 - AuditLogEntry
 
-## Current Client-Side Persistence
+## Current Persistence
 
-The MVP stores demo state in `localStorage` under `praktijkos.state.v1`.
-This is intentionally temporary and should be replaced by authenticated API storage once backend work starts.
+The development API stores data in `data/praktijkos.sqlite` using Node's built-in `node:sqlite` module.
+The frontend still has an offline fallback in `localStorage`, but normal development mode uses the API and SQLite.
 
 ## Security Baseline
 
