@@ -28,6 +28,7 @@ npm run api
 - `POST /api/team`
 - `POST /api/intakes`
 - `POST /api/messages`
+- `POST /api/notes`
 - `POST /api/documents`
 
 ## Local Database

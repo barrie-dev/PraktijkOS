@@ -122,6 +122,13 @@ export async function createMessage(payload) {
   });
 }
 
+export async function createNote(payload) {
+  return request("/api/notes", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function createDocument(payload) {
   return request("/api/documents", {
     method: "POST",

@@ -26,6 +26,18 @@ const seedData = {
       }
     }
   ],
+  notes: [
+    {
+      id: "note-001",
+      clientId: "cl-002",
+      client: "Olivier Peeters",
+      title: "Sessie 2",
+      body: "Besproken: werkdruk, herstelmomenten en concrete grenzen voor volgende week.",
+      author: "N. Dubois",
+      status: "Concept",
+      createdAt: "Vandaag 10:42"
+    }
+  ],
   messages: [
     {
       id: "msg-001",

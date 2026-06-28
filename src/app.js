@@ -5,6 +5,7 @@ import {
   addDocument,
   addIntake,
   addMessage,
+  addNote,
   addTeamMember,
   approveCurrentDraft,
   bootstrapState,
@@ -217,6 +218,8 @@ async function handleSubmit(event) {
     result = await addIntake(formData);
   } else if (form.dataset.form === "message") {
     result = await addMessage(formData);
+  } else if (form.dataset.form === "note") {
+    result = await addNote(formData);
   } else if (form.dataset.form === "document") {
     result = await addDocument(formData);
   }

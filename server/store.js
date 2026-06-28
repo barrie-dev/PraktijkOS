@@ -10,6 +10,7 @@ const dbPath = path.join(dataDir, "praktijkos.sqlite");
 const collections = [
   "team",
   "intakes",
+  "notes",
   "messages",
   "documents",
   "invoices",

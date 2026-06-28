@@ -6,6 +6,7 @@ import {
   createDocument,
   createIntake,
   createMessage,
+  createNote,
   createTeamMember,
   createDraft,
   fetchApiState,
@@ -75,6 +76,7 @@ const initialState = {
       channel: "Client portal"
     }
   ],
+  notes: [],
   documents: [
     {
       id: "doc-001",
@@ -675,6 +677,43 @@ export async function addDocument(formData) {
     `${document.title} lokaal aangemaakt.`
   ));
   return { ok: true, message: "Document lokaal aangemaakt." };
+}
+
+export async function addNote(formData) {
+  const payload = formPayload(formData);
+  const client = state.clients.find((item) => item.id === payload.clientId);
+  if (!client || !payload.title || !payload.body) {
+    return { ok: false, message: "Client, titel en nota zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createNote(payload);
+      await refreshFromApi();
+      setState({ selectedClientId: client.id, view: "clients" });
+      return { ok: true, message: "Sessienota opgeslagen." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const note = {
+    id: uid("note"),
+    clientId: client.id,
+    client: client.name,
+    title: payload.title,
+    body: payload.body,
+    author: state.currentUser?.name || "Zorgverlener",
+    status: payload.status || "Concept",
+    createdAt: nowLabel()
+  };
+
+  commit(pushAudit(
+    { ...state, notes: [note, ...state.notes], selectedClientId: client.id, view: "clients" },
+    "Sessienota aangemaakt",
+    `${note.title} lokaal aangemaakt.`
+  ));
+  return { ok: true, message: "Sessienota lokaal opgeslagen." };
 }
 
 export function resetDemoState() {

@@ -279,6 +279,7 @@ function clientsView(state) {
   const activity = clientActivity(state, selected);
   const clientAppointments = state.appointments.filter((item) => item.clientId === selected.id);
   const clientIntakes = state.intakes.filter((item) => item.clientId === selected.id);
+  const clientNotes = (state.notes || []).filter((item) => item.clientId === selected.id);
   const clientMessages = state.messages.filter((item) => item.clientId === selected.id);
   const clientDocuments = state.documents.filter((item) => item.clientId === selected.id);
   const clientInvoices = state.invoices.filter((item) => item.client === selected.name);
@@ -288,6 +289,7 @@ function clientsView(state) {
     .reduce((total, item) => total + Number(item.amount || 0), 0);
   const dossierReadiness = [
     { label: "Intake", done: clientIntakes.length > 0 },
+    { label: "Nota's", done: clientNotes.length > 0 },
     { label: "Planning", done: clientAppointments.length > 0 },
     { label: "Documenten", done: clientDocuments.length > 0 },
     { label: "Communicatie", done: clientMessages.length > 0 },
@@ -368,6 +370,24 @@ function clientsView(state) {
             </div>
           </section>
 
+          <form class="dossier-section" data-form="note">
+            <h3>Sessienota</h3>
+            <input type="hidden" name="clientId" value="${escapeHtml(selected.id)}">
+            <label class="field"><span>Titel</span><input name="title" value="Nieuwe sessienota" required></label>
+            <label class="field"><span>Nota</span><textarea name="body" rows="5" placeholder="Bespreking, observaties, afspraken en opvolging" required></textarea></label>
+            <label class="field"><span>Status</span><select name="status"><option>Concept</option><option>Review nodig</option><option>Afgewerkt</option></select></label>
+            <button class="primary-action" type="submit">Nota opslaan</button>
+          </form>
+
+          <section class="dossier-section">
+            <h3>Nota's</h3>
+            <div class="mini-list">
+              ${clientNotes.map((note) => `
+                <article><div><strong>${escapeHtml(note.title)}</strong><span>${escapeHtml(note.author)} / ${escapeHtml(note.status)} / ${escapeHtml(note.createdAt)}</span></div></article>
+              `).join("") || `<p class="empty-state">Nog geen sessienota's.</p>`}
+            </div>
+          </section>
+
           <section class="dossier-section wide">
             <h3>Activiteit</h3>
             <div class="activity-list">
@@ -396,6 +416,9 @@ function clientActivity(state, client) {
   });
   state.documents.filter((item) => item.clientId === client.id).forEach((item) => {
     items.push({ type: "Document", title: item.title, detail: `${item.type} / ${item.status}` });
+  });
+  (state.notes || []).filter((item) => item.clientId === client.id).forEach((item) => {
+    items.push({ type: "Nota", title: item.title, detail: `${item.author} / ${item.status}` });
   });
   state.messages.filter((item) => item.clientId === client.id).forEach((item) => {
     items.push({ type: "Bericht", title: item.subject, detail: `${item.channel} / ${item.status}` });

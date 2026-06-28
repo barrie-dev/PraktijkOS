@@ -293,6 +293,37 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/notes") {
+    if (!requirePermission(response, user, "care")) return;
+    const payload = await readJson(request);
+    const client = store.clients.find((item) => item.id === payload.clientId);
+    if (!client || !payload.title || !payload.body) {
+      sendJson(response, 422, { error: "clientId, title and body are required" });
+      return;
+    }
+
+    const note = {
+      id: uid("note"),
+      clientId: client.id,
+      client: client.name,
+      title: payload.title,
+      body: payload.body,
+      author: user.name,
+      status: payload.status || "Concept",
+      createdAt: new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date())
+    };
+
+    const nextStore = appendAudit(
+      { ...store, notes: [note, ...store.notes] },
+      "Sessienota aangemaakt",
+      `${note.title} voor ${note.client}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, note);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/documents") {
     if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);
