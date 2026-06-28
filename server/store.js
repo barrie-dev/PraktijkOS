@@ -137,20 +137,20 @@ function seedIfEmpty() {
 
   seedRelationalTables();
 
-  const users = instance.prepare("SELECT COUNT(*) AS count FROM users").get();
-  if (users.count === 0) {
-    const salt = crypto.randomBytes(16).toString("hex");
-    instance
-      .prepare("INSERT INTO users(id, email, name, role, password_hash, salt) VALUES(?, ?, ?, ?, ?, ?)")
-      .run(
-        "usr-admin",
-        "admin@praktijkos.local",
-        "Praktijkhouder",
-        "Praktijkhouder",
-        hashPassword("praktijkos", salt),
-        salt
-      );
-  }
+  ensureSeedUser("usr-admin", "admin@praktijkos.local", "Praktijkhouder", "Praktijkhouder");
+  ensureSeedUser("usr-care", "zorg@praktijkos.local", "Zorgverlener", "Zorgverlener");
+  ensureSeedUser("usr-admin-office", "onthaal@praktijkos.local", "Onthaal", "Administratie");
+}
+
+function ensureSeedUser(id, email, name, role) {
+  const instance = db;
+  const existing = instance.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  if (existing) return;
+
+  const salt = crypto.randomBytes(16).toString("hex");
+  instance
+    .prepare("INSERT INTO users(id, email, name, role, password_hash, salt) VALUES(?, ?, ?, ?, ?, ?)")
+    .run(id, email, name, role, hashPassword("praktijkos", salt), salt);
 }
 
 function seedRelationalTables() {

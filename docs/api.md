@@ -34,12 +34,17 @@ npm run api
 
 The API writes development data to `data/praktijkos.sqlite`. SQLite database files are ignored by git.
 
-Most API endpoints require an authenticated session cookie. The local seed user is documented in `docs/database.md`.
+Most API endpoints require an authenticated session cookie. Mutating endpoints also enforce the first role permissions:
+
+- `Praktijkhouder`: practice setup, team, care, scheduling, billing, AI review and tasks.
+- `Zorgverlener`: care, scheduling, AI review and tasks.
+- `Administratie`: scheduling, billing and tasks.
+
+The local seed users are documented in `docs/database.md`.
 
 ## Next Backend Steps
 
 - Add migrations as versioned files once the schema stabilizes.
-- Add authentication and practice scoping.
-- Add role-based authorization.
+- Add practice scoping to every table.
 - Move the remaining offline fallback into a deliberate sync strategy.
 - Add validation schemas and automated tests.

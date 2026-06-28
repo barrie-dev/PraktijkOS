@@ -77,6 +77,22 @@ function readJson(request) {
   });
 }
 
+const permissionsByRole = {
+  Praktijkhouder: ["practice", "team", "care", "scheduling", "billing", "ai", "tasks"],
+  Zorgverlener: ["care", "scheduling", "ai", "tasks"],
+  Administratie: ["scheduling", "billing", "tasks"]
+};
+
+function hasPermission(user, permission) {
+  return Boolean(permissionsByRole[user.role]?.includes(permission));
+}
+
+function requirePermission(response, user, permission) {
+  if (hasPermission(user, permission)) return true;
+  sendJson(response, 403, { error: "Je hebt geen toegang tot deze actie." });
+  return false;
+}
+
 function serveStatic(request, response) {
   const url = new URL(request.url, `http://127.0.0.1:${port}`);
   const relative = url.pathname === "/" ? "index.html" : url.pathname.replace(/^\/+/, "");
@@ -167,6 +183,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "PUT" && url.pathname === "/api/practice") {
+    if (!requirePermission(response, user, "practice")) return;
     const payload = await readJson(request);
     const practice = {
       ...store.practice,
@@ -191,6 +208,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/team") {
+    if (!requirePermission(response, user, "team")) return;
     const payload = await readJson(request);
     if (!payload.name || !payload.role) {
       sendJson(response, 422, { error: "name and role are required" });
@@ -215,6 +233,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/intakes") {
+    if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);
     const client = store.clients.find((item) => item.id === payload.clientId);
     if (!client || !payload.hulpvraag) {
@@ -246,6 +265,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/messages") {
+    if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);
     const client = store.clients.find((item) => item.id === payload.clientId);
     if (!client || !payload.subject || !payload.body) {
@@ -274,6 +294,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/documents") {
+    if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);
     const client = store.clients.find((item) => item.id === payload.clientId);
     if (!client || !payload.title || !payload.type) {
@@ -301,6 +322,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/clients") {
+    if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);
     if (!payload.name || !payload.track || !payload.clinician) {
       sendJson(response, 422, { error: "name, track and clinician are required" });
@@ -330,6 +352,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/appointments") {
+    if (!requirePermission(response, user, "scheduling")) return;
     const payload = await readJson(request);
     const client = store.clients.find((item) => item.id === payload.clientId);
     if (!client || !payload.time || !payload.type || !payload.clinician) {
@@ -361,6 +384,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/ai/drafts") {
+    if (!requirePermission(response, user, "ai")) return;
     const payload = await readJson(request);
     if (!payload.workflow || !payload.output) {
       sendJson(response, 422, { error: "workflow and output are required" });
@@ -389,6 +413,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname.match(/^\/api\/ai\/drafts\/[^/]+\/approve$/)) {
+    if (!requirePermission(response, user, "ai")) return;
     const draftId = url.pathname.split("/")[4];
     const approvedAt = new Intl.DateTimeFormat("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date());
     const draftExists = store.aiDrafts.some((draft) => draft.id === draftId);
@@ -414,6 +439,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/billing/proposals") {
+    if (!requirePermission(response, user, "billing")) return;
     const proposalInvoices = store.appointments
       .filter((appointment) => !store.invoices.some((invoice) => invoice.client === appointment.client && invoice.status === "Voorstel"))
       .map((appointment) => ({
@@ -435,6 +461,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "PATCH" && url.pathname.match(/^\/api\/invoices\/[^/]+$/)) {
+    if (!requirePermission(response, user, "billing")) return;
     const invoiceId = url.pathname.split("/")[3];
     const payload = await readJson(request);
     const invoice = store.invoices.find((item) => item.id === invoiceId);
@@ -468,6 +495,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname.match(/^\/api\/invoices\/[^/]+\/reminder$/)) {
+    if (!requirePermission(response, user, "billing")) return;
     const invoiceId = url.pathname.split("/")[3];
     const invoice = store.invoices.find((item) => item.id === invoiceId);
 
@@ -492,6 +520,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "POST" && url.pathname.match(/^\/api\/tasks\/[^/]+\/complete$/)) {
+    if (!requirePermission(response, user, "tasks")) return;
     const taskId = url.pathname.split("/")[3];
     const nextStore = appendAudit(
       {

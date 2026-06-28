@@ -29,12 +29,20 @@ This gives us durable database persistence now, with strict tables for the first
 
 ## Local Login
 
-The development seed creates one local account:
+The development seed creates local accounts for the first role model:
 
 ```text
 admin@praktijkos.local
 praktijkos
+
+zorg@praktijkos.local
+praktijkos
+
+onthaal@praktijkos.local
+praktijkos
 ```
+
+The password is the same in local development only. The roles are `Praktijkhouder`, `Zorgverlener` and `Administratie`.
 
 ## Next Step
 

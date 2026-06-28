@@ -48,7 +48,7 @@ Clients and appointments are stored in relational tables with a foreign-key link
 
 ## Security Baseline
 
-- Role-based access
+- Role-based write access for practice, team, care, scheduling, billing, AI review and tasks
 - Per-dossier authorization
 - Audit logging
 - Data retention settings
