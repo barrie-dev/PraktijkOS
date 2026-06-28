@@ -9,7 +9,10 @@ import {
   createTeamMember,
   createDraft,
   fetchApiState,
+  fetchSession,
   generateBillingProposals,
+  login,
+  logout,
   sendInvoiceReminder,
   updateInvoice,
   updatePractice
@@ -22,6 +25,9 @@ const initialState = {
   view: "dashboard",
   locale: "NL",
   apiStatus: "local",
+  authStatus: "checking",
+  currentUser: null,
+  loginError: "",
   isLoading: false,
   selectedClientId: clients[0].id,
   appointmentFilter: "",
@@ -156,6 +162,7 @@ function mergeServerState(serverState) {
     ...state,
     ...serverState,
     apiStatus: "connected",
+    authStatus: "authenticated",
     isLoading: false,
     modal: null,
     selectedClientId: serverState.clients?.[0]?.id || state.selectedClientId
@@ -170,10 +177,34 @@ async function refreshFromApi() {
 export async function bootstrapState() {
   setState({ isLoading: true });
   try {
+    const session = await fetchSession();
+    setState({ authStatus: "authenticated", currentUser: session.user, loginError: "" });
     await refreshFromApi();
   } catch {
-    setState({ apiStatus: "local", isLoading: false });
+    setState({ apiStatus: "local", authStatus: "unauthenticated", currentUser: null, isLoading: false });
   }
+}
+
+export async function loginUser(formData) {
+  const payload = formPayload(formData);
+  try {
+    const result = await login(payload);
+    setState({ authStatus: "authenticated", currentUser: result.user, loginError: "", isLoading: true });
+    await refreshFromApi();
+    return { ok: true, message: "Welkom." };
+  } catch (error) {
+    setState({ authStatus: "unauthenticated", currentUser: null, loginError: error.message || "Aanmelden mislukt.", isLoading: false });
+    return { ok: false, message: "Aanmelden mislukt." };
+  }
+}
+
+export async function logoutUser() {
+  try {
+    await logout();
+  } finally {
+    setState({ authStatus: "unauthenticated", currentUser: null, apiStatus: "local" });
+  }
+  return { ok: true, message: "Afgemeld." };
 }
 
 export function getState() {

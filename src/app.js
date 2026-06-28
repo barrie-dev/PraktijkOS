@@ -13,6 +13,8 @@ import {
   completeTask,
   createInvoiceProposals,
   getState,
+  loginUser,
+  logoutUser,
   openModal,
   recordDraft,
   markInvoicePaid,
@@ -65,6 +67,12 @@ async function handleClick(event) {
   if (action === "toggle-locale") {
     setState({ locale: getState().locale === "NL" ? "FR" : "NL" });
     showToast("Taalcontext gewisseld.");
+    return;
+  }
+
+  if (action === "logout") {
+    const result = await logoutUser();
+    showToast(result.message);
     return;
   }
 
@@ -194,6 +202,8 @@ async function handleSubmit(event) {
   let result;
   if (form.dataset.form === "client") {
     result = await addClient(formData);
+  } else if (form.dataset.form === "login") {
+    result = await loginUser(formData);
   } else if (form.dataset.form === "appointment") {
     result = await addAppointment(formData);
   } else if (form.dataset.form === "practice") {

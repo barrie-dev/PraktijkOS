@@ -1,5 +1,6 @@
 async function request(path, options = {}) {
   const response = await fetch(path, {
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {})
@@ -17,6 +18,24 @@ async function request(path, options = {}) {
 
 export async function fetchApiState() {
   return request("/api/state");
+}
+
+export async function fetchSession() {
+  return request("/api/auth/session");
+}
+
+export async function login(payload) {
+  return request("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function logout() {
+  return request("/api/auth/logout", {
+    method: "POST",
+    body: JSON.stringify({})
+  });
 }
 
 export async function createClient(payload) {

@@ -33,6 +33,10 @@ function badge(label, signal = "success") {
 }
 
 function shell(state) {
+  if (state.authStatus !== "authenticated") {
+    return loginView(state);
+  }
+
   const nav = [
     ["dashboard", "D", "Dashboard"],
     ["agenda", "A", "Agenda"],
@@ -71,7 +75,9 @@ function shell(state) {
           </div>
           <div class="topbar-actions">
             <span class="connection-pill">${state.apiStatus === "connected" ? "Live opslag" : "Offline opslag"}</span>
+            <span class="user-pill">${escapeHtml(state.currentUser?.name || "Gebruiker")}</span>
             <button class="icon-button" data-action="toggle-locale" type="button">${state.locale}</button>
+            <button class="ghost-action" data-action="logout" type="button">Afmelden</button>
             <button class="primary-action" data-action="new-appointment" type="button">Nieuwe afspraak</button>
           </div>
         </header>
@@ -81,6 +87,30 @@ function shell(state) {
     ${state.isLoading ? `<div class="loading-bar">Gegevens synchroniseren...</div>` : ""}
     ${modal(state)}
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  `;
+}
+
+function loginView(state) {
+  return `
+    <main class="login-screen">
+      <section class="login-panel">
+        <div class="brand login-brand">
+          <div class="brand-mark">P</div>
+          <div><strong>PraktijkOS</strong><span>Praktijkbeheer</span></div>
+        </div>
+        <div>
+          <p class="eyebrow">Aanmelden</p>
+          <h1>Welkom terug</h1>
+          <p class="login-copy">Meld je aan om agenda, dossiers, facturatie en AI-concepten te beheren.</p>
+        </div>
+        <form data-form="login" class="login-form">
+          <label class="field"><span>E-mail</span><input name="email" type="email" value="admin@praktijkos.local" autocomplete="username" required></label>
+          <label class="field"><span>Wachtwoord</span><input name="password" type="password" value="praktijkos" autocomplete="current-password" required></label>
+          ${state.loginError ? `<p class="form-error">${escapeHtml(state.loginError)}</p>` : ""}
+          <button class="primary-action" type="submit">Aanmelden</button>
+        </form>
+      </section>
+    </main>
   `;
 }
 

@@ -1,7 +1,16 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { appendAudit, readStore, uid, writeStore } = require("./store");
+const {
+  appendAudit,
+  createSession,
+  deleteSession,
+  getSession,
+  readStore,
+  uid,
+  verifyUser,
+  writeStore
+} = require("./store");
 
 const root = path.resolve(__dirname, "..");
 const port = Number(process.argv[2] || process.env.PORT || 8128);
@@ -20,6 +29,27 @@ function sendJson(response, status, body) {
     "Cache-Control": "no-store"
   });
   response.end(JSON.stringify(body, null, 2));
+}
+
+function parseCookies(request) {
+  return Object.fromEntries(
+    String(request.headers.cookie || "")
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const index = part.indexOf("=");
+        return [part.slice(0, index), decodeURIComponent(part.slice(index + 1))];
+      })
+  );
+}
+
+function sessionCookie(token, maxAgeSeconds) {
+  return `praktijkos_session=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`;
+}
+
+function clearSessionCookie() {
+  return "praktijkos_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0";
 }
 
 function readJson(request) {
@@ -75,12 +105,51 @@ function serveStatic(request, response) {
 
 async function handleApi(request, response) {
   const url = new URL(request.url, `http://127.0.0.1:${port}`);
-  const store = readStore();
 
   if (request.method === "GET" && url.pathname === "/api/health") {
-    sendJson(response, 200, { ok: true, service: "PraktijkOS API" });
+    sendJson(response, 200, { ok: true, service: "PraktijkOS" });
     return;
   }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/login") {
+    const payload = await readJson(request);
+    const user = verifyUser(payload.email, payload.password);
+    if (!user) {
+      sendJson(response, 401, { error: "Ongeldige login." });
+      return;
+    }
+
+    const session = createSession(user.id);
+    response.setHeader("Set-Cookie", sessionCookie(session.token, 60 * 60 * 12));
+    sendJson(response, 200, { user });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/logout") {
+    const cookies = parseCookies(request);
+    deleteSession(cookies.praktijkos_session);
+    response.setHeader("Set-Cookie", clearSessionCookie());
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/auth/session") {
+    const user = getSession(parseCookies(request).praktijkos_session);
+    if (!user) {
+      sendJson(response, 401, { error: "Niet aangemeld." });
+      return;
+    }
+    sendJson(response, 200, { user });
+    return;
+  }
+
+  const user = getSession(parseCookies(request).praktijkos_session);
+  if (!user) {
+    sendJson(response, 401, { error: "Niet aangemeld." });
+    return;
+  }
+
+  const store = readStore();
 
   if (request.method === "GET" && url.pathname === "/api/dashboard") {
     sendJson(response, 200, {

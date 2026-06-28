@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { DatabaseSync } = require("node:sqlite");
 const { seedData } = require("./seed-data");
 
@@ -56,6 +57,26 @@ function migrate() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_records_collection ON records(collection);
+
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      salt TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
   `);
 }
 
@@ -84,6 +105,82 @@ function seedIfEmpty() {
       throw error;
     }
   }
+
+  const users = instance.prepare("SELECT COUNT(*) AS count FROM users").get();
+  if (users.count === 0) {
+    const salt = crypto.randomBytes(16).toString("hex");
+    instance
+      .prepare("INSERT INTO users(id, email, name, role, password_hash, salt) VALUES(?, ?, ?, ?, ?, ?)")
+      .run(
+        "usr-admin",
+        "admin@praktijkos.local",
+        "Praktijkhouder",
+        "Praktijkhouder",
+        hashPassword("praktijkos", salt),
+        salt
+      );
+  }
+}
+
+function hashPassword(password, salt) {
+  return crypto.pbkdf2Sync(password, salt, 120000, 32, "sha256").toString("hex");
+}
+
+function publicUser(user) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role
+  };
+}
+
+function verifyUser(email, password) {
+  const user = database().prepare("SELECT * FROM users WHERE email = ?").get(String(email || "").toLowerCase());
+  if (!user || !password) return null;
+
+  const candidate = Buffer.from(hashPassword(password, user.salt), "hex");
+  const expected = Buffer.from(user.password_hash, "hex");
+  if (candidate.length !== expected.length || !crypto.timingSafeEqual(candidate, expected)) {
+    return null;
+  }
+
+  return publicUser(user);
+}
+
+function createSession(userId) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  const expiresAt = Date.now() + 1000 * 60 * 60 * 12;
+  database()
+    .prepare("INSERT INTO sessions(token, user_id, expires_at) VALUES(?, ?, ?)")
+    .run(token, userId, expiresAt);
+  return { token, expiresAt };
+}
+
+function getSession(token) {
+  if (!token) return null;
+  const row = database()
+    .prepare(`
+      SELECT users.id, users.email, users.name, users.role, sessions.expires_at
+      FROM sessions
+      JOIN users ON users.id = sessions.user_id
+      WHERE sessions.token = ?
+    `)
+    .get(token);
+
+  if (!row) return null;
+  if (row.expires_at < Date.now()) {
+    deleteSession(token);
+    return null;
+  }
+
+  return publicUser(row);
+}
+
+function deleteSession(token) {
+  if (!token) return;
+  database().prepare("DELETE FROM sessions WHERE token = ?").run(token);
 }
 
 function readCollection(collection) {
@@ -179,7 +276,11 @@ function appendAudit(store, event, detail, actor = "PraktijkOS") {
 module.exports = {
   appendAudit,
   dbPath,
+  createSession,
+  deleteSession,
+  getSession,
   readStore,
   uid,
+  verifyUser,
   writeStore
 };
