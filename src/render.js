@@ -32,6 +32,35 @@ function badge(label, signal = "success") {
   return `<span class="badge ${signal}">${escapeHtml(label)}</span>`;
 }
 
+const permissionsByRole = {
+  Praktijkhouder: ["practice", "team", "care", "scheduling", "billing", "ai", "tasks"],
+  Zorgverlener: ["care", "scheduling", "ai", "tasks"],
+  Administratie: ["scheduling", "billing", "tasks"]
+};
+
+const viewPermissions = {
+  dashboard: "tasks",
+  agenda: "scheduling",
+  clients: "care",
+  intake: "care",
+  portal: "care",
+  billing: "billing",
+  ai: "ai",
+  settings: "practice"
+};
+
+function can(state, permission) {
+  return Boolean(permissionsByRole[state.currentUser?.role]?.includes(permission));
+}
+
+function canView(state, view) {
+  return !viewPermissions[view] || can(state, viewPermissions[view]);
+}
+
+function firstAvailableView(state) {
+  return ["dashboard", "agenda", "clients", "billing", "ai", "settings"].find((view) => canView(state, view)) || "dashboard";
+}
+
 function shell(state) {
   if (state.authStatus !== "authenticated") {
     return loginView(state);
@@ -41,6 +70,7 @@ function shell(state) {
     return onboardingView(state);
   }
 
+  const activeView = canView(state, state.view) ? state.view : firstAvailableView(state);
   const nav = [
     ["dashboard", "D", "Dashboard"],
     ["agenda", "A", "Agenda"],
@@ -50,7 +80,7 @@ function shell(state) {
     ["billing", "E", "Facturatie"],
     ["ai", "AI", "AI Copilot"],
     ["settings", "S", "Instellingen"]
-  ];
+  ].filter(([view]) => canView(state, view));
 
   return `
     <div class="app-shell">
@@ -61,31 +91,31 @@ function shell(state) {
         </div>
         <nav class="nav-list" aria-label="Hoofdnavigatie">
           ${nav.map(([view, icon, label]) => `
-            <button class="nav-item ${state.view === view ? "active" : ""}" data-action="navigate" data-view="${view}" type="button">
+            <button class="nav-item ${activeView === view ? "active" : ""}" data-action="navigate" data-view="${view}" type="button">
               <span>${icon}</span>${label}
             </button>
           `).join("")}
         </nav>
         <div class="security-note">
           <span class="status-dot"></span>
-          <div><strong>Review vereist</strong><p>AI-concepten worden pas gebruikt na goedkeuring.</p></div>
+          <div><strong>${can(state, "ai") ? "Review vereist" : "Rolrechten actief"}</strong><p>${can(state, "ai") ? "AI-concepten worden pas gebruikt na goedkeuring." : "Je ziet alleen workflows die bij je rol horen."}</p></div>
         </div>
       </aside>
       <main class="workspace">
         <header class="topbar">
           <div>
             <p class="eyebrow">${escapeHtml(state.practice?.name || "Groepspraktijk")} / ${state.locale}</p>
-            <h1>${viewTitles[state.view]}</h1>
+            <h1>${viewTitles[activeView]}</h1>
           </div>
           <div class="topbar-actions">
             <span class="connection-pill">${state.apiStatus === "connected" ? "Live opslag" : "Offline opslag"}</span>
-            <span class="user-pill">${escapeHtml(state.currentUser?.name || "Gebruiker")}</span>
+            <span class="user-pill">${escapeHtml(state.currentUser?.name || "Gebruiker")} / ${escapeHtml(state.currentUser?.role || "Rol")}</span>
             <button class="icon-button" data-action="toggle-locale" type="button">${state.locale}</button>
             <button class="ghost-action" data-action="logout" type="button">Afmelden</button>
-            <button class="primary-action" data-action="new-appointment" type="button">Nieuwe afspraak</button>
+            ${can(state, "scheduling") ? `<button class="primary-action" data-action="new-appointment" type="button">Nieuwe afspraak</button>` : ""}
           </div>
         </header>
-        ${renderView(state)}
+        ${renderView({ ...state, view: activeView })}
       </main>
     </div>
     ${state.isLoading ? `<div class="loading-bar">Gegevens synchroniseren...</div>` : ""}
@@ -171,16 +201,16 @@ function dashboardView(state) {
       <article class="metric"><span>Risico</span><strong>${noShowCount + pendingIntakes}</strong><small>opvolging nodig</small></article>
     </section>
     <section class="quick-actions">
-      <button class="quick-action" data-action="new-client" type="button"><span>Nieuwe client</span><strong>Dossier starten</strong></button>
-      <button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Formulier verwerken</strong></button>
-      <button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Facturatie</span><strong>Betalingen opvolgen</strong></button>
-      <button class="quick-action" data-action="navigate" data-view="portal" type="button"><span>Portal</span><strong>Bericht of document</strong></button>
+      ${can(state, "care") ? `<button class="quick-action" data-action="new-client" type="button"><span>Nieuwe client</span><strong>Dossier starten</strong></button>` : ""}
+      ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Formulier verwerken</strong></button>` : ""}
+      ${can(state, "billing") ? `<button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Facturatie</span><strong>Betalingen opvolgen</strong></button>` : ""}
+      ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="portal" type="button"><span>Portal</span><strong>Bericht of document</strong></button>` : ""}
     </section>
     <section class="dashboard-grid">
       <div class="panel work-surface">
         <div class="panel-header">
           <div><span class="section-kicker">Dagplanning</span><h2>Vandaag</h2></div>
-          <button class="ghost-action" data-action="new-appointment" type="button">Afspraak plannen</button>
+          ${can(state, "scheduling") ? `<button class="ghost-action" data-action="new-appointment" type="button">Afspraak plannen</button>` : ""}
         </div>
         <div class="day-table">
           ${state.appointments.map((appointment) => `
@@ -206,7 +236,7 @@ function dashboardView(state) {
               <strong>${escapeHtml(task.label)}</strong>
               <span>${escapeHtml(task.owner)} / ${escapeHtml(task.priority)} / ${escapeHtml(task.status || "Open")}</span>
               <div class="inline-actions">
-                <button class="ghost-action" data-action="navigate" data-view="ai" type="button">Open workflow</button>
+                ${can(state, "ai") ? `<button class="ghost-action" data-action="navigate" data-view="ai" type="button">Open workflow</button>` : ""}
                 <button class="ghost-action" data-action="complete-task" data-task-id="${escapeHtml(task.id)}" type="button">Klaar</button>
               </div>
             </article>
@@ -253,7 +283,7 @@ function agendaView(state) {
           <p>${escapeHtml(appointment.type)}</p>
           <span>${escapeHtml(appointment.clinician)} / ${escapeHtml(appointment.location)}</span>
           <p>${escapeHtml(appointment.aiHint)}</p>
-          <button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(`${appointment.client}: ${appointment.aiHint}`)}" type="button">AI actie</button>
+          ${can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(`${appointment.client}: ${appointment.aiHint}`)}" type="button">AI actie</button>` : ""}
         </article>
       `).join("")}
     </section>
