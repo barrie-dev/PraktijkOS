@@ -8,6 +8,12 @@ The current API is a dependency-free Node development server. It is not the fina
 npm run api
 ```
 
+Run the product verification smoke test with:
+
+```powershell
+npm run verify
+```
+
 ## Endpoints
 
 - `GET /api/health`

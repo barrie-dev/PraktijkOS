@@ -4,8 +4,9 @@ const crypto = require("crypto");
 const { DatabaseSync } = require("node:sqlite");
 const { seedData } = require("./seed-data");
 
-const dataDir = path.resolve(__dirname, "..", "data");
-const dbPath = path.join(dataDir, "praktijkos.sqlite");
+const configuredDbPath = process.env.PRAKTIJKOS_DB_PATH ? path.resolve(process.env.PRAKTIJKOS_DB_PATH) : null;
+const dataDir = configuredDbPath ? path.dirname(configuredDbPath) : path.resolve(__dirname, "..", "data");
+const dbPath = configuredDbPath || path.join(dataDir, "praktijkos.sqlite");
 
 const collections = [
   "team",
