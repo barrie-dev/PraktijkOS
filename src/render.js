@@ -1,13 +1,13 @@
 import { getWorkflowLabel } from "./ai.js";
 
 const viewTitles = {
-  dashboard: "Dashboard",
+  dashboard: "Vandaag",
   agenda: "Agenda",
-  clients: "Clienten",
+  clients: "Dossiers",
   intake: "Intake",
-  portal: "Portal",
+  portal: "Berichten",
   billing: "Facturatie",
-  ai: "AI Copilot",
+  ai: "Assistent",
   settings: "Instellingen"
 };
 
@@ -30,6 +30,12 @@ function formatEuro(amount) {
 
 function badge(label, signal = "success") {
   return `<span class="badge ${signal}">${escapeHtml(label)}</span>`;
+}
+
+function clientOptions(state, selectedId = state.selectedClientId) {
+  return state.clients.map((client) =>
+    `<option value="${escapeHtml(client.id)}" ${client.id === selectedId ? "selected" : ""}>${escapeHtml(client.name)}</option>`
+  ).join("");
 }
 
 const appointmentStatuses = ["Nieuw", "Aanwezig", "Klaar voor facturatie", "Intake ontbreekt", "Opvolging nodig", "No-show risico", "Geannuleerd"];
@@ -77,13 +83,13 @@ function shell(state) {
 
   const activeView = canView(state, state.view) ? state.view : firstAvailableView(state);
   const nav = [
-    ["dashboard", "D", "Dashboard"],
+    ["dashboard", "D", "Vandaag"],
     ["agenda", "A", "Agenda"],
-    ["clients", "C", "Clienten"],
+    ["clients", "C", "Dossiers"],
     ["intake", "I", "Intake"],
-    ["portal", "P", "Portal"],
+    ["portal", "B", "Berichten"],
     ["billing", "E", "Facturatie"],
-    ["ai", "AI", "AI Copilot"],
+    ["ai", "AI", "Assistent"],
     ["settings", "S", "Instellingen"]
   ].filter(([view]) => canView(state, view));
 
@@ -103,19 +109,18 @@ function shell(state) {
         </nav>
         <div class="security-note">
           <span class="status-dot"></span>
-          <div><strong>${can(state, "ai") ? "Review vereist" : "Rolrechten actief"}</strong><p>${can(state, "ai") ? "AI-concepten worden pas gebruikt na goedkeuring." : "Je ziet alleen workflows die bij je rol horen."}</p></div>
+          <div><strong>Zorgvuldig werken</strong><p>${can(state, "ai") ? "Concepten worden pas opgeslagen na review." : "Je ziet alleen wat bij je rol hoort."}</p></div>
         </div>
       </aside>
       <main class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow">${escapeHtml(state.practice?.name || "Groepspraktijk")} / ${state.locale}</p>
+            <p class="eyebrow">${escapeHtml(state.practice?.name || "Groepspraktijk")}</p>
             <h1>${viewTitles[activeView]}</h1>
           </div>
           <div class="topbar-actions">
-            <span class="connection-pill">${state.apiStatus === "connected" ? "Live opslag" : "Offline opslag"}</span>
-            <span class="user-pill">${escapeHtml(state.currentUser?.name || "Gebruiker")} / ${escapeHtml(state.currentUser?.role || "Rol")}</span>
-            <button class="icon-button" data-action="toggle-locale" type="button">${state.locale}</button>
+            <span class="connection-pill">${state.apiStatus === "connected" ? "Opgeslagen" : "Lokaal"}</span>
+            <span class="user-pill">${escapeHtml(state.currentUser?.name || "Gebruiker")}</span>
             <button class="ghost-action" data-action="logout" type="button">Afmelden</button>
             ${can(state, "scheduling") ? `<button class="primary-action" data-action="new-appointment" type="button">Nieuwe afspraak</button>` : ""}
           </div>
@@ -201,25 +206,25 @@ function dashboardView(state) {
 
   return `
     <section class="metric-grid">
-      <article class="metric"><span>Vandaag</span><strong>${state.appointments.length}</strong><small>afspraken gepland</small></article>
-      <article class="metric"><span>AI concepten</span><strong>${state.aiDrafts.length}</strong><small>${state.aiDrafts.filter((draft) => draft.status === "Goedgekeurd").length} goedgekeurd</small></article>
-      <article class="metric"><span>Openstaand</span><strong>${formatEuro(openAmount)}</strong><small>${state.invoices.length} facturen</small></article>
-      <article class="metric"><span>Risico</span><strong>${noShowCount + pendingIntakes}</strong><small>opvolging nodig</small></article>
+      <article class="metric"><span>Afspraken</span><strong>${state.appointments.length}</strong><small>vandaag gepland</small></article>
+      <article class="metric"><span>Concepten</span><strong>${state.aiDrafts.length}</strong><small>${state.aiDrafts.filter((draft) => draft.status === "Goedgekeurd").length} klaar na review</small></article>
+      <article class="metric"><span>Te innen</span><strong>${formatEuro(openAmount)}</strong><small>${state.invoices.length} betalingen</small></article>
+      <article class="metric"><span>Aandacht</span><strong>${noShowCount + pendingIntakes}</strong><small>vragen opvolging</small></article>
     </section>
     <section class="quick-actions">
-      ${can(state, "care") ? `<button class="quick-action" data-action="new-client" type="button"><span>Nieuwe client</span><strong>Dossier starten</strong></button>` : ""}
-      ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Formulier verwerken</strong></button>` : ""}
-      ${can(state, "billing") ? `<button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Facturatie</span><strong>Betalingen opvolgen</strong></button>` : ""}
-      ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="portal" type="button"><span>Portal</span><strong>Bericht of document</strong></button>` : ""}
+      ${can(state, "care") ? `<button class="quick-action" data-action="new-client" type="button"><span>Dossier</span><strong>Nieuwe client</strong></button>` : ""}
+      ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Antwoorden vastleggen</strong></button>` : ""}
+      ${can(state, "billing") ? `<button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Betalingen</span><strong>Facturen opvolgen</strong></button>` : ""}
+      ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="portal" type="button"><span>Communicatie</span><strong>Bericht sturen</strong></button>` : ""}
     </section>
     <section class="dashboard-grid">
       <div class="panel wide">
-        <div class="panel-header"><div><span class="section-kicker">Praktijkinzichten</span><h2>Vandaag in cijfers</h2></div></div>
+        <div class="panel-header"><div><span class="section-kicker">Overzicht</span><h2>Wat vraagt vandaag aandacht?</h2></div></div>
         <div class="insight-grid">
-          <article><span>Bezetting</span><strong>${escapeHtml(analytics.occupancyRate ?? 0)}%</strong><small>actieve slots vandaag</small></article>
-          <article><span>No-show risico</span><strong>${escapeHtml(analytics.noShowRisk ?? noShowCount)}</strong><small>afspraken met opvolging</small></article>
-          <article><span>Betaald</span><strong>${formatEuro(analytics.paidRevenue ?? 0)}</strong><small>geregistreerde omzet</small></article>
-          <article><span>Backlog</span><strong>${escapeHtml(analytics.adminBacklog ?? openTasks.length)}</strong><small>taken, intakes en herinneringen</small></article>
+          <article><span>Agenda gevuld</span><strong>${escapeHtml(analytics.occupancyRate ?? 0)}%</strong><small>van de dagcapaciteit</small></article>
+          <article><span>Opvolging</span><strong>${escapeHtml(analytics.noShowRisk ?? noShowCount)}</strong><small>afspraken met signaal</small></article>
+          <article><span>Ontvangen</span><strong>${formatEuro(analytics.paidRevenue ?? 0)}</strong><small>vandaag geregistreerd</small></article>
+          <article><span>Werkvoorraad</span><strong>${escapeHtml(analytics.adminBacklog ?? openTasks.length)}</strong><small>taken open</small></article>
         </div>
       </div>
 
@@ -250,9 +255,9 @@ function dashboardView(state) {
           ${openTasks.slice(0, 5).map((task) => `
             <article class="task-item">
               <strong>${escapeHtml(task.label)}</strong>
-              <span>${escapeHtml(task.owner)} / ${escapeHtml(task.priority)} / ${escapeHtml(task.status || "Open")}</span>
+              <span>${escapeHtml(displayActor(task.owner))} / ${escapeHtml(task.priority)} / ${escapeHtml(task.status || "Open")}</span>
               <div class="inline-actions">
-                ${can(state, "ai") ? `<button class="ghost-action" data-action="navigate" data-view="ai" type="button">Open workflow</button>` : ""}
+                ${can(state, "ai") ? `<button class="ghost-action" data-action="navigate" data-view="ai" type="button">Maak concept</button>` : ""}
                 <button class="ghost-action" data-action="complete-task" data-task-id="${escapeHtml(task.id)}" type="button">Klaar</button>
               </div>
             </article>
@@ -274,7 +279,7 @@ function dashboardView(state) {
       </div>
 
       <div class="panel">
-        <div class="panel-header"><div><span class="section-kicker">Historiek</span><h2>Audit</h2></div></div>
+        <div class="panel-header"><div><span class="section-kicker">Laatste wijzigingen</span><h2>Wat is net gebeurd?</h2></div></div>
         ${auditList(state, 5)}
       </div>
     </section>
@@ -289,8 +294,8 @@ function agendaView(state) {
 
   return `
     <section class="toolbar">
-      <div class="segmented"><button class="selected" type="button">Dag</button><button type="button">Week</button><button type="button">Wachtlijst</button></div>
       <label class="search-field"><span>Zoek</span><input data-action="filter-appointments" type="search" value="${escapeHtml(state.appointmentFilter)}" placeholder="Client, zorgverlener of type"></label>
+      ${can(state, "scheduling") ? `<button class="primary-action" data-action="new-appointment" type="button">Afspraak plannen</button>` : ""}
     </section>
     <section class="schedule-board">
       ${appointments.map((appointment) => `
@@ -321,7 +326,7 @@ function clientsView(state) {
         <label class="search-field"><span>Zoek</span><input data-action="filter-clients" type="search" value="${escapeHtml(state.clientFilter)}" placeholder="Naam, traject of status"></label>
         <button class="primary-action" data-action="new-client" type="button">Nieuwe client</button>
       </section>
-      <section class="panel"><p class="empty-state">Nog geen clienten.</p></section>
+      <section class="panel"><p class="empty-state">Nog geen dossiers.</p></section>
     `;
   }
 
@@ -370,8 +375,9 @@ function clientsView(state) {
 
         <div class="action-strip">
           <button class="primary-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">AI workflow</button>
-          <button class="ghost-action" data-action="new-appointment" type="button">Afspraak</button>
-          <button class="ghost-action" data-action="navigate" data-view="portal" type="button">Bericht</button>
+          <button class="ghost-action" data-action="schedule-client" data-client-id="${escapeHtml(selected.id)}" type="button">Afspraak plannen</button>
+          <button class="ghost-action" data-action="compose-message" data-client-id="${escapeHtml(selected.id)}" type="button">Bericht maken</button>
+          <button class="ghost-action" data-action="start-intake" data-client-id="${escapeHtml(selected.id)}" type="button">Intake aanvullen</button>
           <button class="ghost-action" data-action="export-client" data-client-id="${escapeHtml(selected.id)}" type="button">Dossier export</button>
         </div>
 
@@ -403,9 +409,9 @@ function clientsView(state) {
           <section class="dossier-section">
             <h3>Open acties</h3>
             <div class="dossier-actions">
-              ${!clientIntakes.length ? `<button class="ghost-action" data-action="navigate" data-view="intake" type="button">Intake vastleggen</button>` : ""}
-              ${!clientAppointments.length ? `<button class="ghost-action" data-action="new-appointment" type="button">Eerste afspraak plannen</button>` : ""}
-              ${!clientMessages.length ? `<button class="ghost-action" data-action="navigate" data-view="portal" type="button">Bericht voorbereiden</button>` : ""}
+              ${!clientIntakes.length ? `<button class="ghost-action" data-action="start-intake" data-client-id="${escapeHtml(selected.id)}" type="button">Intake vastleggen</button>` : ""}
+              ${!clientAppointments.length ? `<button class="ghost-action" data-action="schedule-client" data-client-id="${escapeHtml(selected.id)}" type="button">Eerste afspraak plannen</button>` : ""}
+              ${!clientMessages.length ? `<button class="ghost-action" data-action="compose-message" data-client-id="${escapeHtml(selected.id)}" type="button">Bericht voorbereiden</button>` : ""}
               ${clientInvoices.some((item) => item.status === "Open" || item.status === "Herinnering") ? `<button class="ghost-action" data-action="navigate" data-view="billing" type="button">Betaling opvolgen</button>` : ""}
               <button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">AI concept maken</button>
             </div>
@@ -553,7 +559,7 @@ function intakeView(state) {
     <section class="content-grid">
       <form class="panel" data-form="intake">
         <div class="panel-header"><div><h2>Nieuwe intake</h2><p>Leg clientinput vast voor dossier en AI-samenvatting.</p></div></div>
-        <label class="field"><span>Client</span><select name="clientId" required>${state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`).join("")}</select></label>
+        <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
         <label class="field"><span>Hulpvraag</span><textarea name="hulpvraag" rows="4" required></textarea></label>
         <label class="field"><span>Voorkeuren</span><input name="voorkeur" placeholder="Bijv. dinsdagavond, online mogelijk"></label>
         <label class="field"><span>Voorgeschiedenis</span><textarea name="voorgeschiedenis" rows="4"></textarea></label>
@@ -585,13 +591,13 @@ function portalView(state) {
     <section class="settings-grid">
       <form class="panel" data-form="portal-invite">
         <div class="panel-header"><div><h2>Portaaltoegang</h2><p>Maak een tijdelijke toegang voor berichten, documenten en intake-status.</p></div></div>
-        <label class="field"><span>Client</span><select name="clientId" required>${state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`).join("")}</select></label>
+        <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
         <button class="primary-action" type="submit">Toegang maken</button>
       </form>
 
       <form class="panel" data-form="message">
         <div class="panel-header"><div><h2>Nieuw bericht</h2><p>Bereid veilige clientcommunicatie voor.</p></div></div>
-        <label class="field"><span>Client</span><select name="clientId" required>${state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`).join("")}</select></label>
+        <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
         <label class="field"><span>Onderwerp</span><input name="subject" value="Opvolging afspraak" required></label>
         <label class="field"><span>Bericht</span><textarea name="body" rows="5" required></textarea></label>
         <div class="form-grid">
@@ -603,7 +609,7 @@ function portalView(state) {
 
       <form class="panel" data-form="document">
         <div class="panel-header"><div><h2>Document</h2><p>Registreer verslag, attest of nota voor review.</p></div></div>
-        <label class="field"><span>Client</span><select name="clientId" required>${state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`).join("")}</select></label>
+        <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
         <label class="field"><span>Titel</span><input name="title" value="Verslag concept" required></label>
         <div class="form-grid">
           <label class="field"><span>Type</span><select name="type"><option>Verslag</option><option>Attest</option><option>Nota</option><option>Doorverwijsbrief</option></select></label>
@@ -704,7 +710,7 @@ function billingView(state) {
       </div>
       <form class="panel" data-form="invoice">
         <div class="panel-header"><div><h2>Nieuwe factuur</h2><p>Maak een factuur of voorschot buiten de automatische voorstellen.</p></div></div>
-        <label class="field"><span>Client</span><select name="clientId" required>${state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`).join("")}</select></label>
+        <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
         <label class="field"><span>Afspraak</span><select name="appointmentId"><option value="">Geen afspraak koppelen</option>${invoiceAppointments.map((appointment) => `<option value="${escapeHtml(appointment.id)}">${escapeHtml(`${appointment.client} / ${appointment.time} / ${appointment.type}`)}</option>`).join("")}</select></label>
         <div class="form-grid">
           <label class="field"><span>Bedrag</span><input name="amount" type="number" min="1" step="1" value="75" required></label>
@@ -724,7 +730,7 @@ function aiView(state) {
   return `
     <section class="ai-layout">
       <div class="panel">
-        <div class="panel-header"><div><h2>AI Copilot</h2><p>Maak een concept voor intake, nota, verslag of facturatie.</p></div></div>
+        <div class="panel-header"><div><h2>Assistent</h2><p>Maak een concept voor intake, nota, verslag of facturatie.</p></div></div>
         <label class="field"><span>Workflow</span>
           <select data-action="ai-workflow">
             ${["intake", "note", "letter", "billing"].map((workflow) => `<option value="${workflow}" ${state.aiWorkflow === workflow ? "selected" : ""}>${getWorkflowLabel(workflow)}</option>`).join("")}
@@ -732,7 +738,7 @@ function aiView(state) {
         </label>
         <label class="field"><span>Client voor dossieropslag</span>
           <select data-action="ai-client">
-            ${state.clients.map((client) => `<option value="${escapeHtml(client.id)}" ${state.selectedClientId === client.id ? "selected" : ""}>${escapeHtml(client.name)}</option>`).join("")}
+            ${clientOptions(state)}
           </select>
         </label>
         <label class="field"><span>Broncontext</span><textarea data-action="ai-input" rows="9">${escapeHtml(state.aiSource || "Client meldt stressklachten, slaapproblemen en piekeren rond werk. Eerste gesprek, vraag naar kortdurende begeleiding. Wil graag afspraken op dinsdagavond.")}</textarea></label>
@@ -747,11 +753,11 @@ function aiView(state) {
         </div>
       </div>
       <div class="panel wide">
-        <div class="panel-header"><div><h2>AI draft history</h2><p>Alle gegenereerde concepten met status.</p></div></div>
+        <div class="panel-header"><div><h2>Concepten</h2><p>Gegenereerde teksten en hun reviewstatus.</p></div></div>
         ${draftList(state)}
       </div>
       <div class="panel wide">
-        <div class="panel-header"><div><h2>Audit trail</h2><p>Controleerbare historiek voor praktijkhouder en compliance.</p></div></div>
+        <div class="panel-header"><div><h2>Wijzigingen</h2><p>Laatste acties in de praktijk.</p></div></div>
         ${auditList(state)}
       </div>
     </section>
@@ -830,7 +836,9 @@ function auditList(state, limit = 8) {
 }
 
 function displayActor(actor = "") {
-  return actor.includes("API") || actor === "System" ? "PraktijkOS" : actor;
+  if (actor.includes("API") || actor === "System") return "PraktijkOS";
+  if (actor === "AI Copilot") return "Assistent";
+  return actor;
 }
 
 function modal(state) {
@@ -847,7 +855,7 @@ function appointmentModal(state) {
           <div><h2>Nieuwe afspraak</h2><p>Plan een afspraak en werk clientstatus meteen bij.</p></div>
           <button class="icon-button" data-action="close-modal" type="button">Sluit</button>
         </div>
-        <label class="field"><span>Client</span><select name="clientId" required>${state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`).join("")}</select></label>
+        <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
         <div class="form-grid">
           <label class="field"><span>Tijd</span><input name="time" type="time" value="09:00" required></label>
           <label class="field"><span>Locatie</span><input name="location" value="Praktijk" required></label>

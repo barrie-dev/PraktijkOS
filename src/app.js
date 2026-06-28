@@ -95,6 +95,23 @@ async function handleClick(event) {
     return;
   }
 
+  if (action === "schedule-client") {
+    setState({ selectedClientId: target.dataset.clientId, modal: "appointment" });
+    return;
+  }
+
+  if (action === "compose-message") {
+    setState({ selectedClientId: target.dataset.clientId, view: "portal" });
+    showToast("Client staat klaar in het berichtformulier.");
+    return;
+  }
+
+  if (action === "start-intake") {
+    setState({ selectedClientId: target.dataset.clientId, view: "intake" });
+    showToast("Client staat klaar in het intakeformulier.");
+    return;
+  }
+
   if (action === "new-client") {
     openModal("client");
     return;
