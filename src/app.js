@@ -14,6 +14,7 @@ import {
   changeDocumentStatus,
   changeInvoiceChannel,
   changeMessageStatus,
+  changePortalInviteStatus,
   closeModal,
   completeTask,
   completeOnboarding,
@@ -213,6 +214,10 @@ function handleChange(event) {
 
   if (target.dataset.action === "document-status") {
     changeDocumentStatus(target.dataset.documentId, target.value).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "portal-invite-status") {
+    changePortalInviteStatus(target.dataset.inviteId, target.value).then((result) => showToast(result.message));
   }
 }
 

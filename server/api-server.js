@@ -534,6 +534,45 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/portal\/invites\/[^/]+$/)) {
+    if (!requirePermission(response, user, "care")) return;
+    const inviteId = url.pathname.split("/")[4];
+    const payload = await readJson(request);
+    const invite = store.portalInvites.find((item) => item.id === inviteId);
+    const allowedStatuses = ["Actief", "Ingetrokken"];
+    const status = payload.status || invite?.status;
+
+    if (!invite) {
+      sendJson(response, 404, { error: "Portal invite not found" });
+      return;
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      sendJson(response, 422, { error: "status is invalid" });
+      return;
+    }
+
+    const updatedInvite = {
+      ...invite,
+      status,
+      revokedAt: status === "Ingetrokken" ? timestampLabel() : invite.revokedAt,
+      reactivatedAt: status === "Actief" && invite.status !== "Actief" ? timestampLabel() : invite.reactivatedAt
+    };
+
+    const nextStore = appendAudit(
+      {
+        ...store,
+        portalInvites: store.portalInvites.map((item) => item.id === inviteId ? updatedInvite : item)
+      },
+      "Portaaltoegang bijgewerkt",
+      `${updatedInvite.client}: ${updatedInvite.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedInvite);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/notes") {
     if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);

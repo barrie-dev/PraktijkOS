@@ -161,6 +161,13 @@ export async function createPortalInvite(payload) {
   });
 }
 
+export async function updatePortalInvite(inviteId, payload) {
+  return request(`/api/portal/invites/${inviteId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function createNote(payload) {
   return request("/api/notes", {
     method: "POST",

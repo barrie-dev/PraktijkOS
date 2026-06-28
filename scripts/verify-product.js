@@ -218,6 +218,33 @@ async function verify() {
     assert(publicPortal.messages.some((item) => item.subject === conceptMessage.subject), "Portal should expose released messages.");
     assert(publicPortal.documents.some((item) => item.title === reviewDocument.title), "Portal should expose released documents.");
 
+    const revokedInvite = await request(`/api/portal/invites/${invite.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Ingetrokken" })
+    });
+    assert(revokedInvite.status === "Ingetrokken", "Portal invite should be revocable.");
+
+    let revokedPortalStatus = 0;
+    try {
+      await request(`/api/portal/${invite.token}`, {
+        headers: { Cookie: "" }
+      });
+    } catch (error) {
+      revokedPortalStatus = error.status;
+    }
+    assert(revokedPortalStatus === 404, "Revoked portal invite should block public access.");
+
+    const reactivatedInvite = await request(`/api/portal/invites/${invite.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Actief" })
+    });
+    assert(reactivatedInvite.status === "Actief", "Portal invite should be reactivatable.");
+
+    const restoredPortal = await request(`/api/portal/${invite.token}`, {
+      headers: { Cookie: "" }
+    });
+    assert(restoredPortal.client.name === client.name, "Reactivated portal invite should restore public access.");
+
     const draft = await request("/api/ai/generate", {
       method: "POST",
       body: JSON.stringify({ workflow: "note", source: "Client ervaart stress en zoekt opvolging." })

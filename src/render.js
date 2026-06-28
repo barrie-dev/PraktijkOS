@@ -35,6 +35,7 @@ function badge(label, signal = "success") {
 const appointmentStatuses = ["Nieuw", "Aanwezig", "Klaar voor facturatie", "Intake ontbreekt", "Opvolging nodig", "No-show risico", "Geannuleerd"];
 const messageStatuses = ["Concept", "Klaar voor verzending", "Verzonden", "Gearchiveerd"];
 const documentStatuses = ["Review nodig", "Klaar voor delen", "Gedeeld", "Gearchiveerd"];
+const portalInviteStatuses = ["Actief", "Ingetrokken"];
 
 const permissionsByRole = {
   Praktijkhouder: ["practice", "team", "care", "scheduling", "billing", "ai", "tasks"],
@@ -540,12 +541,17 @@ function portalView(state) {
       </form>
 
       <div class="panel wide">
-        <div class="panel-header"><div><h2>Toegangen</h2><p>Actieve cliëntlinks voor de portal.</p></div></div>
+        <div class="panel-header"><div><h2>Toegangen</h2><p>Beheer clientlinks voor de portal.</p></div></div>
         <div class="portal-list">
           ${invites.map((invite) => `
             <article class="portal-item">
               <div><strong>${escapeHtml(invite.client)}</strong><span>${escapeHtml(invite.status)} / aangemaakt door ${escapeHtml(invite.createdBy || "PraktijkOS")}</span><p><a href="${escapeHtml(invite.portalUrl)}" target="_blank" rel="noreferrer">${escapeHtml(invite.portalUrl)}</a></p></div>
-              ${badge(invite.status, invite.status === "Actief" ? "success" : "warning")}
+              <div class="status-stack">
+                ${badge(invite.status, invite.status === "Actief" ? "success" : "warning")}
+                <label class="compact-select"><span>Status</span><select data-action="portal-invite-status" data-invite-id="${escapeHtml(invite.id)}">
+                  ${portalInviteStatuses.map((status) => `<option ${invite.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
+                </select></label>
+              </div>
             </article>
           `).join("") || `<p class="empty-state">Nog geen portaaltoegangen.</p>`}
         </div>

@@ -42,6 +42,7 @@ npm run verify
 - `PATCH /api/messages/:id`
 - `POST /api/notes`
 - `POST /api/portal/invites`
+- `PATCH /api/portal/invites/:id`
 - `GET /api/portal/:token`
 - `POST /api/portal/:token/intake`
 - `POST /api/documents`

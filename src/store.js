@@ -23,6 +23,7 @@ import {
   updateDocument,
   updateInvoice,
   updateMessage,
+  updatePortalInvite,
   updatePractice
 } from "./api.js";
 import { generateDraft } from "./ai.js";
@@ -881,6 +882,33 @@ export async function addPortalInvite(formData) {
     `${client.name} lokaal klaargezet.`
   ));
   return { ok: true, message: "Portaaltoegang lokaal aangemaakt." };
+}
+
+export async function changePortalInviteStatus(inviteId, status) {
+  const invite = state.portalInvites.find((item) => item.id === inviteId);
+  if (!invite) {
+    return { ok: false, message: "Portaaltoegang niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updatePortalInvite(inviteId, { status });
+      await refreshFromApi();
+      return { ok: true, message: "Portaaltoegang bijgewerkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  commit(pushAudit(
+    {
+      ...state,
+      portalInvites: state.portalInvites.map((item) => item.id === inviteId ? { ...item, status } : item)
+    },
+    "Portaaltoegang bijgewerkt",
+    `${invite.client}: ${status}.`
+  ));
+  return { ok: true, message: "Portaaltoegang lokaal bijgewerkt." };
 }
 
 export async function addDocument(formData) {
