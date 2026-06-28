@@ -171,3 +171,38 @@ export const workQueue = [
     action: "message"
   }
 ];
+
+export const dayClose = [
+  {
+    id: "dc-001",
+    label: "Afsprakenstatussen nagekeken",
+    detail: "Controleer aanwezig, no-show en klaar voor facturatie voordat de dag dichtgaat.",
+    category: "Planning",
+    action: "agenda",
+    status: "Open"
+  },
+  {
+    id: "dc-002",
+    label: "Facturatievoorstellen klaargezet",
+    detail: "Maak voorstellen voor billable afspraken en markeer ontvangen betalingen.",
+    category: "Facturatie",
+    action: "billing",
+    status: "Open"
+  },
+  {
+    id: "dc-003",
+    label: "Concepten en documenten gereviewd",
+    detail: "Laat geen AI-concepten, nota's of documenten zonder professionele review achter.",
+    category: "Dossier",
+    action: "ai",
+    status: "Open"
+  },
+  {
+    id: "dc-004",
+    label: "Opvolging voor morgen klaar",
+    detail: "Werk open taken en wachtlijstsignalen bij zodat morgen helder start.",
+    category: "Praktijk",
+    action: "work",
+    status: "Open"
+  }
+];

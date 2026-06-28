@@ -133,6 +133,13 @@ export async function completeTask(taskId) {
   });
 }
 
+export async function completeDayCloseCheck(itemId) {
+  return request(`/api/day-close/${itemId}/complete`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function updatePractice(payload) {
   return request("/api/practice", {
     method: "PUT",

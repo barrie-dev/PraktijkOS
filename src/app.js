@@ -16,6 +16,7 @@ import {
   changeMessageStatus,
   changePortalInviteStatus,
   closeModal,
+  completeDayClose,
   completeTask,
   completeOnboarding,
   createBillingExport,
@@ -243,6 +244,12 @@ async function handleClick(event) {
 
   if (action === "complete-task") {
     const result = await completeTask(target.dataset.taskId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "complete-day-close") {
+    const result = await completeDayClose(target.dataset.itemId);
     showToast(result.message);
   }
 }

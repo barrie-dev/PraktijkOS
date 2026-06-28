@@ -1164,6 +1164,31 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/day-close\/[^/]+\/complete$/)) {
+    if (!requirePermission(response, user, "tasks")) return;
+    const itemId = url.pathname.split("/")[3];
+    const item = (store.dayClose || []).find((check) => check.id === itemId);
+    if (!item) {
+      sendJson(response, 404, { error: "Day close item not found" });
+      return;
+    }
+
+    const nextStore = appendAudit(
+      {
+        ...store,
+        dayClose: (store.dayClose || []).map((check) =>
+          check.id === itemId ? { ...check, status: "Klaar", completedAt: timestampLabel(), completedBy: user.name } : check
+        )
+      },
+      "Dagafsluiting bijgewerkt",
+      `${item.label} gemarkeerd als klaar.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, nextStore.dayClose.find((check) => check.id === itemId));
+    return;
+  }
+
   sendJson(response, 404, { error: "Not found" });
 }
 

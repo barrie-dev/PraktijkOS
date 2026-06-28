@@ -17,6 +17,7 @@ const collections = [
   "documents",
   "waitlist",
   "workQueue",
+  "dayClose",
   "aiDrafts",
   "auditLog"
 ];
@@ -160,6 +161,7 @@ function seedIfEmpty() {
   }
 
   seedCollectionIfEmpty("waitlist");
+  seedCollectionIfEmpty("dayClose");
   seedRelationalTables();
   seedInvoicesTable();
 

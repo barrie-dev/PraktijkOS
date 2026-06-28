@@ -32,11 +32,12 @@
 - Work queues for missing intakes, open invoices and follow-ups
 - Guided task screen with owner, due date, dossier context and direct actions
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
+- Dashboard workload forecast and day-closing checklist
 - Migration tooling from spreadsheets and calendar exports
 
 ## Next Product Slice
 
-- Add dashboard workload forecast and day-closing checklist.
+- Add import preparation for spreadsheet migration.
 
 ## Phase 4: Belgian Integrations
 

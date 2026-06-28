@@ -97,6 +97,7 @@ async function verify() {
     assert(state.clients.length > 0, "Seed clients should be available.");
     assert(state.workQueue.some((task) => task.action), "Seed tasks should include guided workflow actions.");
     assert(state.waitlist.length > 0, "Seed waitlist should be available.");
+    assert(state.dayClose.length > 0, "Seed day close checklist should be available.");
 
     const completedTask = await request("/api/tasks/q-001/complete", {
       method: "POST",
@@ -104,6 +105,13 @@ async function verify() {
     });
     assert(completedTask.status === "Klaar", "Task should be completable.");
     assert(completedTask.completedAt, "Completed task should include completion metadata.");
+
+    const completedDayCheck = await request("/api/day-close/dc-001/complete", {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(completedDayCheck.status === "Klaar", "Day close item should be completable.");
+    assert(completedDayCheck.completedAt, "Completed day close item should include completion metadata.");
 
     const waitlistEntry = state.waitlist[0];
     const waitlistAppointment = await request(`/api/waitlist/${waitlistEntry.id}/schedule`, {

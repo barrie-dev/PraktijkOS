@@ -558,6 +558,7 @@ h2 {
 .intake-list,
 .portal-list,
 .day-table,
+.day-close-list,
 .risk-list,
 .activity-list {
   display: grid;
@@ -576,6 +577,7 @@ h2 {
 .intake-item,
 .portal-item,
 .risk-item,
+.day-close-item,
 .activity-item {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1152,11 +1154,40 @@ textarea {
   gap: 10px;
 }
 
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .insight-grid article {
   padding: 13px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
+}
+
+.forecast-card {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.forecast-card.warning {
+  border-color: var(--warning-line);
+  background: var(--warning-bg);
+}
+
+.forecast-card span,
+.forecast-card p {
+  color: var(--muted);
+}
+
+.forecast-card p {
+  margin: 0;
 }
 
 .insight-grid span,
@@ -1169,6 +1200,27 @@ textarea {
   display: block;
   margin: 5px 0 2px;
   font-size: 22px;
+}
+
+.forecast-card strong {
+  font-size: 24px;
+}
+
+.day-close-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+
+.day-close-item.done {
+  background: var(--success-bg);
+}
+
+.day-close-item p {
+  margin: 7px 0 0;
+  color: var(--muted);
 }
 
 .payment-stack strong {
@@ -1409,6 +1461,7 @@ pre {
   }
 
   .insight-grid,
+  .forecast-grid,
   .dossier-grid,
   .care-strip.dossier-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1451,10 +1504,12 @@ pre {
   .schedule-board,
   .quick-actions,
   .insight-grid,
+  .forecast-grid,
   .invoice-row,
   .invoice-row.rich-row,
   .task-item.rich-task,
   .waitlist-item,
+  .day-close-item,
   .team-row,
   .day-row,
   .care-strip,

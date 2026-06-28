@@ -296,12 +296,44 @@ function renderView(state) {
   return dashboardView(state);
 }
 
+function dashboardForecast(state, openTasks, pendingIntakes, noShowCount) {
+  const openInvoices = state.invoices.filter((invoice) => invoice.status !== "Betaald");
+  const highWaitlist = (state.waitlist || []).filter((entry) => entry.priority === "Hoog").length;
+  const billableAppointments = state.appointments.filter((appointment) => ["Aanwezig", "Klaar voor facturatie"].includes(appointment.status)).length;
+  const openAmount = openInvoices.reduce((total, invoice) => total + Number(invoice.amount || 0), 0);
+  const busyLevel = state.appointments.length >= 8 ? "Vol" : state.appointments.length >= 5 ? "Druk" : "Beheersbaar";
+
+  return [
+    {
+      label: "Dagdruk",
+      value: busyLevel,
+      detail: `${state.appointments.length} afspraken, ${openTasks.filter((task) => task.dueAt === "Vandaag").length} taken vandaag`,
+      signal: state.appointments.length >= 5 ? "warning" : "success"
+    },
+    {
+      label: "Zorgsignalen",
+      value: noShowCount + pendingIntakes + highWaitlist,
+      detail: `${noShowCount} no-show, ${pendingIntakes} intake, ${highWaitlist} wachtlijst hoog`,
+      signal: noShowCount + pendingIntakes + highWaitlist > 0 ? "warning" : "success"
+    },
+    {
+      label: "Facturatie",
+      value: formatEuro(openAmount),
+      detail: `${openInvoices.length} open, ${billableAppointments} klaar voor voorstel`,
+      signal: openInvoices.length ? "warning" : "success"
+    }
+  ];
+}
+
 function dashboardView(state) {
   const openAmount = state.invoices.reduce((total, invoice) => total + invoice.amount, 0);
   const noShowCount = state.appointments.filter((appointment) => appointment.signal === "danger").length;
   const pendingIntakes = state.intakes.filter((intake) => intake.status !== "Ingediend").length;
   const openTasks = state.workQueue.filter((task) => (task.status || "Open") !== "Klaar");
   const analytics = state.analytics || {};
+  const forecast = dashboardForecast(state, openTasks, pendingIntakes, noShowCount);
+  const dayCloseItems = state.dayClose || [];
+  const dayCloseDone = dayCloseItems.filter((item) => item.status === "Klaar").length;
 
   return `
     <section class="metric-grid">
@@ -325,6 +357,19 @@ function dashboardView(state) {
           <article><span>Opvolging</span><strong>${escapeHtml(analytics.noShowRisk ?? noShowCount)}</strong><small>afspraken met signaal</small></article>
           <article><span>Ontvangen</span><strong>${formatEuro(analytics.paidRevenue ?? 0)}</strong><small>vandaag geregistreerd</small></article>
           <article><span>Werkvoorraad</span><strong>${escapeHtml(analytics.adminBacklog ?? openTasks.length)}</strong><small>taken open</small></article>
+        </div>
+      </div>
+
+      <div class="panel wide">
+        <div class="panel-header"><div><span class="section-kicker">Forecast</span><h2>Hoe zwaar wordt de rest van de dag?</h2></div></div>
+        <div class="forecast-grid">
+          ${forecast.map((item) => `
+            <article class="forecast-card ${escapeHtml(item.signal)}">
+              <span>${escapeHtml(item.label)}</span>
+              <strong>${escapeHtml(item.value)}</strong>
+              <p>${escapeHtml(item.detail)}</p>
+            </article>
+          `).join("")}
         </div>
       </div>
 
@@ -356,6 +401,25 @@ function dashboardView(state) {
         <div class="panel-header"><div><span class="section-kicker">Prioriteiten</span><h2>Werkvoorraad</h2></div><button class="ghost-action" data-action="navigate" data-view="work" type="button">Alle taken</button></div>
         <div class="task-list">
           ${openTasks.slice(0, 5).map((task) => taskCard(state, task, true)).join("")}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div><span class="section-kicker">Dagafsluiting</span><h2>${dayCloseDone}/${dayCloseItems.length} klaar</h2></div></div>
+        <div class="day-close-list">
+          ${dayCloseItems.map((item) => `
+            <article class="day-close-item ${item.status === "Klaar" ? "done" : ""}">
+              <div>
+                <div class="task-heading"><strong>${escapeHtml(item.label)}</strong>${badge(item.status || "Open", item.status === "Klaar" ? "success" : "warning")}</div>
+                <span>${escapeHtml(item.category)}${item.completedAt ? ` / klaar ${escapeHtml(item.completedAt)}` : ""}</span>
+                <p>${escapeHtml(item.detail)}</p>
+              </div>
+              <div class="inline-actions">
+                ${item.action ? `<button class="ghost-action" data-action="navigate" data-view="${escapeHtml(item.action)}" type="button">Open</button>` : ""}
+                ${item.status === "Klaar" ? "" : `<button class="primary-action" data-action="complete-day-close" data-item-id="${escapeHtml(item.id)}" type="button">Klaar</button>`}
+              </div>
+            </article>
+          `).join("")}
         </div>
       </div>
 

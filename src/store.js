@@ -1,5 +1,6 @@
 import {
   approveDraft,
+  completeDayCloseCheck,
   completeTask as completeTaskRequest,
   createAppointment,
   createClient,
@@ -29,7 +30,7 @@ import {
   updatePractice
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { appointments, clients, invoices, waitlist, workQueue } from "./data.js";
+import { appointments, clients, dayClose, invoices, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -124,6 +125,7 @@ const initialState = {
   invoices,
   waitlist,
   workQueue,
+  dayClose,
   auditLog: [
     {
       id: "audit-001",
@@ -900,6 +902,31 @@ export async function completeTask(taskId) {
     )
   });
   return { ok: true, message: "Taak lokaal afgewerkt." };
+}
+
+export async function completeDayClose(itemId) {
+  if (state.apiStatus === "connected") {
+    try {
+      await completeDayCloseCheck(itemId);
+      await refreshFromApi();
+      return { ok: true, message: "Dagcheck afgevinkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const item = (state.dayClose || []).find((check) => check.id === itemId);
+  commit(pushAudit(
+    {
+      ...state,
+      dayClose: (state.dayClose || []).map((check) =>
+        check.id === itemId ? { ...check, status: "Klaar", completedAt: nowLabel(), completedBy: state.currentUser?.name || "PraktijkOS" } : check
+      )
+    },
+    "Dagafsluiting bijgewerkt",
+    `${item?.label || itemId} lokaal afgevinkt.`
+  ));
+  return { ok: true, message: "Dagcheck lokaal afgevinkt." };
 }
 
 export async function savePracticeSettings(formData) {

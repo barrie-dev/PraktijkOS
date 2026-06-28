@@ -37,6 +37,7 @@ npm run verify
 - `PATCH /api/invoices/:id`
 - `POST /api/invoices/:id/reminder`
 - `POST /api/tasks/:id/complete`
+- `POST /api/day-close/:id/complete`
 - `PUT /api/practice`
 - `POST /api/team`
 - `POST /api/intakes`
