@@ -18,10 +18,21 @@ The SQLite database, WAL and shared-memory files are ignored by git.
 
 ## Current Schema
 
+- `users`: local platform users.
+- `sessions`: cookie-backed login sessions.
 - `practice`: one row containing practice configuration.
 - `records`: collection-based records for team, clients, appointments, invoices, work queue, intakes, messages, documents, AI drafts and audit log.
 
 This gives us durable database persistence now while keeping the schema flexible during early product development.
+
+## Local Login
+
+The development seed creates one local account:
+
+```text
+admin@praktijkos.local
+praktijkos
+```
 
 ## Next Step
 

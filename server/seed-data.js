@@ -4,7 +4,8 @@ const seedData = {
     language: "NL",
     locations: ["Antwerpen", "Online"],
     paymentMethods: ["Bancontact", "Wero", "Overschrijving"],
-    aiPolicy: "Concepten vereisen professionele review voor opslag of verzending."
+    aiPolicy: "Concepten vereisen professionele review voor opslag of verzending.",
+    onboardingComplete: false
   },
   team: [
     { id: "usr-001", name: "L. Janssens", role: "Praktijkhouder", access: "Volledig" },

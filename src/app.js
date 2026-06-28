@@ -11,6 +11,7 @@ import {
   changeInvoiceChannel,
   closeModal,
   completeTask,
+  completeOnboarding,
   createInvoiceProposals,
   getState,
   loginUser,
@@ -204,6 +205,8 @@ async function handleSubmit(event) {
     result = await addClient(formData);
   } else if (form.dataset.form === "login") {
     result = await loginUser(formData);
+  } else if (form.dataset.form === "onboarding") {
+    result = await completeOnboarding(formData);
   } else if (form.dataset.form === "appointment") {
     result = await addAppointment(formData);
   } else if (form.dataset.form === "practice") {

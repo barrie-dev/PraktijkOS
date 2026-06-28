@@ -195,7 +195,7 @@ function readStore() {
   const practiceRow = instance.prepare("SELECT data FROM practice WHERE id = ?").get("main");
   const store = {
     ...seedData,
-    practice: practiceRow ? JSON.parse(practiceRow.data) : seedData.practice
+    practice: practiceRow ? { ...seedData.practice, ...JSON.parse(practiceRow.data) } : seedData.practice
   };
 
   collections.forEach((collection) => {

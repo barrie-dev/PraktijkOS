@@ -37,6 +37,10 @@ function shell(state) {
     return loginView(state);
   }
 
+  if (!state.practice?.onboardingComplete) {
+    return onboardingView(state);
+  }
+
   const nav = [
     ["dashboard", "D", "Dashboard"],
     ["agenda", "A", "Agenda"],
@@ -87,6 +91,34 @@ function shell(state) {
     ${state.isLoading ? `<div class="loading-bar">Gegevens synchroniseren...</div>` : ""}
     ${modal(state)}
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  `;
+}
+
+function onboardingView(state) {
+  return `
+    <main class="login-screen">
+      <section class="setup-panel">
+        <div class="brand login-brand">
+          <div class="brand-mark">P</div>
+          <div><strong>PraktijkOS</strong><span>Praktijkbeheer</span></div>
+        </div>
+        <div>
+          <p class="eyebrow">Eerste inrichting</p>
+          <h1>Richt je praktijk in</h1>
+          <p class="login-copy">Leg de basis vast voor planning, facturatie, teamwerking en AI-review.</p>
+        </div>
+        <form data-form="onboarding" class="setup-form">
+          <label class="field"><span>Praktijknaam</span><input name="name" value="${escapeHtml(state.practice.name)}" required></label>
+          <div class="form-grid">
+            <label class="field"><span>Taal</span><select name="language"><option ${state.practice.language === "NL" ? "selected" : ""}>NL</option><option ${state.practice.language === "FR" ? "selected" : ""}>FR</option></select></label>
+            <label class="field"><span>Locaties</span><input name="locations" value="${escapeHtml(state.practice.locations.join(", "))}"></label>
+          </div>
+          <label class="field"><span>Betaalmethodes</span><input name="paymentMethods" value="${escapeHtml(state.practice.paymentMethods.join(", "))}"></label>
+          <label class="field"><span>AI reviewbeleid</span><textarea name="aiPolicy" rows="4">${escapeHtml(state.practice.aiPolicy)}</textarea></label>
+          <button class="primary-action" type="submit">Praktijk starten</button>
+        </form>
+      </section>
+    </main>
   `;
 }
 

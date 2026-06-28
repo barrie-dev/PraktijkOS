@@ -11,6 +11,9 @@ npm run api
 ## Endpoints
 
 - `GET /api/health`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/session`
 - `GET /api/dashboard`
 - `GET /api/state`
 - `POST /api/clients`
@@ -30,6 +33,8 @@ npm run api
 ## Local Database
 
 The API writes development data to `data/praktijkos.sqlite`. SQLite database files are ignored by git.
+
+Most API endpoints require an authenticated session cookie. The local seed user is documented in `docs/database.md`.
 
 ## Next Backend Steps
 

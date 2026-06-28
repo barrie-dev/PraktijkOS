@@ -297,6 +297,17 @@ h2 {
   box-shadow: var(--shadow);
 }
 
+.setup-panel {
+  display: grid;
+  gap: 22px;
+  width: min(680px, 100%);
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
 .login-brand {
   padding: 0;
 }
@@ -308,6 +319,11 @@ h2 {
 }
 
 .login-form {
+  display: grid;
+  gap: 14px;
+}
+
+.setup-form {
   display: grid;
   gap: 14px;
 }

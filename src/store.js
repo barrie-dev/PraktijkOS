@@ -43,7 +43,8 @@ const initialState = {
     language: "NL",
     locations: ["Antwerpen", "Online"],
     paymentMethods: ["Bancontact", "Wero", "Overschrijving"],
-    aiPolicy: "Concepten vereisen professionele review voor opslag of verzending."
+    aiPolicy: "Concepten vereisen professionele review voor opslag of verzending.",
+    onboardingComplete: false
   },
   team: [
     { id: "usr-001", name: "L. Janssens", role: "Praktijkhouder", access: "Volledig" },
@@ -486,7 +487,8 @@ export async function savePracticeSettings(formData) {
     language: payload.language,
     locations: payload.locations.split(",").map((item) => item.trim()).filter(Boolean),
     paymentMethods: payload.paymentMethods.split(",").map((item) => item.trim()).filter(Boolean),
-    aiPolicy: payload.aiPolicy
+    aiPolicy: payload.aiPolicy,
+    onboardingComplete: state.practice.onboardingComplete
   };
 
   if (state.apiStatus === "connected") {
@@ -505,6 +507,36 @@ export async function savePracticeSettings(formData) {
     `${practice.name} lokaal opgeslagen.`
   ));
   return { ok: true, message: "Praktijkinstellingen lokaal opgeslagen." };
+}
+
+export async function completeOnboarding(formData) {
+  const payload = formPayload(formData);
+  const practice = {
+    ...state.practice,
+    name: payload.name,
+    language: payload.language,
+    locations: payload.locations.split(",").map((item) => item.trim()).filter(Boolean),
+    paymentMethods: payload.paymentMethods.split(",").map((item) => item.trim()).filter(Boolean),
+    aiPolicy: payload.aiPolicy,
+    onboardingComplete: true
+  };
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updatePractice(practice);
+      await refreshFromApi();
+      return { ok: true, message: "Praktijk is ingesteld." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  commit(pushAudit(
+    { ...state, practice },
+    "Praktijk ingesteld",
+    `${practice.name} is klaar voor gebruik.`
+  ));
+  return { ok: true, message: "Praktijk is lokaal ingesteld." };
 }
 
 export async function addTeamMember(formData) {

@@ -174,7 +174,10 @@ async function handleApi(request, response) {
       language: payload.language || store.practice.language,
       locations: Array.isArray(payload.locations) ? payload.locations : store.practice.locations,
       paymentMethods: Array.isArray(payload.paymentMethods) ? payload.paymentMethods : store.practice.paymentMethods,
-      aiPolicy: payload.aiPolicy || store.practice.aiPolicy
+      aiPolicy: payload.aiPolicy || store.practice.aiPolicy,
+      onboardingComplete: typeof payload.onboardingComplete === "boolean"
+        ? payload.onboardingComplete
+        : store.practice.onboardingComplete
     };
 
     const nextStore = appendAudit(
