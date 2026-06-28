@@ -522,10 +522,24 @@ h2 {
 
 .day-row {
   display: grid;
-  grid-template-columns: 70px minmax(180px, 1fr) 130px 110px auto;
+  grid-template-columns: 70px minmax(180px, 1fr) 130px 110px minmax(160px, auto);
   gap: 12px;
   align-items: center;
   padding: 11px 12px;
+}
+
+.day-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.day-actions .ghost-action,
+.risk-item .ghost-action,
+.schedule-card .ghost-action {
+  min-height: 32px;
+  padding: 0 10px;
 }
 
 .time {

@@ -117,6 +117,11 @@ async function handleClick(event) {
     return;
   }
 
+  if (action === "open-client") {
+    setState({ selectedClientId: target.dataset.clientId, view: "clients" });
+    return;
+  }
+
   if (action === "select-client") {
     setState({ selectedClientId: target.dataset.clientId });
     return;

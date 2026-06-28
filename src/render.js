@@ -243,7 +243,10 @@ function dashboardView(state) {
               </div>
               <span>${escapeHtml(appointment.clinician)}</span>
               <span>${escapeHtml(appointment.location)}</span>
-              ${badge(appointment.status, appointment.signal)}
+              <div class="day-actions">
+                ${badge(appointment.status, appointment.signal)}
+                <button class="ghost-action" data-action="open-client" data-client-id="${escapeHtml(appointment.clientId)}" type="button">Dossier</button>
+              </div>
             </article>
           `).join("")}
         </div>
@@ -271,10 +274,13 @@ function dashboardView(state) {
           ${state.appointments.filter((appointment) => appointment.signal !== "success").map((appointment) => `
             <article class="risk-item">
               <div><strong>${escapeHtml(appointment.client)}</strong><span>${escapeHtml(appointment.aiHint)}</span></div>
-              ${badge(appointment.status, appointment.signal)}
+              <div class="status-stack">
+                ${badge(appointment.status, appointment.signal)}
+                <button class="ghost-action" data-action="open-client" data-client-id="${escapeHtml(appointment.clientId)}" type="button">Open dossier</button>
+              </div>
             </article>
           `).join("") || `<p class="empty-state">Geen kritieke signalen.</p>`}
-          ${pendingIntakes ? `<article class="risk-item"><div><strong>${pendingIntakes} intake open</strong><span>Clientinput ontbreekt voor volledige dossierstart.</span></div>${badge("Intake", "warning")}</article>` : ""}
+          ${pendingIntakes ? `<article class="risk-item"><div><strong>${pendingIntakes} intake open</strong><span>Clientinput ontbreekt voor volledige dossierstart.</span></div><div class="status-stack">${badge("Intake", "warning")}<button class="ghost-action" data-action="navigate" data-view="intake" type="button">Naar intakes</button></div></article>` : ""}
         </div>
       </div>
 
@@ -307,7 +313,11 @@ function agendaView(state) {
           <label class="compact-select"><span>Status</span><select data-action="appointment-status" data-appointment-id="${escapeHtml(appointment.id)}">
             ${appointmentStatuses.map((status) => `<option ${appointment.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
           </select></label>
-          ${can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(`${appointment.client}: ${appointment.aiHint}`)}" type="button">AI actie</button>` : ""}
+          <div class="inline-actions">
+            <button class="ghost-action" data-action="open-client" data-client-id="${escapeHtml(appointment.clientId)}" type="button">Dossier</button>
+            <button class="ghost-action" data-action="compose-message" data-client-id="${escapeHtml(appointment.clientId)}" type="button">Bericht</button>
+            ${can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(`${appointment.client}: ${appointment.aiHint}`)}" type="button">Concept</button>` : ""}
+          </div>
         </article>
       `).join("")}
     </section>
