@@ -28,6 +28,7 @@
 ## Phase 3: Group Practice Operations
 
 - Secretary dashboard
+- Secretary dashboard lanes for planning, billing and communication
 - Role-based access per dossier
 - Work queues for missing intakes, open invoices and follow-ups
 - Guided task screen with owner, due date, dossier context and direct actions
@@ -40,7 +41,7 @@
 
 ## Next Product Slice
 
-- Add role-specific secretary dashboard lanes.
+- Add role-specific home screens for care provider and administration.
 
 ## Phase 4: Belgian Integrations
 

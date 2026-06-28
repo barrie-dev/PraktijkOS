@@ -329,6 +329,39 @@ function dashboardForecast(state, openTasks, pendingIntakes, noShowCount) {
   ];
 }
 
+function secretaryLanes(state) {
+  const openInvoices = state.invoices.filter((invoice) => invoice.status !== "Betaald");
+  const reminderInvoices = state.invoices.filter((invoice) => invoice.status === "Herinnering");
+  const conceptMessages = state.messages.filter((message) => message.status === "Concept");
+  const reviewDocuments = state.documents.filter((document) => document.status === "Review nodig");
+  const waitingHigh = (state.waitlist || []).filter((entry) => entry.priority === "Hoog");
+  const dayCloseOpen = (state.dayClose || []).filter((item) => item.status !== "Klaar");
+
+  return [
+    {
+      label: "Planning",
+      value: waitingHigh.length + dayCloseOpen.length,
+      detail: `${waitingHigh.length} prioritaire wachtlijst, ${dayCloseOpen.length} dagchecks open`,
+      view: "waiting",
+      action: "Wachtlijst"
+    },
+    {
+      label: "Facturatie",
+      value: openInvoices.length,
+      detail: `${formatEuro(openInvoices.reduce((total, invoice) => total + Number(invoice.amount || 0), 0))} open, ${reminderInvoices.length} herinneringen`,
+      view: "billing",
+      action: "Facturen"
+    },
+    {
+      label: "Communicatie",
+      value: conceptMessages.length + reviewDocuments.length,
+      detail: `${conceptMessages.length} berichtconcepten, ${reviewDocuments.length} documenten review`,
+      view: "portal",
+      action: "Berichten"
+    }
+  ];
+}
+
 function dashboardView(state) {
   const openAmount = state.invoices.reduce((total, invoice) => total + invoice.amount, 0);
   const noShowCount = state.appointments.filter((appointment) => appointment.signal === "danger").length;
@@ -338,6 +371,7 @@ function dashboardView(state) {
   const forecast = dashboardForecast(state, openTasks, pendingIntakes, noShowCount);
   const dayCloseItems = state.dayClose || [];
   const dayCloseDone = dayCloseItems.filter((item) => item.status === "Klaar").length;
+  const lanes = secretaryLanes(state);
 
   return `
     <section class="metric-grid">
@@ -352,6 +386,18 @@ function dashboardView(state) {
       ${can(state, "scheduling") ? `<button class="quick-action" data-action="navigate" data-view="waiting" type="button"><span>Wachtlijst</span><strong>Plan vrije plaats</strong></button>` : ""}
       ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Antwoorden vastleggen</strong></button>` : ""}
       ${can(state, "billing") ? `<button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Betalingen</span><strong>Facturen opvolgen</strong></button>` : ""}
+    </section>
+    <section class="secretary-lanes">
+      ${lanes.map((lane) => `
+        <article class="secretary-lane">
+          <div>
+            <span>${escapeHtml(lane.label)}</span>
+            <strong>${escapeHtml(lane.value)}</strong>
+            <p>${escapeHtml(lane.detail)}</p>
+          </div>
+          <button class="ghost-action" data-action="navigate" data-view="${escapeHtml(lane.view)}" type="button">${escapeHtml(lane.action)}</button>
+        </article>
+      `).join("")}
     </section>
     <section class="dashboard-grid">
       <div class="panel wide">
