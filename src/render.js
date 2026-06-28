@@ -266,7 +266,33 @@ function clientsView(state) {
     [client.name, client.track, client.status, client.clinician].join(" ").toLowerCase().includes(filter)
   );
   const selected = state.clients.find((client) => client.id === state.selectedClientId) || state.clients[0];
+  if (!selected) {
+    return `
+      <section class="toolbar">
+        <label class="search-field"><span>Zoek</span><input data-action="filter-clients" type="search" value="${escapeHtml(state.clientFilter)}" placeholder="Naam, traject of status"></label>
+        <button class="primary-action" data-action="new-client" type="button">Nieuwe client</button>
+      </section>
+      <section class="panel"><p class="empty-state">Nog geen clienten.</p></section>
+    `;
+  }
+
   const activity = clientActivity(state, selected);
+  const clientAppointments = state.appointments.filter((item) => item.clientId === selected.id);
+  const clientIntakes = state.intakes.filter((item) => item.clientId === selected.id);
+  const clientMessages = state.messages.filter((item) => item.clientId === selected.id);
+  const clientDocuments = state.documents.filter((item) => item.clientId === selected.id);
+  const clientInvoices = state.invoices.filter((item) => item.client === selected.name);
+  const nextAppointment = clientAppointments[0];
+  const openInvoiceTotal = clientInvoices
+    .filter((item) => item.status !== "Betaald")
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
+  const dossierReadiness = [
+    { label: "Intake", done: clientIntakes.length > 0 },
+    { label: "Planning", done: clientAppointments.length > 0 },
+    { label: "Documenten", done: clientDocuments.length > 0 },
+    { label: "Communicatie", done: clientMessages.length > 0 },
+    { label: "Facturatie", done: clientInvoices.length > 0 }
+  ];
 
   return `
     <section class="toolbar">
@@ -297,31 +323,63 @@ function clientsView(state) {
           <button class="ghost-action" data-action="navigate" data-view="portal" type="button">Bericht</button>
         </div>
 
-        <div class="care-strip">
+        <div class="care-strip dossier-metrics">
           <div><span>Leeftijd</span><strong>${escapeHtml(selected.age)}</strong></div>
           <div><span>Zorgverlener</span><strong>${escapeHtml(selected.clinician)}</strong></div>
-          <div><span>Volgende afspraak</span><strong>${escapeHtml(selected.nextAppointment)}</strong></div>
+          <div><span>Volgende afspraak</span><strong>${escapeHtml(nextAppointment ? `${nextAppointment.time} / ${nextAppointment.type}` : selected.nextAppointment)}</strong></div>
+          <div><span>Openstaand</span><strong>${formatEuro(openInvoiceTotal)}</strong></div>
         </div>
 
-        <section class="dossier-section">
-          <h3>Dossierstatus</h3>
-          <dl>
-            <dt>Administratie</dt><dd>${escapeHtml(selected.adminStatus)}</dd>
-            <dt>AI voorstel</dt><dd>${escapeHtml(selected.aiSuggestion)}</dd>
-          </dl>
-        </section>
+        <div class="dossier-grid">
+          <section class="dossier-section">
+            <h3>Dossierstatus</h3>
+            <dl>
+              <dt>Administratie</dt><dd>${escapeHtml(selected.adminStatus)}</dd>
+              <dt>AI voorstel</dt><dd>${escapeHtml(selected.aiSuggestion)}</dd>
+            </dl>
+          </section>
 
-        <section class="dossier-section">
-          <h3>Activiteit</h3>
-          <div class="activity-list">
-            ${activity.map((item) => `
-              <article class="activity-item">
-                <span>${escapeHtml(item.type)}</span>
-                <div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></div>
-              </article>
-            `).join("") || `<p class="empty-state">Nog geen activiteit.</p>`}
-          </div>
-        </section>
+          <section class="dossier-section">
+            <h3>Compleetheid</h3>
+            <div class="readiness-list">
+              ${dossierReadiness.map((item) => `
+                <span class="${item.done ? "ready" : ""}">${item.done ? "✓" : "·"} ${escapeHtml(item.label)}</span>
+              `).join("")}
+            </div>
+          </section>
+
+          <section class="dossier-section">
+            <h3>Open acties</h3>
+            <div class="dossier-actions">
+              ${!clientIntakes.length ? `<button class="ghost-action" data-action="navigate" data-view="intake" type="button">Intake vastleggen</button>` : ""}
+              ${!clientAppointments.length ? `<button class="ghost-action" data-action="new-appointment" type="button">Eerste afspraak plannen</button>` : ""}
+              ${!clientMessages.length ? `<button class="ghost-action" data-action="navigate" data-view="portal" type="button">Bericht voorbereiden</button>` : ""}
+              ${clientInvoices.some((item) => item.status === "Open" || item.status === "Herinnering") ? `<button class="ghost-action" data-action="navigate" data-view="billing" type="button">Betaling opvolgen</button>` : ""}
+              <button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">AI concept maken</button>
+            </div>
+          </section>
+
+          <section class="dossier-section">
+            <h3>Financieel</h3>
+            <div class="mini-list">
+              ${clientInvoices.map((invoice) => `
+                <article><strong>${formatEuro(invoice.amount)}</strong><span>${escapeHtml(invoice.channel)} / ${escapeHtml(invoice.status)}</span></article>
+              `).join("") || `<p class="empty-state">Nog geen facturatie.</p>`}
+            </div>
+          </section>
+
+          <section class="dossier-section wide">
+            <h3>Activiteit</h3>
+            <div class="activity-list">
+              ${activity.map((item) => `
+                <article class="activity-item">
+                  <span>${escapeHtml(item.type)}</span>
+                  <div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></div>
+                </article>
+              `).join("") || `<p class="empty-state">Nog geen activiteit.</p>`}
+            </div>
+          </section>
+        </div>
       </article>
     </section>
   `;
