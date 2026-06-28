@@ -825,23 +825,38 @@ async function handleApi(request, response) {
   if (request.method === "POST" && url.pathname.match(/^\/api\/ai\/drafts\/[^/]+\/approve$/)) {
     if (!requirePermission(response, user, "ai")) return;
     const draftId = url.pathname.split("/")[4];
+    const payload = await readJson(request);
     const approvedAt = timestampLabel();
-    const draftExists = store.aiDrafts.some((draft) => draft.id === draftId);
+    const draft = store.aiDrafts.find((item) => item.id === draftId);
 
-    if (!draftExists) {
+    if (!draft) {
       sendJson(response, 404, { error: "Draft not found" });
       return;
     }
+
+    const client = payload.clientId ? store.clients.find((item) => item.id === payload.clientId) : null;
+    const savedNote = payload.storeAsNote && draft.workflow === "note" && client ? {
+      id: uid("note"),
+      clientId: client.id,
+      client: client.name,
+      title: "AI sessienota",
+      body: draft.output,
+      status: "Afgewerkt",
+      author: user.name,
+      createdAt: approvedAt,
+      sourceDraftId: draft.id
+    } : null;
 
     const nextStore = appendAudit(
       {
         ...store,
         aiDrafts: store.aiDrafts.map((draft) =>
-          draft.id === draftId ? { ...draft, status: "Goedgekeurd", approvedAt } : draft
-        )
+          draft.id === draftId ? { ...draft, status: "Goedgekeurd", approvedAt, savedNoteId: savedNote?.id || draft.savedNoteId } : draft
+        ),
+        notes: savedNote ? [savedNote, ...store.notes] : store.notes
       },
       "AI concept goedgekeurd",
-      "Professionele review bevestigd en audit-event vastgelegd."
+      savedNote ? `${client.name}: AI nota opgeslagen in dossier.` : "Professionele review bevestigd en audit-event vastgelegd."
     );
     writeStore(nextStore);
     sendJson(response, 200, nextStore.aiDrafts.find((draft) => draft.id === draftId));

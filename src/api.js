@@ -77,10 +77,10 @@ export async function generateAiDraft(payload) {
   });
 }
 
-export async function approveDraft(draftId) {
+export async function approveDraft(draftId, payload = {}) {
   return request(`/api/ai/drafts/${draftId}/approve`, {
     method: "POST",
-    body: JSON.stringify({})
+    body: JSON.stringify(payload)
   });
 }
 

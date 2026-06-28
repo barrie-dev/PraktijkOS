@@ -730,6 +730,11 @@ function aiView(state) {
             ${["intake", "note", "letter", "billing"].map((workflow) => `<option value="${workflow}" ${state.aiWorkflow === workflow ? "selected" : ""}>${getWorkflowLabel(workflow)}</option>`).join("")}
           </select>
         </label>
+        <label class="field"><span>Client voor dossieropslag</span>
+          <select data-action="ai-client">
+            ${state.clients.map((client) => `<option value="${escapeHtml(client.id)}" ${state.selectedClientId === client.id ? "selected" : ""}>${escapeHtml(client.name)}</option>`).join("")}
+          </select>
+        </label>
         <label class="field"><span>Broncontext</span><textarea data-action="ai-input" rows="9">${escapeHtml(state.aiSource || "Client meldt stressklachten, slaapproblemen en piekeren rond werk. Eerste gesprek, vraag naar kortdurende begeleiding. Wil graag afspraken op dinsdagavond.")}</textarea></label>
         <div class="ai-actions"><button class="primary-action" data-action="run-ai" type="button">Genereer concept</button><button class="ghost-action" data-action="clear-ai" type="button">Wis</button></div>
       </div>
@@ -738,7 +743,7 @@ function aiView(state) {
         <pre>${escapeHtml(state.aiDraft)}</pre>
         <div class="approval-row">
           <label class="checkbox-line"><input data-action="approve-checkbox" type="checkbox" ${state.aiApproved ? "checked" : ""}><span>Gecontroleerd door zorgverlener</span></label>
-          <button class="primary-action" data-action="approve-ai" type="button" ${state.aiApproved ? "" : "disabled"}>Goedkeuren</button>
+          <button class="primary-action" data-action="approve-ai" type="button" ${state.aiApproved ? "" : "disabled"}>${state.aiWorkflow === "note" ? "Goedkeuren en opslaan" : "Goedkeuren"}</button>
         </div>
       </div>
       <div class="panel wide">
@@ -803,7 +808,7 @@ function draftList(state) {
     <div class="audit-list">
       ${state.aiDrafts.map((draft) => `
         <article class="audit-item">
-          <div><strong>${escapeHtml(getWorkflowLabel(draft.workflow))}</strong><span>${escapeHtml(draft.createdAt)}${draft.approvedAt ? ` / goedgekeurd ${escapeHtml(draft.approvedAt)}` : ""}</span></div>
+          <div><strong>${escapeHtml(getWorkflowLabel(draft.workflow))}</strong><span>${escapeHtml(draft.createdAt)}${draft.approvedAt ? ` / goedgekeurd ${escapeHtml(draft.approvedAt)}` : ""}${draft.savedNoteId ? " / opgeslagen als nota" : ""}</span></div>
           ${badge(draft.status, draft.status === "Goedgekeurd" ? "success" : "warning")}
         </article>
       `).join("")}

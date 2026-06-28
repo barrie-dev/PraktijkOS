@@ -196,6 +196,10 @@ function handleChange(event) {
     setState({ aiWorkflow: target.value, aiApproved: false });
   }
 
+  if (target.dataset.action === "ai-client") {
+    setState({ selectedClientId: target.value });
+  }
+
   if (target.dataset.action === "approve-checkbox") {
     setState({ aiApproved: target.checked });
   }

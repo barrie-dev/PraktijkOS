@@ -253,14 +253,16 @@ async function verify() {
 
     const approved = await request(`/api/ai/drafts/${draft.id}/approve`, {
       method: "POST",
-      body: JSON.stringify({})
+      body: JSON.stringify({ clientId: client.id, storeAsNote: true })
     });
     assert(approved.status === "Goedgekeurd", "AI draft should be approvable.");
+    assert(approved.savedNoteId, "Approved note draft should be saved into the client dossier.");
 
     const dossierExport = await request(`/api/clients/${client.id}/export`);
     assert(dossierExport.client.name === client.name, "Client export should include client identity.");
     assert(dossierExport.records.appointments.some((item) => item.id === appointment.id), "Client export should include appointments.");
     assert(dossierExport.records.notes.some((item) => item.id === note.id), "Client export should include notes.");
+    assert(dossierExport.records.notes.some((item) => item.sourceDraftId === draft.id), "Client export should include approved AI note.");
     assert(dossierExport.records.messages.some((item) => item.id === conceptMessage.id), "Client export should include messages.");
     assert(dossierExport.records.documents.some((item) => item.id === reviewDocument.id), "Client export should include documents.");
     assert(dossierExport.records.invoices.some((item) => item.appointmentId === appointment.id), "Client export should include invoices.");

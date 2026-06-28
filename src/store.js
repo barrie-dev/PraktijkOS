@@ -500,11 +500,21 @@ export async function approveCurrentDraft() {
     return { ok: false, message: "Vink eerst professionele review aan." };
   }
 
+  const currentDraft = state.aiDrafts.find((draft) => draft.id === state.currentDraftId);
+  const selectedClient = state.clients.find((client) => client.id === state.selectedClientId);
+  const shouldStoreNote = currentDraft?.workflow === "note" && selectedClient;
+
   if (state.apiStatus === "connected") {
     try {
-      await approveDraft(state.currentDraftId);
+      const approvedDraft = await approveDraft(state.currentDraftId, {
+        clientId: selectedClient?.id,
+        storeAsNote: shouldStoreNote
+      });
       await refreshFromApi();
-      return { ok: true, message: "Concept goedgekeurd." };
+      return {
+        ok: true,
+        message: approvedDraft.savedNoteId ? "Concept goedgekeurd en als nota opgeslagen." : "Concept goedgekeurd."
+      };
     } catch {
       setState({ apiStatus: "local" });
     }
@@ -515,16 +525,31 @@ export async function approveCurrentDraft() {
       ? { ...draft, status: "Goedgekeurd", approvedAt: nowLabel() }
       : draft
   );
+  const savedNote = shouldStoreNote ? {
+    id: uid("note"),
+    clientId: selectedClient.id,
+    client: selectedClient.name,
+    title: "AI sessienota",
+    body: currentDraft.output,
+    status: "Afgewerkt",
+    author: state.currentUser?.name || "PraktijkOS",
+    createdAt: nowLabel(),
+    sourceDraftId: currentDraft.id
+  } : null;
 
   commit(pushAudit(
     {
       ...state,
-      aiDrafts: updatedDrafts
+      aiDrafts: updatedDrafts,
+      notes: savedNote ? [savedNote, ...(state.notes || [])] : state.notes
     },
     "AI concept goedgekeurd",
-    "Professionele review bevestigd en audit-event vastgelegd."
+    savedNote ? `${selectedClient.name}: AI nota opgeslagen in dossier.` : "Professionele review bevestigd en audit-event vastgelegd."
   ));
-  return { ok: true, message: "Concept lokaal goedgekeurd en gelogd." };
+  return {
+    ok: true,
+    message: savedNote ? "Concept lokaal goedgekeurd en als nota opgeslagen." : "Concept lokaal goedgekeurd en gelogd."
+  };
 }
 
 export async function createInvoiceProposals() {
