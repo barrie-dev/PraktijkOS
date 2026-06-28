@@ -990,15 +990,22 @@ async function handleApi(request, response) {
   if (request.method === "POST" && url.pathname.match(/^\/api\/tasks\/[^/]+\/complete$/)) {
     if (!requirePermission(response, user, "tasks")) return;
     const taskId = url.pathname.split("/")[3];
+    const task = store.workQueue.find((item) => item.id === taskId);
+    if (!task) {
+      sendJson(response, 404, { error: "Task not found" });
+      return;
+    }
+
     const nextStore = appendAudit(
       {
         ...store,
         workQueue: store.workQueue.map((task) =>
-          task.id === taskId ? { ...task, status: "Klaar" } : task
+          task.id === taskId ? { ...task, status: "Klaar", completedAt: timestampLabel(), completedBy: user.name } : task
         )
       },
       "Taak afgewerkt",
-      `${taskId} gemarkeerd als klaar.`
+      `${task.label} gemarkeerd als klaar.`,
+      user.name
     );
     writeStore(nextStore);
     sendJson(response, 200, nextStore.workQueue.find((task) => task.id === taskId));

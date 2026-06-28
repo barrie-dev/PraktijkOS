@@ -2,6 +2,7 @@ import { getWorkflowLabel } from "./ai.js";
 
 const viewTitles = {
   dashboard: "Vandaag",
+  work: "Werk",
   agenda: "Agenda",
   clients: "Dossiers",
   intake: "Intake",
@@ -51,6 +52,7 @@ const permissionsByRole = {
 
 const viewPermissions = {
   dashboard: "tasks",
+  work: "tasks",
   agenda: "scheduling",
   clients: "care",
   intake: "care",
@@ -69,7 +71,7 @@ function canView(state, view) {
 }
 
 function firstAvailableView(state) {
-  return ["dashboard", "agenda", "clients", "billing", "ai", "settings"].find((view) => canView(state, view)) || "dashboard";
+  return ["dashboard", "work", "agenda", "clients", "billing", "ai", "settings"].find((view) => canView(state, view)) || "dashboard";
 }
 
 function shell(state) {
@@ -84,6 +86,7 @@ function shell(state) {
   const activeView = canView(state, state.view) ? state.view : firstAvailableView(state);
   const nav = [
     ["dashboard", "D", "Vandaag"],
+    ["work", "W", "Werk"],
     ["agenda", "A", "Agenda"],
     ["clients", "C", "Dossiers"],
     ["intake", "I", "Intake"],
@@ -187,6 +190,7 @@ function loginView(state) {
 }
 
 function renderView(state) {
+  if (state.view === "work") return workView(state);
   if (state.view === "agenda") return agendaView(state);
   if (state.view === "clients") return clientsView(state);
   if (state.view === "intake") return intakeView(state);
@@ -213,9 +217,9 @@ function dashboardView(state) {
     </section>
     <section class="quick-actions">
       ${can(state, "care") ? `<button class="quick-action" data-action="new-client" type="button"><span>Dossier</span><strong>Nieuwe client</strong></button>` : ""}
+      ${can(state, "tasks") ? `<button class="quick-action" data-action="navigate" data-view="work" type="button"><span>Werk</span><strong>Taken opvolgen</strong></button>` : ""}
       ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Antwoorden vastleggen</strong></button>` : ""}
       ${can(state, "billing") ? `<button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Betalingen</span><strong>Facturen opvolgen</strong></button>` : ""}
-      ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="portal" type="button"><span>Communicatie</span><strong>Bericht sturen</strong></button>` : ""}
     </section>
     <section class="dashboard-grid">
       <div class="panel wide">
@@ -253,18 +257,9 @@ function dashboardView(state) {
       </div>
 
       <div class="panel">
-        <div class="panel-header"><div><span class="section-kicker">Prioriteiten</span><h2>Werkvoorraad</h2></div></div>
+        <div class="panel-header"><div><span class="section-kicker">Prioriteiten</span><h2>Werkvoorraad</h2></div><button class="ghost-action" data-action="navigate" data-view="work" type="button">Alle taken</button></div>
         <div class="task-list">
-          ${openTasks.slice(0, 5).map((task) => `
-            <article class="task-item">
-              <strong>${escapeHtml(task.label)}</strong>
-              <span>${escapeHtml(displayActor(task.owner))} / ${escapeHtml(task.priority)} / ${escapeHtml(task.status || "Open")}</span>
-              <div class="inline-actions">
-                ${can(state, "ai") ? `<button class="ghost-action" data-action="navigate" data-view="ai" type="button">Maak concept</button>` : ""}
-                <button class="ghost-action" data-action="complete-task" data-task-id="${escapeHtml(task.id)}" type="button">Klaar</button>
-              </div>
-            </article>
-          `).join("")}
+          ${openTasks.slice(0, 5).map((task) => taskCard(state, task, true)).join("")}
         </div>
       </div>
 
@@ -289,6 +284,65 @@ function dashboardView(state) {
         ${auditList(state, 5)}
       </div>
     </section>
+  `;
+}
+
+function workView(state) {
+  const openTasks = state.workQueue.filter((task) => (task.status || "Open") !== "Klaar");
+  const doneTasks = state.workQueue.filter((task) => (task.status || "Open") === "Klaar");
+  const highPriority = openTasks.filter((task) => task.priority === "Hoog").length;
+  const dueToday = openTasks.filter((task) => task.dueAt === "Vandaag").length;
+
+  return `
+    <section class="metric-grid">
+      <article class="metric"><span>Open</span><strong>${openTasks.length}</strong><small>taken in behandeling</small></article>
+      <article class="metric"><span>Vandaag</span><strong>${dueToday}</strong><small>moeten opgevolgd worden</small></article>
+      <article class="metric"><span>Hoog</span><strong>${highPriority}</strong><small>prioritaire acties</small></article>
+      <article class="metric"><span>Klaar</span><strong>${doneTasks.length}</strong><small>afgewerkt</small></article>
+    </section>
+    <section class="content-grid">
+      <div class="panel wide">
+        <div class="panel-header"><div><span class="section-kicker">Werkvoorraad</span><h2>Wat moet er nu gebeuren?</h2></div></div>
+        <div class="task-list rich-task-list">
+          ${openTasks.map((task) => taskCard(state, task)).join("") || `<p class="empty-state">Geen open taken.</p>`}
+        </div>
+      </div>
+      <div class="panel wide">
+        <div class="panel-header"><div><span class="section-kicker">Afgewerkt</span><h2>Recent klaar</h2></div></div>
+        <div class="task-list">
+          ${doneTasks.slice(0, 6).map((task) => taskCard(state, task, true)).join("") || `<p class="empty-state">Nog niets afgewerkt.</p>`}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function taskCard(state, task, compact = false) {
+  const client = task.clientId ? state.clients.find((item) => item.id === task.clientId) : null;
+  const status = task.status || "Open";
+  const signal = status === "Klaar" ? "success" : task.priority === "Hoog" ? "danger" : "warning";
+  const source = `${client?.name || "Praktijk"}: ${task.label}. ${task.description || ""}`;
+
+  return `
+    <article class="task-item ${compact ? "" : "rich-task"}">
+      <div>
+        <div class="task-heading">
+          <strong>${escapeHtml(task.label)}</strong>
+          ${badge(status, signal)}
+        </div>
+        <span>${escapeHtml(task.category || "Taak")} / ${escapeHtml(displayActor(task.owner))} / ${escapeHtml(task.priority || "Normaal")} / ${escapeHtml(task.dueAt || "Geen datum")}</span>
+        ${compact ? "" : `<p>${escapeHtml(task.description || "Geen extra context.")}</p>`}
+      </div>
+      <div class="inline-actions">
+        ${client ? `<button class="ghost-action" data-action="open-client" data-client-id="${escapeHtml(client.id)}" type="button">Dossier</button>` : ""}
+        ${task.action === "message" && client ? `<button class="ghost-action" data-action="compose-message" data-client-id="${escapeHtml(client.id)}" type="button">Bericht</button>` : ""}
+        ${task.action === "billing" ? `<button class="ghost-action" data-action="navigate" data-view="billing" type="button">Facturen</button>` : ""}
+        ${task.action === "ai-note" && can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(source)}" type="button">Nota maken</button>` : ""}
+        ${task.action === "letter" && can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(source)}" type="button">Brief maken</button>` : ""}
+        ${task.action === "intake" && client ? `<button class="ghost-action" data-action="start-intake" data-client-id="${escapeHtml(client.id)}" type="button">Intake</button>` : ""}
+        ${status !== "Klaar" ? `<button class="primary-action" data-action="complete-task" data-task-id="${escapeHtml(task.id)}" type="button">Klaar</button>` : ""}
+      </div>
+    </article>
   `;
 }
 

@@ -614,6 +614,34 @@ h2 {
   margin-top: 0;
 }
 
+.rich-task-list {
+  gap: 10px;
+}
+
+.task-item {
+  display: grid;
+  gap: 10px;
+}
+
+.task-item.rich-task {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.task-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.task-item p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .toolbar {
   justify-content: space-between;
   margin-bottom: 14px;
@@ -1275,6 +1303,7 @@ pre {
   .insight-grid,
   .invoice-row,
   .invoice-row.rich-row,
+  .task-item.rich-task,
   .team-row,
   .day-row,
   .care-strip,

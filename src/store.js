@@ -129,7 +129,8 @@ function hydrate() {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (!stored) return { ...initialState };
-    return { ...initialState, ...JSON.parse(stored), modal: null, isLoading: false };
+    const hydrated = { ...initialState, ...JSON.parse(stored), modal: null, isLoading: false };
+    return { ...hydrated, workQueue: normalizeTasks(hydrated.workQueue, hydrated.clients) };
   } catch {
     return { ...initialState };
   }
@@ -183,11 +184,44 @@ function mergeServerState(serverState) {
   return {
     ...state,
     ...serverState,
+    workQueue: normalizeTasks(serverState.workQueue, serverState.clients),
     apiStatus: "connected",
     authStatus: "authenticated",
     isLoading: false,
     modal: null,
     selectedClientId: serverState.clients?.[0]?.id || state.selectedClientId
+  };
+}
+
+function normalizeTasks(tasks = [], clients = []) {
+  return tasks.map((task) => normalizeTask(task, clients));
+}
+
+function normalizeTask(task, clients = []) {
+  if (task.action && task.category && task.dueAt) return task;
+
+  const label = `${task.label || ""}`.toLowerCase();
+  const clientExists = (id) => clients.some((client) => client.id === id);
+  let fallback = {
+    category: "Praktijk",
+    dueAt: task.priority === "Hoog" ? "Vandaag" : "Deze week",
+    action: "review"
+  };
+
+  if (label.includes("factuur")) {
+    fallback = { category: "Facturatie", dueAt: "Vandaag", action: "billing" };
+  } else if (label.includes("sessienota")) {
+    fallback = { category: "Dossier", dueAt: "Vandaag", action: "ai-note", clientId: clientExists("cl-002") ? "cl-002" : task.clientId };
+  } else if (label.includes("doorverwijs")) {
+    fallback = { category: "Dossier", dueAt: "Morgen", action: "letter", clientId: clientExists("cl-001") ? "cl-001" : task.clientId };
+  } else if (label.includes("no-show")) {
+    fallback = { category: "Opvolging", dueAt: "Vandaag", action: "message", clientId: clientExists("cl-004") ? "cl-004" : task.clientId };
+  }
+
+  return {
+    ...fallback,
+    description: task.description || task.label || "Taak opvolgen.",
+    ...task
   };
 }
 
@@ -675,7 +709,11 @@ export async function completeTask(taskId) {
   }
 
   setState({
-    workQueue: state.workQueue.map((task) => task.id === taskId ? { ...task, status: "Klaar" } : task)
+    workQueue: state.workQueue.map((task) =>
+      task.id === taskId
+        ? { ...task, status: "Klaar", completedAt: nowLabel(), completedBy: state.currentUser?.name || "PraktijkOS" }
+        : task
+    )
   });
   return { ok: true, message: "Taak lokaal afgewerkt." };
 }

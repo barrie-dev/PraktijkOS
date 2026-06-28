@@ -25,12 +25,12 @@
 - Secretary dashboard
 - Role-based access per dossier
 - Work queues for missing intakes, open invoices and follow-ups
+- Guided task screen with owner, due date, dossier context and direct actions
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
 - Migration tooling from spreadsheets and calendar exports
 
 ## Next Product Slice
 
-- Turn work queue items into guided task screens with owner, due date and dossier context.
 - Add a real waiting list view with conversion to appointment.
 - Add payment export and accountant handoff from the billing screen.
 

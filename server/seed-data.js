@@ -115,9 +115,41 @@ const seedData = {
     { id: "inv-002", client: "Olivier Peeters", amount: 75, channel: "Wero", status: "Open" }
   ],
   workQueue: [
-    { id: "q-001", label: "2 sessienota's structureren", owner: "AI Copilot", priority: "Normaal", status: "Open" },
-    { id: "q-002", label: "3 factuurvoorstellen controleren", owner: "Secretariaat", priority: "Hoog", status: "Open" },
-    { id: "q-003", label: "1 doorverwijsbrief voorbereiden", owner: "L. Janssens", priority: "Normaal", status: "Open" }
+    {
+      id: "q-001",
+      label: "Sessienota structureren",
+      description: "Olivier heeft een conceptnota klaarstaan. Controleer, keur goed en sla op in het dossier.",
+      owner: "AI Copilot",
+      priority: "Normaal",
+      status: "Open",
+      clientId: "cl-002",
+      dueAt: "Vandaag",
+      category: "Dossier",
+      action: "ai-note"
+    },
+    {
+      id: "q-002",
+      label: "Factuurvoorstellen controleren",
+      description: "Controleer de voorstellen na afgeronde afspraken en zet ze klaar voor betaling.",
+      owner: "Secretariaat",
+      priority: "Hoog",
+      status: "Open",
+      dueAt: "Vandaag",
+      category: "Facturatie",
+      action: "billing"
+    },
+    {
+      id: "q-003",
+      label: "Doorverwijsbrief voorbereiden",
+      description: "Maak een briefconcept voor verdere opvolging en laat de zorgverlener reviewen.",
+      owner: "L. Janssens",
+      priority: "Normaal",
+      status: "Open",
+      clientId: "cl-001",
+      dueAt: "Morgen",
+      category: "Dossier",
+      action: "letter"
+    }
   ],
   aiDrafts: [],
   auditLog: [

@@ -390,8 +390,37 @@ function readStore() {
   store.clients = readClients();
   store.appointments = readAppointments();
   store.invoices = readInvoices();
+  store.workQueue = (store.workQueue || []).map((task) => normalizeTask(task, store.clients));
 
   return store;
+}
+
+function normalizeTask(task, clients = []) {
+  if (task.action && task.category && task.dueAt) return task;
+
+  const label = `${task.label || ""}`.toLowerCase();
+  const clientExists = (id) => clients.some((client) => client.id === id);
+  let fallback = {
+    category: "Praktijk",
+    dueAt: task.priority === "Hoog" ? "Vandaag" : "Deze week",
+    action: "review"
+  };
+
+  if (label.includes("factuur")) {
+    fallback = { category: "Facturatie", dueAt: "Vandaag", action: "billing" };
+  } else if (label.includes("sessienota")) {
+    fallback = { category: "Dossier", dueAt: "Vandaag", action: "ai-note", clientId: clientExists("cl-002") ? "cl-002" : task.clientId };
+  } else if (label.includes("doorverwijs")) {
+    fallback = { category: "Dossier", dueAt: "Morgen", action: "letter", clientId: clientExists("cl-001") ? "cl-001" : task.clientId };
+  } else if (label.includes("no-show")) {
+    fallback = { category: "Opvolging", dueAt: "Vandaag", action: "message", clientId: clientExists("cl-004") ? "cl-004" : task.clientId };
+  }
+
+  return {
+    ...fallback,
+    description: task.description || task.label || "Taak opvolgen.",
+    ...task
+  };
 }
 
 function replaceCollection(collection, rows) {

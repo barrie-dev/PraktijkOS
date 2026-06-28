@@ -95,6 +95,14 @@ async function verify() {
 
     const state = await request("/api/state");
     assert(state.clients.length > 0, "Seed clients should be available.");
+    assert(state.workQueue.some((task) => task.action), "Seed tasks should include guided workflow actions.");
+
+    const completedTask = await request("/api/tasks/q-001/complete", {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(completedTask.status === "Klaar", "Task should be completable.");
+    assert(completedTask.completedAt, "Completed task should include completion metadata.");
 
     const client = await request("/api/clients", {
       method: "POST",
