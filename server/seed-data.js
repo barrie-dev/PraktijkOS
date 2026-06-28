@@ -114,6 +114,28 @@ const seedData = {
     { id: "inv-001", client: "Mila Verbeeck", amount: 75, channel: "Bancontact", status: "Voorstel" },
     { id: "inv-002", client: "Olivier Peeters", amount: 75, channel: "Wero", status: "Open" }
   ],
+  waitlist: [
+    {
+      id: "wait-001",
+      clientId: "cl-001",
+      client: "Mila Verbeeck",
+      request: "Vervroegde opvolgafspraak",
+      priority: "Hoog",
+      preferred: "Dinsdagavond of online",
+      type: "Opvolggesprek",
+      addedAt: "Vandaag"
+    },
+    {
+      id: "wait-002",
+      clientId: "cl-002",
+      client: "Olivier Peeters",
+      request: "Extra sessie rond werkdruk",
+      priority: "Normaal",
+      preferred: "Woensdagnamiddag",
+      type: "Opvolggesprek",
+      addedAt: "Gisteren"
+    }
+  ],
   workQueue: [
     {
       id: "q-001",

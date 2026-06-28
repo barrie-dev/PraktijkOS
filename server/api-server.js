@@ -725,6 +725,52 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/waitlist\/[^/]+\/schedule$/)) {
+    if (!requirePermission(response, user, "scheduling")) return;
+    const waitlistId = url.pathname.split("/")[3];
+    const payload = await readJson(request);
+    const entry = (store.waitlist || []).find((item) => item.id === waitlistId);
+    const client = entry ? store.clients.find((item) => item.id === entry.clientId) : null;
+
+    if (!entry || !client || !payload.time || !payload.clinician) {
+      sendJson(response, 422, { error: "waitlist entry, time and clinician are required" });
+      return;
+    }
+
+    const appointment = {
+      id: uid("apt"),
+      time: payload.time,
+      clientId: client.id,
+      client: client.name,
+      type: payload.type || entry.type || "Opvolggesprek",
+      clinician: payload.clinician,
+      location: payload.location || "Praktijk",
+      status: "Nieuw",
+      signal: "success",
+      aiHint: "Afspraak vanuit wachtlijst ingepland. Controleer intake, reminder en betaalvoorkeur.",
+      waitlistId: entry.id
+    };
+
+    const nextStore = appendAudit(
+      {
+        ...store,
+        appointments: [...store.appointments, appointment].sort((a, b) => a.time.localeCompare(b.time)),
+        waitlist: (store.waitlist || []).filter((item) => item.id !== waitlistId),
+        clients: store.clients.map((item) =>
+          item.id === client.id
+            ? { ...item, nextAppointment: `${appointment.time} / ${appointment.type}`, adminStatus: "Afspraak ingepland vanuit wachtlijst" }
+            : item
+        )
+      },
+      "Wachtlijst ingepland",
+      `${client.name} om ${appointment.time} ingepland vanuit wachtlijst.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, appointment);
+    return;
+  }
+
   if (request.method === "PATCH" && url.pathname.match(/^\/api\/appointments\/[^/]+$/)) {
     if (!requirePermission(response, user, "scheduling")) return;
     const appointmentId = url.pathname.split("/")[3];

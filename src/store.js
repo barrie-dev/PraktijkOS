@@ -18,6 +18,7 @@ import {
   generateBillingProposals,
   login,
   logout,
+  scheduleWaitlistEntry,
   sendInvoiceReminder,
   updateAppointment,
   updateDocument,
@@ -27,7 +28,7 @@ import {
   updatePractice
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { appointments, clients, invoices, workQueue } from "./data.js";
+import { appointments, clients, invoices, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -48,6 +49,7 @@ const initialState = {
   aiWorkflow: "intake",
   aiApproved: false,
   currentDraftId: null,
+  selectedWaitlistId: null,
   analytics: {
     occupancyRate: 0,
     noShowRisk: 0,
@@ -109,6 +111,7 @@ const initialState = {
   appointments,
   clients,
   invoices,
+  waitlist,
   workQueue,
   auditLog: [
     {
@@ -433,6 +436,55 @@ export async function addAppointment(formData) {
     `${appointment.client} om ${appointment.time} bij ${appointment.clinician}.`
   ));
   return { ok: true, message: "Afspraak lokaal gepland." };
+}
+
+export async function scheduleFromWaitlist(formData) {
+  const payload = formPayload(formData);
+  const entry = state.waitlist.find((item) => item.id === payload.waitlistId);
+  const client = entry ? state.clients.find((item) => item.id === entry.clientId) : null;
+
+  if (!entry || !client || !payload.time || !payload.clinician) {
+    return { ok: false, message: "Wachtlijstitem, tijd en zorgverlener zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await scheduleWaitlistEntry(entry.id, payload);
+      await refreshFromApi();
+      setState({ view: "agenda", modal: null, selectedWaitlistId: null });
+      return { ok: true, message: "Wachtlijstitem ingepland." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const appointment = {
+    id: uid("apt"),
+    time: payload.time,
+    clientId: client.id,
+    client: client.name,
+    type: payload.type || entry.type || "Opvolggesprek",
+    clinician: payload.clinician,
+    location: payload.location || "Praktijk",
+    status: "Nieuw",
+    signal: "success",
+    aiHint: "Afspraak vanuit wachtlijst ingepland.",
+    waitlistId: entry.id
+  };
+
+  commit(pushAudit(
+    {
+      ...state,
+      appointments: [...state.appointments, appointment].sort((a, b) => a.time.localeCompare(b.time)),
+      waitlist: state.waitlist.filter((item) => item.id !== entry.id),
+      selectedWaitlistId: null,
+      modal: null,
+      view: "agenda"
+    },
+    "Wachtlijst ingepland",
+    `${client.name} lokaal om ${appointment.time} ingepland vanuit wachtlijst.`
+  ));
+  return { ok: true, message: "Wachtlijstitem lokaal ingepland." };
 }
 
 function appointmentSignal(status) {

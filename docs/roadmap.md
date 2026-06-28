@@ -6,6 +6,7 @@
 - Multi-provider agenda
 - Client records and basic care tracks
 - Appointment statuses, waiting list and reminders
+- Wachtlijst naar afspraak-flow met dossiercontext
 - Billing proposals and payment follow-up
 - NL/FR interface foundation
 - Dossier-first daily workflow: dashboard and agenda actions open the right client context
@@ -31,7 +32,6 @@
 
 ## Next Product Slice
 
-- Add a real waiting list view with conversion to appointment.
 - Add payment export and accountant handoff from the billing screen.
 
 ## Phase 4: Belgian Integrations

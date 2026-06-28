@@ -63,6 +63,13 @@ export async function updateAppointment(appointmentId, payload) {
   });
 }
 
+export async function scheduleWaitlistEntry(waitlistId, payload) {
+  return request(`/api/waitlist/${waitlistId}/schedule`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function createDraft(payload) {
   return request("/api/ai/drafts", {
     method: "POST",

@@ -28,6 +28,7 @@ import {
   remindInvoice,
   resetDemoState,
   runAiWorkflow,
+  scheduleFromWaitlist,
   savePracticeSettings,
   setState,
   subscribe
@@ -92,6 +93,11 @@ async function handleClick(event) {
 
   if (action === "new-appointment") {
     openModal("appointment");
+    return;
+  }
+
+  if (action === "schedule-waitlist") {
+    setState({ selectedWaitlistId: target.dataset.waitlistId, modal: "waitlist" });
     return;
   }
 
@@ -262,6 +268,8 @@ async function handleSubmit(event) {
     result = await completeOnboarding(formData);
   } else if (form.dataset.form === "appointment") {
     result = await addAppointment(formData);
+  } else if (form.dataset.form === "waitlist-appointment") {
+    result = await scheduleFromWaitlist(formData);
   } else if (form.dataset.form === "practice") {
     result = await savePracticeSettings(formData);
   } else if (form.dataset.form === "team") {

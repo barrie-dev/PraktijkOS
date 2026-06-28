@@ -27,6 +27,7 @@ npm run verify
 - `GET /api/clients/:id/export`
 - `POST /api/appointments`
 - `PATCH /api/appointments/:id`
+- `POST /api/waitlist/:id/schedule`
 - `POST /api/invoices`
 - `POST /api/ai/generate`
 - `POST /api/ai/drafts`

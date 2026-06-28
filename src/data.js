@@ -103,6 +103,29 @@ export const invoices = [
   { id: "inv-004", client: "Emma Claes", amount: 90, channel: "Overschrijving", status: "Herinnering" }
 ];
 
+export const waitlist = [
+  {
+    id: "wait-001",
+    clientId: "cl-001",
+    client: "Mila Verbeeck",
+    request: "Vervroegde opvolgafspraak",
+    priority: "Hoog",
+    preferred: "Dinsdagavond of online",
+    type: "Opvolggesprek",
+    addedAt: "Vandaag"
+  },
+  {
+    id: "wait-002",
+    clientId: "cl-004",
+    client: "Noah Lambert",
+    request: "Snellere revalidatiecontrole",
+    priority: "Normaal",
+    preferred: "Vrijdagvoormiddag",
+    type: "Kinesitherapie",
+    addedAt: "Gisteren"
+  }
+];
+
 export const workQueue = [
   {
     id: "q-001",

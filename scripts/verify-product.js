@@ -96,6 +96,7 @@ async function verify() {
     const state = await request("/api/state");
     assert(state.clients.length > 0, "Seed clients should be available.");
     assert(state.workQueue.some((task) => task.action), "Seed tasks should include guided workflow actions.");
+    assert(state.waitlist.length > 0, "Seed waitlist should be available.");
 
     const completedTask = await request("/api/tasks/q-001/complete", {
       method: "POST",
@@ -103,6 +104,28 @@ async function verify() {
     });
     assert(completedTask.status === "Klaar", "Task should be completable.");
     assert(completedTask.completedAt, "Completed task should include completion metadata.");
+
+    const waitlistEntry = state.waitlist[0];
+    const waitlistAppointment = await request(`/api/waitlist/${waitlistEntry.id}/schedule`, {
+      method: "POST",
+      body: JSON.stringify({
+        time: "18:00",
+        type: waitlistEntry.type,
+        clinician: "L. Janssens",
+        location: "Online"
+      })
+    });
+    assert(waitlistAppointment.waitlistId === waitlistEntry.id, "Waitlist item should schedule an appointment.");
+
+    const scheduledState = await request("/api/state");
+    assert(
+      !scheduledState.waitlist.some((item) => item.id === waitlistEntry.id),
+      "Scheduled waitlist item should be removed from the waitlist."
+    );
+    assert(
+      scheduledState.appointments.some((item) => item.id === waitlistAppointment.id),
+      "Scheduled waitlist appointment should appear in the agenda."
+    );
 
     const client = await request("/api/clients", {
       method: "POST",

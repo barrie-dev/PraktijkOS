@@ -360,7 +360,7 @@ h2 {
 
 .quick-actions {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -481,6 +481,7 @@ h2 {
 
 .timeline,
 .task-list,
+.waitlist-grid,
 .client-list,
 .invoice-table,
 .payment-stack,
@@ -498,6 +499,7 @@ h2 {
 .timeline-item,
 .day-row,
 .task-item,
+.waitlist-item,
 .client-card,
 .invoice-row,
 .schedule-card,
@@ -571,6 +573,7 @@ h2 {
 }
 
 .task-item,
+.waitlist-item,
 .client-card,
 .schedule-card,
 .invoice-row,
@@ -621,6 +624,19 @@ h2 {
 .task-item {
   display: grid;
   gap: 10px;
+}
+
+.waitlist-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+
+.waitlist-item p {
+  margin: 7px 0 0;
+  color: var(--muted);
 }
 
 .task-item.rich-task {
@@ -1304,6 +1320,7 @@ pre {
   .invoice-row,
   .invoice-row.rich-row,
   .task-item.rich-task,
+  .waitlist-item,
   .team-row,
   .day-row,
   .care-strip,

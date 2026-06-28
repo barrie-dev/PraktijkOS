@@ -4,6 +4,7 @@ const viewTitles = {
   dashboard: "Vandaag",
   work: "Werk",
   agenda: "Agenda",
+  waiting: "Wachtlijst",
   clients: "Dossiers",
   intake: "Intake",
   portal: "Berichten",
@@ -54,6 +55,7 @@ const viewPermissions = {
   dashboard: "tasks",
   work: "tasks",
   agenda: "scheduling",
+  waiting: "scheduling",
   clients: "care",
   intake: "care",
   portal: "care",
@@ -71,7 +73,7 @@ function canView(state, view) {
 }
 
 function firstAvailableView(state) {
-  return ["dashboard", "work", "agenda", "clients", "billing", "ai", "settings"].find((view) => canView(state, view)) || "dashboard";
+  return ["dashboard", "work", "agenda", "waiting", "clients", "billing", "ai", "settings"].find((view) => canView(state, view)) || "dashboard";
 }
 
 function shell(state) {
@@ -88,6 +90,7 @@ function shell(state) {
     ["dashboard", "D", "Vandaag"],
     ["work", "W", "Werk"],
     ["agenda", "A", "Agenda"],
+    ["waiting", "L", "Wachtlijst"],
     ["clients", "C", "Dossiers"],
     ["intake", "I", "Intake"],
     ["portal", "B", "Berichten"],
@@ -192,6 +195,7 @@ function loginView(state) {
 function renderView(state) {
   if (state.view === "work") return workView(state);
   if (state.view === "agenda") return agendaView(state);
+  if (state.view === "waiting") return waitingView(state);
   if (state.view === "clients") return clientsView(state);
   if (state.view === "intake") return intakeView(state);
   if (state.view === "portal") return portalView(state);
@@ -218,6 +222,7 @@ function dashboardView(state) {
     <section class="quick-actions">
       ${can(state, "care") ? `<button class="quick-action" data-action="new-client" type="button"><span>Dossier</span><strong>Nieuwe client</strong></button>` : ""}
       ${can(state, "tasks") ? `<button class="quick-action" data-action="navigate" data-view="work" type="button"><span>Werk</span><strong>Taken opvolgen</strong></button>` : ""}
+      ${can(state, "scheduling") ? `<button class="quick-action" data-action="navigate" data-view="waiting" type="button"><span>Wachtlijst</span><strong>Plan vrije plaats</strong></button>` : ""}
       ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Antwoorden vastleggen</strong></button>` : ""}
       ${can(state, "billing") ? `<button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Betalingen</span><strong>Facturen opvolgen</strong></button>` : ""}
     </section>
@@ -374,6 +379,42 @@ function agendaView(state) {
           </div>
         </article>
       `).join("")}
+    </section>
+  `;
+}
+
+function waitingView(state) {
+  const entries = state.waitlist || [];
+  const highPriority = entries.filter((entry) => entry.priority === "Hoog").length;
+
+  return `
+    <section class="metric-grid">
+      <article class="metric"><span>Wachtend</span><strong>${entries.length}</strong><small>clients zoeken een plek</small></article>
+      <article class="metric"><span>Hoog</span><strong>${highPriority}</strong><small>prioritair te plannen</small></article>
+      <article class="metric"><span>Vandaag</span><strong>${entries.filter((entry) => entry.addedAt === "Vandaag").length}</strong><small>nieuw aangemeld</small></article>
+      <article class="metric"><span>Actie</span><strong>${entries.length ? "Plan" : "OK"}</strong><small>${entries.length ? "vrije slots benutten" : "geen wachtenden"}</small></article>
+    </section>
+    <section class="panel">
+      <div class="panel-header"><div><span class="section-kicker">Planning</span><h2>Wachtlijst</h2></div><button class="ghost-action" data-action="new-appointment" type="button">Losse afspraak</button></div>
+      <div class="waitlist-grid">
+        ${entries.map((entry) => `
+          <article class="waitlist-item">
+            <div>
+              <div class="task-heading">
+                <strong>${escapeHtml(entry.client)}</strong>
+                ${badge(entry.priority, entry.priority === "Hoog" ? "danger" : "warning")}
+              </div>
+              <span>${escapeHtml(entry.request)} / ${escapeHtml(entry.preferred)} / sinds ${escapeHtml(entry.addedAt)}</span>
+              <p>${escapeHtml(entry.type || "Opvolggesprek")}</p>
+            </div>
+            <div class="inline-actions">
+              <button class="ghost-action" data-action="open-client" data-client-id="${escapeHtml(entry.clientId)}" type="button">Dossier</button>
+              <button class="ghost-action" data-action="compose-message" data-client-id="${escapeHtml(entry.clientId)}" type="button">Bericht</button>
+              <button class="primary-action" data-action="schedule-waitlist" data-waitlist-id="${escapeHtml(entry.id)}" type="button">Plan afspraak</button>
+            </div>
+          </article>
+        `).join("") || `<p class="empty-state">Geen wachtlijstitems.</p>`}
+      </div>
     </section>
   `;
 }
@@ -907,6 +948,7 @@ function displayActor(actor = "") {
 
 function modal(state) {
   if (state.modal === "appointment") return appointmentModal(state);
+  if (state.modal === "waitlist") return waitlistModal(state);
   if (state.modal === "client") return clientModal();
   return "";
 }
@@ -925,6 +967,34 @@ function appointmentModal(state) {
           <label class="field"><span>Locatie</span><input name="location" value="Praktijk" required></label>
         </div>
         <label class="field"><span>Afspraaktype</span><input name="type" value="Intakegesprek" required></label>
+        <label class="field"><span>Zorgverlener</span><input name="clinician" value="L. Janssens" required></label>
+        <div class="modal-actions">
+          <button class="ghost-action" data-action="close-modal" type="button">Annuleer</button>
+          <button class="primary-action" type="submit">Plan afspraak</button>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function waitlistModal(state) {
+  const entry = (state.waitlist || []).find((item) => item.id === state.selectedWaitlistId);
+  if (!entry) return "";
+
+  return `
+    <div class="modal-backdrop" data-action="close-modal">
+      <form class="modal" data-form="waitlist-appointment" aria-label="Wachtlijst plannen">
+        <div class="panel-header">
+          <div><h2>Plan vanuit wachtlijst</h2><p>${escapeHtml(entry.client)} / ${escapeHtml(entry.preferred)}</p></div>
+          <button class="icon-button" data-action="close-modal" type="button">Sluit</button>
+        </div>
+        <input type="hidden" name="waitlistId" value="${escapeHtml(entry.id)}">
+        <label class="field"><span>Client</span><input value="${escapeHtml(entry.client)}" disabled></label>
+        <div class="form-grid">
+          <label class="field"><span>Tijd</span><input name="time" type="time" value="09:00" required></label>
+          <label class="field"><span>Locatie</span><input name="location" value="Praktijk" required></label>
+        </div>
+        <label class="field"><span>Afspraaktype</span><input name="type" value="${escapeHtml(entry.type || "Opvolggesprek")}" required></label>
         <label class="field"><span>Zorgverlener</span><input name="clinician" value="L. Janssens" required></label>
         <div class="modal-actions">
           <button class="ghost-action" data-action="close-modal" type="button">Annuleer</button>

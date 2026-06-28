@@ -15,6 +15,7 @@ const collections = [
   "messages",
   "portalInvites",
   "documents",
+  "waitlist",
   "workQueue",
   "aiDrafts",
   "auditLog"
@@ -158,12 +159,24 @@ function seedIfEmpty() {
     }
   }
 
+  seedCollectionIfEmpty("waitlist");
   seedRelationalTables();
   seedInvoicesTable();
 
   ensureSeedUser("usr-admin", "admin@praktijkos.local", "Praktijkhouder", "Praktijkhouder");
   ensureSeedUser("usr-care", "zorg@praktijkos.local", "Zorgverlener", "Zorgverlener");
   ensureSeedUser("usr-admin-office", "onthaal@praktijkos.local", "Onthaal", "Administratie");
+}
+
+function seedCollectionIfEmpty(collection) {
+  const instance = db;
+  const count = instance.prepare("SELECT COUNT(*) AS count FROM records WHERE collection = ?").get(collection).count;
+  if (count > 0) return;
+
+  const insert = instance.prepare("INSERT INTO records(collection, id, data) VALUES(?, ?, ?)");
+  (seedData[collection] || []).forEach((item) => {
+    insert.run(collection, item.id, JSON.stringify(item));
+  });
 }
 
 function seedInvoicesTable() {
