@@ -362,6 +362,92 @@ function secretaryLanes(state) {
   ];
 }
 
+function roleHome(state, openTasks, pendingIntakes, noShowCount) {
+  if (state.currentUser?.role === "Administratie") {
+    const adminLanes = secretaryLanes(state).filter((lane) => canView(state, lane.view));
+    return `
+      <section class="role-home">
+        <div>
+          <span class="section-kicker">Administratie</span>
+          <h2>Onthaal en backoffice</h2>
+          <p>Hou planning, betalingen en dagafsluiting strak zonder door zorgdossiers te moeten bladeren.</p>
+        </div>
+        <div class="role-home-grid">
+          ${adminLanes.map((lane) => `
+            <article class="role-home-card">
+              <span>${escapeHtml(lane.label)}</span>
+              <strong>${escapeHtml(lane.value)}</strong>
+              <p>${escapeHtml(lane.detail)}</p>
+              <button class="ghost-action" data-action="navigate" data-view="${escapeHtml(lane.view)}" type="button">${escapeHtml(lane.action)}</button>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  if (state.currentUser?.role === "Zorgverlener") {
+    const careTasks = openTasks.filter((task) => ["Dossier", "Opvolging"].includes(task.category));
+    const reviewDocuments = state.documents.filter((document) => document.status === "Review nodig");
+    const careSignals = state.appointments.filter((appointment) => appointment.signal !== "success");
+    return `
+      <section class="role-home">
+        <div>
+          <span class="section-kicker">Zorgverlener</span>
+          <h2>Cliëntzorg eerst</h2>
+          <p>Start bij dossiers die context, review of opvolging vragen. Administratieve ruis blijft op de achtergrond.</p>
+        </div>
+        <div class="role-home-grid">
+          <article class="role-home-card">
+            <span>Vandaag</span>
+            <strong>${escapeHtml(state.appointments.length)}</strong>
+            <p>${escapeHtml(noShowCount)} signaalafspraken, ${escapeHtml(pendingIntakes)} intake open</p>
+            <button class="ghost-action" data-action="navigate" data-view="agenda" type="button">Agenda</button>
+          </article>
+          <article class="role-home-card">
+            <span>Dossierwerk</span>
+            <strong>${escapeHtml(careTasks.length)}</strong>
+            <p>${escapeHtml(careTasks.slice(0, 2).map((task) => task.label).join(", ") || "Geen dossierwerk open")}</p>
+            <button class="ghost-action" data-action="navigate" data-view="work" type="button">Werk</button>
+          </article>
+          <article class="role-home-card">
+            <span>Review</span>
+            <strong>${escapeHtml(reviewDocuments.length + state.aiDrafts.filter((draft) => draft.status !== "Goedgekeurd").length)}</strong>
+            <p>${escapeHtml(reviewDocuments.length)} documenten, ${escapeHtml(state.aiDrafts.filter((draft) => draft.status !== "Goedgekeurd").length)} AI-concepten</p>
+            <button class="ghost-action" data-action="navigate" data-view="ai" type="button">Assistent</button>
+          </article>
+        </div>
+        ${careSignals.length ? `
+          <div class="role-strip">
+            ${careSignals.slice(0, 3).map((appointment) => `
+              <button class="role-strip-item" data-action="open-client" data-client-id="${escapeHtml(appointment.clientId)}" type="button">
+                <strong>${escapeHtml(appointment.client)}</strong>
+                <span>${escapeHtml(appointment.status)} / ${escapeHtml(appointment.aiHint)}</span>
+              </button>
+            `).join("")}
+          </div>
+        ` : ""}
+      </section>
+    `;
+  }
+
+  const ownerLanes = secretaryLanes(state).filter((lane) => canView(state, lane.view));
+  return `
+    <section class="secretary-lanes">
+      ${ownerLanes.map((lane) => `
+        <article class="secretary-lane">
+          <div>
+            <span>${escapeHtml(lane.label)}</span>
+            <strong>${escapeHtml(lane.value)}</strong>
+            <p>${escapeHtml(lane.detail)}</p>
+          </div>
+          <button class="ghost-action" data-action="navigate" data-view="${escapeHtml(lane.view)}" type="button">${escapeHtml(lane.action)}</button>
+        </article>
+      `).join("")}
+    </section>
+  `;
+}
+
 function dashboardView(state) {
   const openAmount = state.invoices.reduce((total, invoice) => total + invoice.amount, 0);
   const noShowCount = state.appointments.filter((appointment) => appointment.signal === "danger").length;
@@ -371,7 +457,6 @@ function dashboardView(state) {
   const forecast = dashboardForecast(state, openTasks, pendingIntakes, noShowCount);
   const dayCloseItems = state.dayClose || [];
   const dayCloseDone = dayCloseItems.filter((item) => item.status === "Klaar").length;
-  const lanes = secretaryLanes(state);
 
   return `
     <section class="metric-grid">
@@ -387,18 +472,7 @@ function dashboardView(state) {
       ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Antwoorden vastleggen</strong></button>` : ""}
       ${can(state, "billing") ? `<button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Betalingen</span><strong>Facturen opvolgen</strong></button>` : ""}
     </section>
-    <section class="secretary-lanes">
-      ${lanes.map((lane) => `
-        <article class="secretary-lane">
-          <div>
-            <span>${escapeHtml(lane.label)}</span>
-            <strong>${escapeHtml(lane.value)}</strong>
-            <p>${escapeHtml(lane.detail)}</p>
-          </div>
-          <button class="ghost-action" data-action="navigate" data-view="${escapeHtml(lane.view)}" type="button">${escapeHtml(lane.action)}</button>
-        </article>
-      `).join("")}
-    </section>
+    ${roleHome(state, openTasks, pendingIntakes, noShowCount)}
     <section class="dashboard-grid">
       <div class="panel wide">
         <div class="panel-header"><div><span class="section-kicker">Overzicht</span><h2>Wat vraagt vandaag aandacht?</h2></div></div>

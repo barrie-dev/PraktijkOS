@@ -466,6 +466,77 @@ h2 {
   color: var(--muted);
 }
 
+.role-home {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.role-home h2 {
+  margin-bottom: 3px;
+}
+
+.role-home p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.role-home-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.role-home-card {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.role-home-card span,
+.role-strip-item span {
+  color: var(--muted);
+}
+
+.role-home-card > span {
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.role-home-card strong {
+  font-size: 24px;
+}
+
+.role-strip {
+  display: grid;
+  gap: 8px;
+}
+
+.role-strip-item {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  text-align: left;
+}
+
+.role-strip-item:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
 .quick-action {
   display: grid;
   gap: 3px;
@@ -1506,6 +1577,7 @@ pre {
   .metric-grid,
   .quick-actions,
   .secretary-lanes,
+  .role-home-grid,
   .content-grid,
   .dashboard-grid,
   .client-layout,
@@ -1595,6 +1667,7 @@ pre {
   .task-item.rich-task,
   .waitlist-item,
   .secretary-lane,
+  .role-home-card,
   .day-close-item,
   .team-row,
   .day-row,
