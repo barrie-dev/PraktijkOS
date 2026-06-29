@@ -32,6 +32,7 @@
 - Role-specific home screens for practice owner, care provider and administration
 - Role-based access per dossier
 - Per-dossier access policy overview for owner, clinician, administration and AI
+- Editable per-dossier access exceptions with audit trail
 - Work queues for missing intakes, open invoices and follow-ups
 - Guided task screen with owner, due date, dossier context and direct actions
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
@@ -43,7 +44,7 @@
 
 ## Next Product Slice
 
-- Add editable per-dossier access exceptions.
+- Add access exception status changes and expiry review.
 
 ## Phase 4: Belgian Integrations
 

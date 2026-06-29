@@ -787,6 +787,7 @@ function clientsView(state) {
   const clientMessages = state.messages.filter((item) => item.clientId === selected.id);
   const clientDocuments = state.documents.filter((item) => item.clientId === selected.id);
   const clientInvoices = state.invoices.filter((item) => item.clientId === selected.id || item.client === selected.name);
+  const clientAccessOverrides = (state.accessOverrides || []).filter((item) => item.clientId === selected.id);
   const nextAppointment = clientAppointments[0];
   const openInvoiceTotal = clientInvoices
     .filter((item) => item.status !== "Betaald")
@@ -873,6 +874,28 @@ function clientsView(state) {
                 </article>
               `).join("")}
             </div>
+            <div class="access-exceptions">
+              ${clientAccessOverrides.map((override) => `
+                <article class="access-policy-row">
+                  <div>
+                    <strong>${escapeHtml(override.member)}</strong>
+                    <span>${escapeHtml(override.access)} / ${escapeHtml(override.reason)} / ${escapeHtml(override.createdBy || "PraktijkOS")}</span>
+                  </div>
+                  ${badge(override.status || "Actief", "success")}
+                </article>
+              `).join("") || `<p class="empty-state">Geen dossieruitzonderingen actief.</p>`}
+            </div>
+            ${can(state, "practice") ? `
+              <form class="access-exception-form" data-form="access-override">
+                <input type="hidden" name="clientId" value="${escapeHtml(selected.id)}">
+                <label class="field"><span>Teamlid</span><select name="memberId" required>
+                  ${(state.team || []).map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.name)} / ${escapeHtml(member.role)}</option>`).join("")}
+                </select></label>
+                <label class="field"><span>Toegang</span><select name="access"><option>Extra toegang</option><option>Beperkte toegang</option><option>Tijdelijke review</option></select></label>
+                <label class="field"><span>Reden</span><input name="reason" placeholder="Bijv. vervanging tijdens verlof" required></label>
+                <button class="ghost-action" type="submit">Uitzondering opslaan</button>
+              </form>
+            ` : ""}
           </section>
 
           <section class="dossier-section">

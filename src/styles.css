@@ -1129,6 +1129,18 @@ textarea {
   gap: 4px;
 }
 
+.access-exceptions,
+.access-exception-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.access-exception-form {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
 .access-policy-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

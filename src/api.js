@@ -45,6 +45,13 @@ export async function createClient(payload) {
   });
 }
 
+export async function createAccessOverride(clientId, payload) {
+  return request(`/api/clients/${clientId}/access-overrides`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function exportClient(clientId) {
   return request(`/api/clients/${clientId}/export`);
 }

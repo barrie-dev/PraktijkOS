@@ -60,6 +60,7 @@ const seedData = {
       status: "Review nodig"
     }
   ],
+  accessOverrides: [],
   appointments: [
     {
       id: "apt-001",

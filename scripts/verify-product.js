@@ -169,6 +169,17 @@ async function verify() {
       })
     });
 
+    const accessOverride = await request(`/api/clients/${client.id}/access-overrides`, {
+      method: "POST",
+      body: JSON.stringify({
+        memberId: "usr-003",
+        access: "Tijdelijke review",
+        reason: "Verificatie van dossieruitzonderingen"
+      })
+    });
+    assert(accessOverride.clientId === client.id, "Access override should link to the client.");
+    assert(accessOverride.status === "Actief", "Access override should be active.");
+
     const appointment = await request("/api/appointments", {
       method: "POST",
       body: JSON.stringify({

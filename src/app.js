@@ -1,5 +1,6 @@
 import {
   addAppointment,
+  addAccessOverride,
   addClient,
   addDocument,
   addIntake,
@@ -336,6 +337,8 @@ async function handleSubmit(event) {
   let result;
   if (form.dataset.form === "client") {
     result = await addClient(formData);
+  } else if (form.dataset.form === "access-override") {
+    result = await addAccessOverride(formData);
   } else if (form.dataset.form === "login") {
     result = await loginUser(formData);
   } else if (form.dataset.form === "onboarding") {

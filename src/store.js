@@ -3,6 +3,7 @@ import {
   approveDraft,
   completeDayCloseCheck,
   completeTask as completeTaskRequest,
+  createAccessOverride,
   createAppointment,
   createClient,
   createDocument,
@@ -128,6 +129,7 @@ const initialState = {
       status: "Review nodig"
     }
   ],
+  accessOverrides: [],
   appointments,
   clients,
   invoices,
@@ -350,6 +352,52 @@ export async function addClient(formData) {
     `${client.name} toegevoegd aan ${client.track}.`
   ));
   return { ok: true, message: "Client lokaal aangemaakt." };
+}
+
+export async function addAccessOverride(formData) {
+  const payload = formPayload(formData);
+  const client = state.clients.find((item) => item.id === payload.clientId);
+  const member = state.team.find((item) => item.id === payload.memberId);
+  if (!client || !member || !payload.access || !payload.reason) {
+    return { ok: false, message: "Dossier, teamlid, toegang en reden zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createAccessOverride(client.id, payload);
+      await refreshFromApi();
+      setState({ selectedClientId: client.id, view: "clients" });
+      return { ok: true, message: "Toegangsuitzondering opgeslagen." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const override = {
+    id: uid("access"),
+    clientId: client.id,
+    client: client.name,
+    memberId: member.id,
+    member: member.name,
+    role: member.role,
+    access: payload.access,
+    reason: payload.reason,
+    status: "Actief",
+    createdAt: nowLabel(),
+    createdBy: state.currentUser?.name || "PraktijkOS"
+  };
+
+  commit(pushAudit(
+    {
+      ...state,
+      accessOverrides: [override, ...(state.accessOverrides || [])],
+      selectedClientId: client.id,
+      view: "clients"
+    },
+    "Dossiertoegang aangepast",
+    `${member.name}: ${override.access} voor ${client.name}.`
+  ));
+  return { ok: true, message: "Toegangsuitzondering lokaal opgeslagen." };
 }
 
 function downloadJson(filename, payload) {

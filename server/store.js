@@ -15,6 +15,7 @@ const collections = [
   "messages",
   "portalInvites",
   "documents",
+  "accessOverrides",
   "waitlist",
   "workQueue",
   "dayClose",

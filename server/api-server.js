@@ -1038,6 +1038,43 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/clients\/[^/]+\/access-overrides$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const clientId = url.pathname.split("/")[3];
+    const client = store.clients.find((item) => item.id === clientId);
+    const payload = await readJson(request);
+    const member = store.team.find((item) => item.id === payload.memberId || item.name === payload.memberName);
+
+    if (!client || !member || !payload.access || !payload.reason) {
+      sendJson(response, 422, { error: "client, team member, access and reason are required" });
+      return;
+    }
+
+    const override = {
+      id: uid("access"),
+      clientId: client.id,
+      client: client.name,
+      memberId: member.id,
+      member: member.name,
+      role: member.role,
+      access: payload.access,
+      reason: payload.reason,
+      status: "Actief",
+      createdAt: timestampLabel(),
+      createdBy: user.name
+    };
+
+    const nextStore = appendAudit(
+      { ...store, accessOverrides: [override, ...(store.accessOverrides || [])] },
+      "Dossiertoegang aangepast",
+      `${member.name}: ${override.access} voor ${client.name}. Reden: ${override.reason}`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, override);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/clients") {
     if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);
