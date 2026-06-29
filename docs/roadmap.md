@@ -26,6 +26,7 @@
 - Approved AI notes can be stored directly in the client dossier
 - Practice-specific knowledge base for AI responses
 - AI model registry and model usage labels
+- Voice-to-note exploration with strict consent controls
 
 ## Phase 3: Group Practice Operations
 
@@ -52,7 +53,7 @@
 
 ## Next Product Slice
 
-- Add voice-to-note consent controls.
+- Add knowledge base governance and versioning.
 
 ## Phase 4: Belgian Integrations
 
@@ -68,4 +69,4 @@
 - Data retention policies
 - Advanced audit evidence packs
 - Knowledge base governance and versioning
-- Voice-to-note exploration with strict consent controls
+- Voice-to-note quality review and transcript provenance

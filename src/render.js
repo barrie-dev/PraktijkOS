@@ -1316,6 +1316,9 @@ function aiView(state) {
   const activeKnowledge = (state.knowledgeBase || []).filter((item) => item.status === "Actief");
   const activeModels = (state.aiModels || []).filter((model) => model.status === "Actief");
   const selectedModel = activeModels.find((model) => model.id === state.aiModelId) || activeModels[0] || (state.aiModels || [])[0];
+  const voiceClientId = state.voiceClientId || state.selectedClientId;
+  const voiceClient = state.clients.find((client) => client.id === voiceClientId) || state.clients[0];
+  const voiceConsent = (state.voiceConsents || []).find((consent) => consent.clientId === voiceClient?.id && consent.status === "Actief");
   return `
     <section class="ai-layout">
       <div class="panel">
@@ -1362,6 +1365,25 @@ function aiView(state) {
       <div class="panel wide">
         <div class="panel-header"><div><h2>Concepten</h2><p>Gegenereerde teksten en hun reviewstatus.</p></div></div>
         ${draftList(state)}
+      </div>
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Voice-to-note</h2><p>Transcript pas verwerken wanneer toestemming actief is.</p></div>${voiceConsent ? badge("Consent actief", "success") : badge("Consent ontbreekt", "warning")}</div>
+        <div class="voice-grid">
+          <form data-form="voice-consent" class="voice-card">
+            <label class="field"><span>Client</span><select name="clientId" data-action="voice-client">${clientOptions(state, voiceClient?.id)}</select></label>
+            <label class="field"><span>Scope</span><select name="scope"><option>Sessie-audio naar conceptnota</option><option>Dictaat naar dossiernota</option><option>Telefonisch overleg naar verslag</option></select></label>
+            <label class="field"><span>Geldig tot</span><select name="expiresAt"><option>Einde traject</option><option>Alleen vandaag</option><option>Volgende sessie</option></select></label>
+            <button class="ghost-action" type="submit">Toestemming vastleggen</button>
+            <p class="consent-note">${voiceConsent ? `${escapeHtml(voiceConsent.scope)} / ${escapeHtml(voiceConsent.recordedBy)} / ${escapeHtml(voiceConsent.expiresAt)}` : "Leg mondelinge of schriftelijke toestemming vast voordat transcriptie wordt gebruikt."}</p>
+          </form>
+          <form data-form="voice-note" class="voice-card">
+            <input type="hidden" name="clientId" value="${escapeHtml(voiceClient?.id || "")}">
+            <label class="field"><span>Titel</span><input name="title" value="Voice-to-note concept"></label>
+            <label class="field"><span>Transcript</span><textarea name="transcript" rows="6" placeholder="Plak hier het nagekeken transcript of dictaat." required></textarea></label>
+            <label class="checkbox-line"><input name="consentConfirmed" type="checkbox" ${voiceConsent ? "" : "disabled"}><span>Toestemming gecontroleerd voor dit dossier</span></label>
+            <button class="primary-action" type="submit" ${voiceConsent ? "" : "disabled"}>Maak notaconcept</button>
+          </form>
+        </div>
       </div>
       <div class="panel wide">
         <div class="panel-header"><div><h2>Wijzigingen</h2><p>Laatste acties in de praktijk.</p></div></div>

@@ -26,6 +26,8 @@ npm run verify
 - `GET /api/audit/export?filter=all|exports|access|ai|retention|import|portal|billing`
 - `POST /api/clients`
 - `POST /api/clients/:id/access-overrides`
+- `POST /api/clients/:id/voice-consent`
+- `POST /api/clients/:id/voice-notes`
 - `PATCH /api/access-overrides/:id`
 - `PATCH /api/retention-policies/:id`
 - `POST /api/retention-policies/:id/review`

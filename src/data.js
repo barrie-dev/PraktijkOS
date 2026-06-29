@@ -210,6 +210,19 @@ export const aiModels = [
   }
 ];
 
+export const voiceConsents = [
+  {
+    id: "voice-001",
+    clientId: "cl-002",
+    client: "Olivier Peeters",
+    scope: "Sessie-audio naar conceptnota",
+    status: "Actief",
+    recordedAt: "Vandaag 09:50",
+    recordedBy: "N. Dubois",
+    expiresAt: "Einde traject"
+  }
+];
+
 export const waitlist = [
   {
     id: "wait-001",

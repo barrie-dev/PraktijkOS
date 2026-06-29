@@ -10,6 +10,7 @@ import {
   addNote,
   addPortalInvite,
   addTeamMember,
+  addVoiceConsent,
   applyPreparedImport,
   approveCurrentDraft,
   bootstrapState,
@@ -27,6 +28,7 @@ import {
   completeOnboarding,
   createAuditExport,
   createBillingExport,
+  createVoiceNoteDraft,
   createInvoiceProposals,
   downloadClientDossier,
   getState,
@@ -320,6 +322,10 @@ function handleChange(event) {
     setState({ selectedClientId: target.value });
   }
 
+  if (target.dataset.action === "voice-client") {
+    setState({ voiceClientId: target.value });
+  }
+
   if (target.dataset.action === "ai-model") {
     setState({ aiModelId: target.value });
   }
@@ -386,6 +392,10 @@ async function handleSubmit(event) {
     result = await addTeamMember(formData);
   } else if (form.dataset.form === "knowledge-base") {
     result = await addKnowledgeItem(formData);
+  } else if (form.dataset.form === "voice-consent") {
+    result = await addVoiceConsent(formData);
+  } else if (form.dataset.form === "voice-note") {
+    result = await createVoiceNoteDraft(formData);
   } else if (form.dataset.form === "intake") {
     result = await addIntake(formData);
   } else if (form.dataset.form === "invoice") {

@@ -19,6 +19,7 @@ const collections = [
   "retentionPolicies",
   "knowledgeBase",
   "aiModels",
+  "voiceConsents",
   "waitlist",
   "workQueue",
   "dayClose",
@@ -170,6 +171,7 @@ function seedIfEmpty() {
   seedCollectionIfEmpty("retentionPolicies");
   seedCollectionIfEmpty("knowledgeBase");
   seedCollectionIfEmpty("aiModels");
+  seedCollectionIfEmpty("voiceConsents");
   seedRelationalTables();
   seedInvoicesTable();
 

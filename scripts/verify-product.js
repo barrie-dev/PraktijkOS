@@ -101,6 +101,7 @@ async function verify() {
     assert(state.retentionPolicies.length > 0, "Seed retention policies should be available.");
     assert(state.knowledgeBase.length > 0, "Seed knowledge base should be available.");
     assert(state.aiModels.length > 0, "Seed AI model registry should be available.");
+    assert(state.voiceConsents.length > 0, "Seed voice consent controls should be available.");
     assert(
       state.retentionPolicies.some((policy) => policy.category === "Dossier" && policy.status === "Actief"),
       "Dossier retention policy should be active."
@@ -230,6 +231,28 @@ async function verify() {
       })
     });
     assert(note.title === "Verificatie nota", "Note should be created.");
+
+    let blockedVoiceNoteStatus = 0;
+    try {
+      await request(`/api/clients/${client.id}/voice-notes`, {
+        method: "POST",
+        body: JSON.stringify({ transcript: "Transcript zonder consent", consentConfirmed: true })
+      });
+    } catch (error) {
+      blockedVoiceNoteStatus = error.status;
+    }
+    assert(blockedVoiceNoteStatus === 403, "Voice note should require active consent.");
+    const voiceConsent = await request(`/api/clients/${client.id}/voice-consent`, {
+      method: "POST",
+      body: JSON.stringify({ scope: "Sessie-audio naar conceptnota", expiresAt: "Alleen vandaag" })
+    });
+    assert(voiceConsent.status === "Actief", "Voice consent should be recorded.");
+    const voiceNote = await request(`/api/clients/${client.id}/voice-notes`, {
+      method: "POST",
+      body: JSON.stringify({ transcript: "Client benoemt stress en concrete vervolgstap.", consentConfirmed: true })
+    });
+    assert(voiceNote.status === "Review nodig", "Voice transcript should become a review note.");
+    assert(voiceNote.consentId === voiceConsent.id, "Voice note should reference consent.");
 
     const risky = await request(`/api/appointments/${appointment.id}`, {
       method: "PATCH",

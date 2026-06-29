@@ -12,6 +12,8 @@ import {
   createMessage,
   createNote,
   createPortalInvite,
+  createVoiceConsent,
+  createVoiceNote,
   createTeamMember,
   createDraft,
   createKnowledgeBaseItem,
@@ -39,7 +41,7 @@ import {
   updateRetentionPolicy
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModels, appointments, clients, dayClose, invoices, knowledgeBase, retentionPolicies, waitlist, workQueue } from "./data.js";
+import { aiModels, appointments, clients, dayClose, invoices, knowledgeBase, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -65,6 +67,7 @@ const initialState = {
   aiSource: "",
   aiWorkflow: "intake",
   aiModelId: "model-admin-safe",
+  voiceClientId: clients[1]?.id || clients[0]?.id,
   aiApproved: false,
   currentDraftId: null,
   selectedWaitlistId: null,
@@ -141,6 +144,7 @@ const initialState = {
   retentionPolicies,
   knowledgeBase,
   aiModels,
+  voiceConsents,
   appointments,
   clients,
   invoices,
@@ -420,6 +424,99 @@ export async function addAccessOverride(formData) {
   return { ok: true, message: "Toegangsuitzondering lokaal opgeslagen." };
 }
 
+export async function addVoiceConsent(formData) {
+  const payload = formPayload(formData);
+  const client = state.clients.find((item) => item.id === payload.clientId);
+  if (!client || !payload.scope) {
+    return { ok: false, message: "Client en scope zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createVoiceConsent(client.id, payload);
+      await refreshFromApi();
+      setState({ voiceClientId: client.id, view: "ai" });
+      return { ok: true, message: "Voice consent vastgelegd." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const consent = {
+    id: uid("voice"),
+    clientId: client.id,
+    client: client.name,
+    scope: payload.scope,
+    status: payload.status || "Actief",
+    recordedAt: nowLabel(),
+    recordedBy: state.currentUser?.name || "PraktijkOS",
+    expiresAt: payload.expiresAt || "Einde traject"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      voiceConsents: [consent, ...(state.voiceConsents || []).filter((item) => item.clientId !== client.id)],
+      voiceClientId: client.id,
+      view: "ai"
+    },
+    "Voice consent vastgelegd",
+    `${client.name}: ${consent.scope}.`
+  ));
+  return { ok: true, message: "Voice consent lokaal vastgelegd." };
+}
+
+export async function createVoiceNoteDraft(formData) {
+  const payload = formPayload(formData);
+  const client = state.clients.find((item) => item.id === payload.clientId);
+  const consent = activeVoiceConsentForClient(payload.clientId);
+  if (!client || !payload.transcript) {
+    return { ok: false, message: "Client en transcript zijn verplicht." };
+  }
+  if (!consent || payload.consentConfirmed !== "on") {
+    return { ok: false, message: "Actieve toestemming en bevestiging zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createVoiceNote(client.id, {
+        title: payload.title,
+        transcript: payload.transcript,
+        consentConfirmed: true
+      });
+      await refreshFromApi();
+      setState({ selectedClientId: client.id, voiceClientId: client.id, view: "clients" });
+      return { ok: true, message: "Voice-to-note concept gemaakt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const note = {
+    id: uid("note"),
+    clientId: client.id,
+    client: client.name,
+    title: payload.title || "Voice-to-note concept",
+    body: `Transcript verwerkt als conceptnota:\n\n${payload.transcript}`,
+    author: state.currentUser?.name || "PraktijkOS",
+    status: "Review nodig",
+    createdAt: nowLabel(),
+    source: "voice-to-note",
+    consentId: consent.id
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      notes: [note, ...(state.notes || [])],
+      selectedClientId: client.id,
+      voiceClientId: client.id,
+      view: "clients"
+    },
+    "Voice-to-note concept gemaakt",
+    `${client.name}: transcript lokaal verwerkt met consent ${consent.id}.`
+  ));
+  return { ok: true, message: "Voice-to-note concept lokaal gemaakt." };
+}
+
 export async function changeAccessOverrideStatus(overrideId, status) {
   const override = (state.accessOverrides || []).find((item) => item.id === overrideId);
   if (!override || !status) {
@@ -639,6 +736,10 @@ function modelForWorkflow(workflow, modelId = state.aiModelId) {
     || activeModels[0]
     || (state.aiModels || [])[0]
     || null;
+}
+
+function activeVoiceConsentForClient(clientId) {
+  return (state.voiceConsents || []).find((consent) => consent.clientId === clientId && consent.status === "Actief");
 }
 
 function downloadAuditExport(payload) {

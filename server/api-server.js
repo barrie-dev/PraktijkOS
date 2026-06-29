@@ -243,6 +243,10 @@ function modelForWorkflow(store, workflow, modelId) {
     || null;
 }
 
+function activeVoiceConsent(store, clientId) {
+  return (store.voiceConsents || []).find((consent) => consent.clientId === clientId && consent.status === "Actief");
+}
+
 function buildBillingExport(store, user, options = {}) {
   const exportedAt = new Date().toISOString();
   const lines = store.invoices.map((invoice) => {
@@ -1277,6 +1281,81 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, client);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/clients\/[^/]+\/voice-consent$/)) {
+    if (!requirePermission(response, user, "care")) return;
+    const clientId = url.pathname.split("/")[3];
+    const client = store.clients.find((item) => item.id === clientId);
+    const payload = await readJson(request);
+    if (!client || !payload.scope) {
+      sendJson(response, 422, { error: "client and scope are required" });
+      return;
+    }
+
+    const consent = {
+      id: uid("voice"),
+      clientId: client.id,
+      client: client.name,
+      scope: payload.scope,
+      status: payload.status || "Actief",
+      recordedAt: timestampLabel(),
+      recordedBy: user.name,
+      expiresAt: payload.expiresAt || "Einde traject"
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        voiceConsents: [
+          consent,
+          ...(store.voiceConsents || []).filter((item) => item.clientId !== client.id)
+        ]
+      },
+      "Voice consent vastgelegd",
+      `${client.name}: ${consent.scope}, geldig tot ${consent.expiresAt}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, consent);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/clients\/[^/]+\/voice-notes$/)) {
+    if (!requirePermission(response, user, "ai")) return;
+    const clientId = url.pathname.split("/")[3];
+    const client = store.clients.find((item) => item.id === clientId);
+    const payload = await readJson(request);
+    const consent = activeVoiceConsent(store, clientId);
+    if (!client || !payload.transcript) {
+      sendJson(response, 422, { error: "client and transcript are required" });
+      return;
+    }
+    if (!consent || !payload.consentConfirmed) {
+      sendJson(response, 403, { error: "Active voice consent is required" });
+      return;
+    }
+
+    const note = {
+      id: uid("note"),
+      clientId: client.id,
+      client: client.name,
+      title: payload.title || "Voice-to-note concept",
+      body: `Transcript verwerkt als conceptnota:\n\n${payload.transcript}`,
+      author: user.name,
+      status: "Review nodig",
+      createdAt: timestampLabel(),
+      source: "voice-to-note",
+      consentId: consent.id
+    };
+    const nextStore = appendAudit(
+      { ...store, notes: [note, ...(store.notes || [])] },
+      "Voice-to-note concept gemaakt",
+      `${client.name}: transcript verwerkt met consent ${consent.id}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, note);
     return;
   }
 

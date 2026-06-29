@@ -52,6 +52,20 @@ export async function createAccessOverride(clientId, payload) {
   });
 }
 
+export async function createVoiceConsent(clientId, payload) {
+  return request(`/api/clients/${clientId}/voice-consent`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function createVoiceNote(clientId, payload) {
+  return request(`/api/clients/${clientId}/voice-notes`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function updateAccessOverride(overrideId, payload) {
   return request(`/api/access-overrides/${overrideId}`, {
     method: "PATCH",
