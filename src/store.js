@@ -39,7 +39,7 @@ import {
   updateRetentionPolicy
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { appointments, clients, dayClose, invoices, knowledgeBase, retentionPolicies, waitlist, workQueue } from "./data.js";
+import { aiModels, appointments, clients, dayClose, invoices, knowledgeBase, retentionPolicies, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -64,6 +64,7 @@ const initialState = {
   aiDraft: "Kies een workflow en genereer een concept.",
   aiSource: "",
   aiWorkflow: "intake",
+  aiModelId: "model-admin-safe",
   aiApproved: false,
   currentDraftId: null,
   selectedWaitlistId: null,
@@ -139,6 +140,7 @@ const initialState = {
   accessOverrides: [],
   retentionPolicies,
   knowledgeBase,
+  aiModels,
   appointments,
   clients,
   invoices,
@@ -630,6 +632,15 @@ function activeKnowledgeItems() {
   return (state.knowledgeBase || []).filter((item) => item.status === "Actief");
 }
 
+function modelForWorkflow(workflow, modelId = state.aiModelId) {
+  const activeModels = (state.aiModels || []).filter((model) => model.status === "Actief");
+  return activeModels.find((model) => model.id === modelId)
+    || activeModels.find((model) => (model.defaultFor || []).includes(workflow))
+    || activeModels[0]
+    || (state.aiModels || [])[0]
+    || null;
+}
+
 function downloadAuditExport(payload) {
   downloadJson(`praktijkos-audit-${payload.filter}.json`, payload);
   downloadText(payload.files.csvFilename, payload.files.csv, "text/csv");
@@ -953,7 +964,7 @@ export async function changeAppointmentStatus(appointmentId, status) {
   return { ok: true, message: "Afspraakstatus lokaal bijgewerkt." };
 }
 
-export async function recordDraft({ workflow, source, output, knowledgeIds = [] }) {
+export async function recordDraft({ workflow, source, output, knowledgeIds = [], model = null }) {
   if (state.apiStatus === "connected") {
     try {
       const draft = await createDraft({ workflow, source, output });
@@ -971,6 +982,10 @@ export async function recordDraft({ workflow, source, output, knowledgeIds = [] 
     source,
     output,
     knowledgeIds,
+    modelId: model?.id || "",
+    modelName: model?.name || "PraktijkOS model",
+    promptVersion: model?.promptVersion || "local-v1",
+    riskLevel: model?.riskLevel || "Laag",
     status: "Concept",
     createdAt: nowLabel(),
     approvedAt: null
@@ -993,12 +1008,13 @@ export async function recordDraft({ workflow, source, output, knowledgeIds = [] 
 export async function runAiWorkflow(source) {
   const workflow = state.aiWorkflow;
   const knowledge = activeKnowledgeItems();
+  const model = modelForWorkflow(workflow);
 
   if (state.apiStatus === "connected") {
     try {
-      const draft = await generateAiDraft({ workflow, source });
+      const draft = await generateAiDraft({ workflow, source, modelId: model?.id });
       await refreshFromApi();
-      setState({ aiDraft: draft.output, aiApproved: false, currentDraftId: draft.id });
+      setState({ aiDraft: draft.output, aiApproved: false, currentDraftId: draft.id, aiModelId: draft.modelId || model?.id || state.aiModelId });
       return { ok: true, message: "AI concept gegenereerd. Review blijft verplicht." };
     } catch {
       setState({ apiStatus: "local" });
@@ -1006,7 +1022,7 @@ export async function runAiWorkflow(source) {
   }
 
   const output = generateDraft({ workflow, input: source, knowledge });
-  await recordDraft({ workflow, source, output, knowledgeIds: knowledge.map((item) => item.id) });
+  await recordDraft({ workflow, source, output, knowledgeIds: knowledge.map((item) => item.id), model });
   return { ok: true, message: "AI concept lokaal gegenereerd. Review blijft verplicht." };
 }
 

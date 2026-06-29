@@ -18,6 +18,7 @@ const collections = [
   "accessOverrides",
   "retentionPolicies",
   "knowledgeBase",
+  "aiModels",
   "waitlist",
   "workQueue",
   "dayClose",
@@ -168,6 +169,7 @@ function seedIfEmpty() {
   seedCollectionIfEmpty("dayClose");
   seedCollectionIfEmpty("retentionPolicies");
   seedCollectionIfEmpty("knowledgeBase");
+  seedCollectionIfEmpty("aiModels");
   seedRelationalTables();
   seedInvoicesTable();
 

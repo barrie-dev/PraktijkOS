@@ -133,6 +133,38 @@ const seedData = {
       owner: "Praktijkhouder"
     }
   ],
+  aiModels: [
+    {
+      id: "model-admin-safe",
+      name: "PraktijkOS Admin Safe",
+      provider: "OpenAI",
+      useCase: "Administratieve concepten en portaalberichten",
+      promptVersion: "admin-v1",
+      riskLevel: "Laag",
+      status: "Actief",
+      defaultFor: ["intake", "billing"]
+    },
+    {
+      id: "model-care-review",
+      name: "PraktijkOS Care Review",
+      provider: "OpenAI",
+      useCase: "Sessienota's en doorverwijsbrieven met zorgverlener-review",
+      promptVersion: "care-v1",
+      riskLevel: "Medium",
+      status: "Actief",
+      defaultFor: ["note", "letter"]
+    },
+    {
+      id: "model-research-preview",
+      name: "PraktijkOS Research Preview",
+      provider: "OpenAI",
+      useCase: "Niet-productieve verkenning en prompttesten",
+      promptVersion: "sandbox-v1",
+      riskLevel: "Hoog",
+      status: "Pauze",
+      defaultFor: []
+    }
+  ],
   appointments: [
     {
       id: "apt-001",

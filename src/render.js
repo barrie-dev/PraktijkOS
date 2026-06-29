@@ -1314,6 +1314,8 @@ function billingView(state) {
 
 function aiView(state) {
   const activeKnowledge = (state.knowledgeBase || []).filter((item) => item.status === "Actief");
+  const activeModels = (state.aiModels || []).filter((model) => model.status === "Actief");
+  const selectedModel = activeModels.find((model) => model.id === state.aiModelId) || activeModels[0] || (state.aiModels || [])[0];
   return `
     <section class="ai-layout">
       <div class="panel">
@@ -1328,6 +1330,16 @@ function aiView(state) {
             ${clientOptions(state)}
           </select>
         </label>
+        <label class="field"><span>Modelprofiel</span>
+          <select data-action="ai-model">
+            ${activeModels.map((model) => `<option value="${escapeHtml(model.id)}" ${selectedModel?.id === model.id ? "selected" : ""}>${escapeHtml(model.name)} / ${escapeHtml(model.promptVersion)}</option>`).join("")}
+          </select>
+        </label>
+        <div class="model-summary">
+          <strong>${escapeHtml(selectedModel?.name || "Geen model geselecteerd")}</strong>
+          <span>${escapeHtml(selectedModel?.useCase || "Voeg een actief model toe in de registry.")}</span>
+          ${selectedModel ? badge(`Risico ${selectedModel.riskLevel}`, selectedModel.riskLevel === "Laag" ? "success" : "warning") : ""}
+        </div>
         <label class="field"><span>Broncontext</span><textarea data-action="ai-input" rows="9">${escapeHtml(state.aiSource || "Client meldt stressklachten, slaapproblemen en piekeren rond werk. Eerste gesprek, vraag naar kortdurende begeleiding. Wil graag afspraken op dinsdagavond.")}</textarea></label>
         <div class="ai-actions"><button class="primary-action" data-action="run-ai" type="button">Genereer concept</button><button class="ghost-action" data-action="clear-ai" type="button">Wis</button></div>
       </div>
@@ -1702,6 +1714,24 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide">
+        <div class="panel-header"><div><h2>AI model registry</h2><p>Modelprofielen, promptversies en risicolabels voor AI-concepten.</p></div></div>
+        <div class="security-list">
+          ${(state.aiModels || []).map((model) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(model.name)} / ${escapeHtml(model.promptVersion)}</strong>
+                <span>${escapeHtml(model.provider)} / ${escapeHtml(model.useCase)} / standaard voor ${(model.defaultFor || []).join(", ") || "geen workflow"}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(model.status, model.status === "Actief" ? "success" : "warning")}
+                ${badge(`Risico ${model.riskLevel}`, model.riskLevel === "Laag" ? "success" : "warning")}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen modelprofielen.</p>`}
+        </div>
+      </div>
+
+      <div class="panel wide">
         <div class="panel-header"><div><h2>Actieve rollen</h2><p>Huidige toegangen in de praktijk.</p></div></div>
         <div class="team-table">
           ${state.team.map((member) => `
@@ -1726,8 +1756,11 @@ function draftList(state) {
     <div class="audit-list">
       ${state.aiDrafts.map((draft) => `
         <article class="audit-item">
-          <div><strong>${escapeHtml(getWorkflowLabel(draft.workflow))}</strong><span>${escapeHtml(draft.createdAt)}${draft.approvedAt ? ` / goedgekeurd ${escapeHtml(draft.approvedAt)}` : ""}${draft.savedNoteId ? " / opgeslagen als nota" : ""}</span></div>
-          ${badge(draft.status, draft.status === "Goedgekeurd" ? "success" : "warning")}
+          <div><strong>${escapeHtml(getWorkflowLabel(draft.workflow))}</strong><span>${escapeHtml(draft.modelName || "Model onbekend")} / ${escapeHtml(draft.promptVersion || "prompt onbekend")} / ${escapeHtml(draft.createdAt)}${draft.approvedAt ? ` / goedgekeurd ${escapeHtml(draft.approvedAt)}` : ""}${draft.savedNoteId ? " / opgeslagen als nota" : ""}</span></div>
+          <div class="status-stack">
+            ${badge(draft.riskLevel ? `Risico ${draft.riskLevel}` : "Geen model", draft.riskLevel === "Laag" ? "success" : "warning")}
+            ${badge(draft.status, draft.status === "Goedgekeurd" ? "success" : "warning")}
+          </div>
         </article>
       `).join("")}
     </div>

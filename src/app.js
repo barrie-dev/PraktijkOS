@@ -320,6 +320,10 @@ function handleChange(event) {
     setState({ selectedClientId: target.value });
   }
 
+  if (target.dataset.action === "ai-model") {
+    setState({ aiModelId: target.value });
+  }
+
   if (target.dataset.action === "approve-checkbox") {
     setState({ aiApproved: target.checked });
   }

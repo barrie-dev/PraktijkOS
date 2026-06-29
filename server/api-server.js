@@ -234,6 +234,15 @@ function activeKnowledge(store) {
   return (store.knowledgeBase || []).filter((item) => item.status === "Actief");
 }
 
+function modelForWorkflow(store, workflow, modelId) {
+  const activeModels = (store.aiModels || []).filter((model) => model.status === "Actief");
+  return activeModels.find((model) => model.id === modelId)
+    || activeModels.find((model) => (model.defaultFor || []).includes(workflow))
+    || activeModels[0]
+    || (store.aiModels || [])[0]
+    || null;
+}
+
 function buildBillingExport(store, user, options = {}) {
   const exportedAt = new Date().toISOString();
   const lines = store.invoices.map((invoice) => {
@@ -1400,6 +1409,10 @@ async function handleApi(request, response) {
       workflow: payload.workflow,
       source: payload.source || "",
       output: payload.output,
+      modelId: payload.modelId || "",
+      modelName: payload.modelName || "Handmatig concept",
+      promptVersion: payload.promptVersion || "manual",
+      riskLevel: payload.riskLevel || "Laag",
       status: "Concept",
       createdAt: timestampLabel(),
       approvedAt: null
@@ -1454,6 +1467,7 @@ async function handleApi(request, response) {
     }
 
     const knowledge = activeKnowledge(store);
+    const model = modelForWorkflow(store, payload.workflow, payload.modelId);
     const output = generateDraft({ workflow: payload.workflow, input: payload.source || "", knowledge });
     const draft = {
       id: uid("draft"),
@@ -1461,6 +1475,10 @@ async function handleApi(request, response) {
       source: payload.source || "",
       output,
       knowledgeIds: knowledge.map((item) => item.id),
+      modelId: model?.id || "",
+      modelName: model?.name || "PraktijkOS model",
+      promptVersion: model?.promptVersion || "server-v1",
+      riskLevel: model?.riskLevel || "Laag",
       status: "Concept",
       createdAt: timestampLabel(),
       approvedAt: null
@@ -1469,7 +1487,7 @@ async function handleApi(request, response) {
     const nextStore = appendAudit(
       { ...store, aiDrafts: [draft, ...store.aiDrafts].slice(0, 100) },
       "AI concept gegenereerd",
-      `${draft.workflow} concept staat klaar voor review.`,
+      `${draft.workflow} concept met ${draft.modelName} (${draft.promptVersion}) staat klaar voor review.`,
       "AI Copilot"
     );
     writeStore(nextStore);

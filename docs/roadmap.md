@@ -25,6 +25,7 @@
 - Audit trail for generated, edited and approved content
 - Approved AI notes can be stored directly in the client dossier
 - Practice-specific knowledge base for AI responses
+- AI model registry and model usage labels
 
 ## Phase 3: Group Practice Operations
 
@@ -51,7 +52,7 @@
 
 ## Next Product Slice
 
-- Add AI model registry and model usage labels.
+- Add voice-to-note consent controls.
 
 ## Phase 4: Belgian Integrations
 
@@ -63,7 +64,7 @@
 
 ## Phase 5: Defensibility
 
-- AI model registry
+- AI model governance and evaluation history
 - Data retention policies
 - Advanced audit evidence packs
 - Knowledge base governance and versioning

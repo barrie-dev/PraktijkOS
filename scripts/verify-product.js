@@ -100,6 +100,7 @@ async function verify() {
     assert(state.dayClose.length > 0, "Seed day close checklist should be available.");
     assert(state.retentionPolicies.length > 0, "Seed retention policies should be available.");
     assert(state.knowledgeBase.length > 0, "Seed knowledge base should be available.");
+    assert(state.aiModels.length > 0, "Seed AI model registry should be available.");
     assert(
       state.retentionPolicies.some((policy) => policy.category === "Dossier" && policy.status === "Actief"),
       "Dossier retention policy should be active."
@@ -373,10 +374,12 @@ async function verify() {
 
     const draft = await request("/api/ai/generate", {
       method: "POST",
-      body: JSON.stringify({ workflow: "note", source: "Client ervaart stress en zoekt opvolging." })
+      body: JSON.stringify({ workflow: "note", source: "Client ervaart stress en zoekt opvolging.", modelId: "model-care-review" })
     });
     assert(draft.output.includes("Sessienota concept"), "AI workflow should generate a note draft.");
     assert(draft.output.includes("Praktijkkennis toegepast"), "AI workflow should include practice knowledge context.");
+    assert(draft.modelId === "model-care-review", "AI draft should record the selected model.");
+    assert(draft.promptVersion === "care-v1", "AI draft should record prompt version.");
 
     const approved = await request(`/api/ai/drafts/${draft.id}/approve`, {
       method: "POST",
