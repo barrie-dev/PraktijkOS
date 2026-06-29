@@ -293,6 +293,23 @@ async function verify() {
     });
     assert(peppolPreparation.status === "Klaar voor Peppol", "Complete Peppol invoice should be ready.");
     assert(peppolPreparation.deliveryReference, "Peppol preparation should include a delivery reference.");
+    const paymentInvoice = await request("/api/invoices", {
+      method: "POST",
+      body: JSON.stringify({
+        clientId: client.id,
+        appointmentId: appointment.id,
+        amount: 82,
+        channel: "Wero",
+        status: "Open",
+        dueAt: "20/07"
+      })
+    });
+    const paymentRequest = await request(`/api/invoices/${paymentInvoice.id}/payment-request`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(paymentRequest.status === "Klaar om te delen", "Wero invoice should create a payment request.");
+    assert(paymentRequest.reference.includes("WERO"), "Payment request should include channel reference.");
 
     const billingExport = await request("/api/billing/export", {
       method: "POST",

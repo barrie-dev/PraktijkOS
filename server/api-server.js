@@ -287,6 +287,29 @@ function buildPeppolPreparation(store, invoice, user) {
   };
 }
 
+function buildPaymentRequest(invoice, user) {
+  const missing = [];
+  if (!["Bancontact", "Wero"].includes(invoice.channel)) missing.push("Kanaal moet Bancontact of Wero zijn");
+  if (Number(invoice.amount || 0) <= 0) missing.push("Bedrag ontbreekt");
+  if (invoice.status === "Betaald") missing.push("Factuur is al betaald");
+  const status = missing.length ? "Aanvullen" : "Klaar om te delen";
+  return {
+    id: uid("pay"),
+    invoiceId: invoice.id,
+    clientId: invoice.clientId || "",
+    client: invoice.client,
+    channel: invoice.channel,
+    amount: Number(invoice.amount || 0),
+    status,
+    missing,
+    reference: missing.length ? "" : `${invoice.channel.toUpperCase()}-${invoice.id.toUpperCase()}`,
+    shareText: missing.length ? "" : `${invoice.client}: betaal ${invoice.amount} euro via ${invoice.channel}. Referentie ${invoice.channel.toUpperCase()}-${invoice.id.toUpperCase()}.`,
+    preparedAt: timestampLabel(),
+    preparedBy: user.name,
+    expiresAt: invoice.dueAt || "Binnen 14 dagen"
+  };
+}
+
 function buildBillingExport(store, user, options = {}) {
   const exportedAt = new Date().toISOString();
   const lines = store.invoices.map((invoice) => {
@@ -1890,6 +1913,33 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, preparation);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/invoices\/[^/]+\/payment-request$/)) {
+    if (!requirePermission(response, user, "billing")) return;
+    const invoiceId = url.pathname.split("/")[3];
+    const invoice = store.invoices.find((item) => item.id === invoiceId);
+    if (!invoice) {
+      sendJson(response, 404, { error: "Invoice not found" });
+      return;
+    }
+
+    const paymentRequest = buildPaymentRequest(invoice, user);
+    const nextStore = appendAudit(
+      {
+        ...store,
+        paymentRequests: [
+          paymentRequest,
+          ...(store.paymentRequests || []).filter((item) => item.invoiceId !== invoice.id)
+        ].slice(0, 100)
+      },
+      "Betalingsverzoek voorbereid",
+      `${invoice.client}: ${paymentRequest.channel} ${paymentRequest.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, paymentRequest);
     return;
   }
 

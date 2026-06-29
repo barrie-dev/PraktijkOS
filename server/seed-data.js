@@ -209,6 +209,7 @@ const seedData = {
     }
   ],
   peppolPreparations: [],
+  paymentRequests: [],
   appointments: [
     {
       id: "apt-001",

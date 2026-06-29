@@ -57,11 +57,12 @@
 
 ## Next Product Slice
 
-- Add Bancontact and Wero payment flow preparation.
+- Add accounting exports for common Belgian tools.
 
 ## Phase 4: Belgian Integrations
 
 - Bancontact and Wero payment flows
+- Bancontact and Wero payment flow preparation
 - Peppol-ready invoice delivery preparation
 - Peppol-ready invoice delivery
 - Accounting exports for common Belgian tools

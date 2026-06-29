@@ -1251,6 +1251,7 @@ function billingView(state) {
   const paid = state.invoices.filter((invoice) => invoice.status === "Betaald").reduce((total, invoice) => total + invoice.amount, 0);
   const open = state.invoices.filter((invoice) => invoice.status !== "Betaald").reduce((total, invoice) => total + invoice.amount, 0);
   const peppolPreparations = state.peppolPreparations || [];
+  const paymentRequests = state.paymentRequests || [];
   const invoiceAppointments = state.appointments.filter((appointment) =>
     !state.invoices.some((invoice) => invoice.appointmentId === appointment.id)
   );
@@ -1272,6 +1273,8 @@ function billingView(state) {
                 ${badge(invoice.status, invoice.status === "Herinnering" ? "warning" : invoice.status === "Betaald" ? "success" : "warning")}
                 ${invoice.channel === "Peppol" ? badge((peppolPreparations.find((item) => item.invoiceId === invoice.id)?.status || "Peppol te checken"), peppolPreparations.find((item) => item.invoiceId === invoice.id)?.status === "Klaar voor Peppol" ? "success" : "warning") : ""}
                 ${invoice.channel === "Peppol" ? `<button class="ghost-action" data-action="prepare-peppol" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Peppol check</button>` : ""}
+                ${["Bancontact", "Wero"].includes(invoice.channel) ? badge((paymentRequests.find((item) => item.invoiceId === invoice.id)?.status || "Betaalverzoek te maken"), paymentRequests.find((item) => item.invoiceId === invoice.id)?.status === "Klaar om te delen" ? "success" : "warning") : ""}
+                ${["Bancontact", "Wero"].includes(invoice.channel) ? `<button class="ghost-action" data-action="prepare-payment-request" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Betaalverzoek</button>` : ""}
                 <button class="ghost-action" data-action="remind-invoice" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Herinner</button>
                 <button class="ghost-action" data-action="mark-invoice-paid" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Betaald</button>
               </div>
@@ -1309,6 +1312,20 @@ function billingView(state) {
               ${badge(item.status, item.status === "Klaar voor Peppol" ? "success" : "warning")}
             </article>
           `).join("") || `<p class="empty-state">Nog geen Peppol checks uitgevoerd.</p>`}
+        </div>
+      </div>
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Betaalverzoeken</h2><p>Bancontact en Wero betaalcontext klaarzetten voor clientcommunicatie.</p></div></div>
+        <div class="security-list">
+          ${paymentRequests.slice(0, 8).map((item) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(item.client)} / ${escapeHtml(item.channel)} / ${formatEuro(item.amount)}</strong>
+                <span>${item.missing?.length ? escapeHtml(item.missing.join(" / ")) : escapeHtml(item.shareText)} / ${escapeHtml(item.preparedAt)} / ${escapeHtml(item.preparedBy)}</span>
+              </div>
+              ${badge(item.status, item.status === "Klaar om te delen" ? "success" : "warning")}
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen betaalverzoeken voorbereid.</p>`}
         </div>
       </div>
       <form class="panel" data-form="invoice">

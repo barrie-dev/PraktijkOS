@@ -256,6 +256,7 @@ export const voiceConsents = [
 ];
 
 export const peppolPreparations = [];
+export const paymentRequests = [];
 
 export const waitlist = [
   {

@@ -40,6 +40,7 @@ import {
   openModal,
   prepareImportPreview,
   prepareInvoiceForPeppol,
+  prepareInvoicePaymentRequest,
   markInvoicePaid,
   remindInvoice,
   resetDemoState,
@@ -247,6 +248,12 @@ async function handleClick(event) {
 
   if (action === "prepare-peppol") {
     const result = await prepareInvoiceForPeppol(target.dataset.invoiceId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "prepare-payment-request") {
+    const result = await prepareInvoicePaymentRequest(target.dataset.invoiceId);
     showToast(result.message);
     return;
   }

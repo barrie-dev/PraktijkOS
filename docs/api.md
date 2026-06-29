@@ -45,6 +45,7 @@ npm run verify
 - `POST /api/billing/export`
 - `PATCH /api/invoices/:id`
 - `POST /api/invoices/:id/peppol/prepare`
+- `POST /api/invoices/:id/payment-request`
 - `POST /api/invoices/:id/reminder`
 - `POST /api/tasks/:id/complete`
 - `POST /api/day-close/:id/complete`

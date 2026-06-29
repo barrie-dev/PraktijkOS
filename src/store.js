@@ -29,6 +29,7 @@ import {
   logout,
   previewImport,
   preparePeppolInvoice,
+  preparePaymentRequest,
   reviewKnowledgeBaseItem,
   reviewRetentionPolicy,
   rollbackImport,
@@ -45,7 +46,7 @@ import {
   updateRetentionPolicy
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, invoices, knowledgeBase, peppolPreparations, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, invoices, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -151,6 +152,7 @@ const initialState = {
   aiModelEvaluations,
   voiceConsents,
   peppolPreparations,
+  paymentRequests,
   appointments,
   clients,
   invoices,
@@ -929,6 +931,29 @@ function buildLocalPeppolPreparation(invoice) {
   };
 }
 
+function buildLocalPaymentRequest(invoice) {
+  const missing = [];
+  if (!["Bancontact", "Wero"].includes(invoice.channel)) missing.push("Kanaal moet Bancontact of Wero zijn");
+  if (Number(invoice.amount || 0) <= 0) missing.push("Bedrag ontbreekt");
+  if (invoice.status === "Betaald") missing.push("Factuur is al betaald");
+  const status = missing.length ? "Aanvullen" : "Klaar om te delen";
+  return {
+    id: uid("pay"),
+    invoiceId: invoice.id,
+    clientId: invoice.clientId || "",
+    client: invoice.client,
+    channel: invoice.channel,
+    amount: Number(invoice.amount || 0),
+    status,
+    missing,
+    reference: missing.length ? "" : `${invoice.channel.toUpperCase()}-${invoice.id.toUpperCase()}`,
+    shareText: missing.length ? "" : `${invoice.client}: betaal ${invoice.amount} euro via ${invoice.channel}. Referentie ${invoice.channel.toUpperCase()}-${invoice.id.toUpperCase()}.`,
+    preparedAt: nowLabel(),
+    preparedBy: state.currentUser?.name || "PraktijkOS",
+    expiresAt: invoice.dueAt || "Binnen 14 dagen"
+  };
+}
+
 function downloadAuditExport(payload) {
   downloadJson(`praktijkos-audit-${payload.filter}.json`, payload);
   downloadText(payload.files.csvFilename, payload.files.csv, "text/csv");
@@ -1443,6 +1468,39 @@ export async function prepareInvoiceForPeppol(invoiceId) {
     `${invoice.client}: ${preparation.status}.`
   ));
   return { ok: true, message: preparation.status === "Klaar voor Peppol" ? "Peppol voorbereiding lokaal klaar." : "Peppol gegevens lokaal aan te vullen." };
+}
+
+export async function prepareInvoicePaymentRequest(invoiceId) {
+  const invoice = state.invoices.find((item) => item.id === invoiceId);
+  if (!invoice) {
+    return { ok: false, message: "Factuur niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const paymentRequest = await preparePaymentRequest(invoiceId);
+      await refreshFromApi();
+      setState({ view: "billing" });
+      return { ok: true, message: paymentRequest.status === "Klaar om te delen" ? "Betalingsverzoek klaar." : "Betalingsverzoek aan te vullen." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const paymentRequest = buildLocalPaymentRequest(invoice);
+  commit(pushAudit(
+    {
+      ...state,
+      paymentRequests: [
+        paymentRequest,
+        ...(state.paymentRequests || []).filter((item) => item.invoiceId !== invoice.id)
+      ].slice(0, 100),
+      view: "billing"
+    },
+    "Betalingsverzoek voorbereid",
+    `${invoice.client}: ${paymentRequest.channel} ${paymentRequest.status}.`
+  ));
+  return { ok: true, message: paymentRequest.status === "Klaar om te delen" ? "Betalingsverzoek lokaal klaar." : "Betalingsverzoek lokaal aan te vullen." };
 }
 
 export async function createAuditExport(filter = state.auditFilter || "all") {
