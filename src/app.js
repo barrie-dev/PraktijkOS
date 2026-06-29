@@ -24,6 +24,7 @@ import {
   completeRetentionReview,
   completeTask,
   completeOnboarding,
+  createAuditExport,
   createBillingExport,
   createInvoiceProposals,
   downloadClientDossier,
@@ -237,6 +238,12 @@ async function handleClick(event) {
     return;
   }
 
+  if (action === "export-audit") {
+    const result = await createAuditExport(getState().auditFilter || "all");
+    showToast(result.message);
+    return;
+  }
+
   if (action === "mark-invoice-paid") {
     const result = await markInvoicePaid(target.dataset.invoiceId);
     showToast(result.message);
@@ -342,6 +349,10 @@ function handleChange(event) {
 
   if (target.dataset.action === "portal-invite-status") {
     changePortalInviteStatus(target.dataset.inviteId, target.value).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "audit-filter") {
+    setState({ auditFilter: target.value });
   }
 }
 

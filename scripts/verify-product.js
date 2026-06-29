@@ -203,6 +203,10 @@ async function verify() {
     assert(reviewedRetentionPolicy.status === "Actief", "Retention review should reactivate the policy.");
     assert(reviewedRetentionPolicy.nextReviewDue, "Retention review should set the next review label.");
 
+    const auditExport = await request("/api/audit/export?filter=retention");
+    assert(auditExport.summary.exportedEvents >= 1, "Retention audit export should include retention events.");
+    assert(auditExport.files.csv.includes("Retentie"), "Retention audit export should include CSV content.");
+
     const appointment = await request("/api/appointments", {
       method: "POST",
       body: JSON.stringify({

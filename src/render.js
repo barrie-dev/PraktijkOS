@@ -46,6 +46,16 @@ const appointmentStatuses = ["Nieuw", "Aanwezig", "Klaar voor facturatie", "Inta
 const messageStatuses = ["Concept", "Klaar voor verzending", "Verzonden", "Gearchiveerd"];
 const documentStatuses = ["Review nodig", "Klaar voor delen", "Gedeeld", "Gearchiveerd"];
 const portalInviteStatuses = ["Actief", "Ingetrokken"];
+const auditFilterOptions = [
+  { value: "all", label: "Alle events" },
+  { value: "exports", label: "Exports" },
+  { value: "access", label: "Toegang" },
+  { value: "ai", label: "AI" },
+  { value: "retention", label: "Retentie" },
+  { value: "import", label: "Import" },
+  { value: "portal", label: "Portaal" },
+  { value: "billing", label: "Facturatie" }
+];
 
 const permissionsByRole = {
   Praktijkhouder: ["practice", "team", "care", "scheduling", "billing", "ai", "tasks"],
@@ -1484,6 +1494,8 @@ function securityView(state) {
   const retentionPolicies = state.retentionPolicies || [];
   const retentionReviews = retentionPolicies.filter((policy) => policy.status !== "Actief");
   const cleanupQueue = retentionCleanupQueue(state);
+  const selectedAuditFilter = state.auditFilter || "all";
+  const selectedAuditRows = filteredAuditLog(state, selectedAuditFilter);
   const securityAlerts = [
     ...activeOverrides.map((override) => ({
       label: "Toegang reviewen",
@@ -1617,8 +1629,16 @@ function securityView(state) {
         </div>
       </div>
       <div class="panel wide">
-        <div class="panel-header"><div><h2>Auditlog</h2><p>Laatste acties rond dossiers, toegang, AI en migratie.</p></div></div>
-        ${auditList(state, 12)}
+        <div class="panel-header">
+          <div><h2>Auditlog</h2><p>${selectedAuditRows.length} events binnen deze filter.</p></div>
+          <div class="inline-actions">
+            <label class="compact-select"><span>Filter</span><select data-action="audit-filter">
+              ${auditFilterOptions.map((option) => `<option value="${escapeHtml(option.value)}" ${selectedAuditFilter === option.value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
+            </select></label>
+            <button class="primary-action" data-action="export-audit" type="button">Export</button>
+          </div>
+        </div>
+        ${auditList(state, 12, selectedAuditFilter)}
       </div>
     </section>
   `;
@@ -1682,15 +1702,35 @@ function draftList(state) {
   `;
 }
 
-function auditList(state, limit = 8) {
+function auditMatchesFilter(entry, filter = "all") {
+  if (!filter || filter === "all") return true;
+  const text = `${entry.event || ""} ${entry.detail || ""}`.toLowerCase();
+  const filters = {
+    exports: ["export"],
+    access: ["toegang", "dossiertoegang", "access"],
+    ai: ["ai ", "ai-", "concept", "assistent"],
+    retention: ["retentie", "retentiereview"],
+    import: ["import", "migratie"],
+    portal: ["portal", "portaal"],
+    billing: ["factuur", "betaling", "boekhouder"]
+  };
+  return (filters[filter] || []).some((keyword) => text.includes(keyword));
+}
+
+function filteredAuditLog(state, filter = "all") {
+  return (state.auditLog || []).filter((entry) => auditMatchesFilter(entry, filter));
+}
+
+function auditList(state, limit = 8, filter = "all") {
+  const entries = filteredAuditLog(state, filter).slice(0, limit);
   return `
     <div class="audit-list">
-      ${state.auditLog.slice(0, limit).map((entry) => `
+      ${entries.map((entry) => `
         <article class="audit-item">
           <div><strong>${escapeHtml(entry.event)}</strong><span>${escapeHtml(entry.detail)}</span></div>
           <span class="audit-meta">${escapeHtml(entry.at)} / ${escapeHtml(displayActor(entry.actor))}</span>
         </article>
-      `).join("")}
+      `).join("") || `<p class="empty-state">Geen audit-events voor deze filter.</p>`}
     </div>
   `;
 }

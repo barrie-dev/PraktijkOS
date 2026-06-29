@@ -38,6 +38,7 @@
 - Security review reminders and overdue access alerts
 - Retention policy setup and dossier retention labels
 - Retention review workflow and cleanup queue
+- Fine-grained audit export filters
 - Work queues for missing intakes, open invoices and follow-ups
 - Guided task screen with owner, due date, dossier context and direct actions
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
@@ -49,7 +50,7 @@
 
 ## Next Product Slice
 
-- Add fine-grained audit export filters.
+- Add practice knowledge base for AI responses.
 
 ## Phase 4: Belgian Integrations
 
@@ -63,6 +64,6 @@
 
 - AI model registry
 - Data retention policies
-- Fine-grained audit exports
+- Advanced audit evidence packs
 - Practice-specific knowledge base
 - Voice-to-note exploration with strict consent controls

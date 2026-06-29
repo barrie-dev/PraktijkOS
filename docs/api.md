@@ -23,6 +23,7 @@ npm run verify
 - `GET /api/dashboard`
 - `GET /api/analytics`
 - `GET /api/state`
+- `GET /api/audit/export?filter=all|exports|access|ai|retention|import|portal|billing`
 - `POST /api/clients`
 - `POST /api/clients/:id/access-overrides`
 - `PATCH /api/access-overrides/:id`

@@ -183,6 +183,53 @@ function csvValue(value) {
   return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
 
+function auditMatchesFilter(entry, filter = "all") {
+  if (!filter || filter === "all") return true;
+  const text = `${entry.event || ""} ${entry.detail || ""}`.toLowerCase();
+  const filters = {
+    exports: ["export"],
+    access: ["toegang", "dossiertoegang", "access"],
+    ai: ["ai ", "ai-", "concept", "assistent"],
+    retention: ["retentie", "retentiereview"],
+    import: ["import", "migratie"],
+    portal: ["portal", "portaal"],
+    billing: ["factuur", "betaling", "boekhouder"]
+  };
+  return (filters[filter] || []).some((keyword) => text.includes(keyword));
+}
+
+function buildAuditExport(store, user, filter = "all") {
+  const rows = (store.auditLog || []).filter((entry) => auditMatchesFilter(entry, filter));
+  const csv = [
+    ["tijdstip", "actor", "event", "detail"].map(csvValue).join(";"),
+    ...rows.map((entry) => [
+      entry.at,
+      entry.actor,
+      entry.event,
+      entry.detail
+    ].map(csvValue).join(";"))
+  ].join("\n");
+
+  return {
+    exportedAt: new Date().toISOString(),
+    exportedBy: {
+      id: user.id,
+      name: user.name,
+      role: user.role
+    },
+    filter,
+    summary: {
+      totalEvents: store.auditLog.length,
+      exportedEvents: rows.length
+    },
+    files: {
+      csvFilename: `praktijkos-audit-${filter}.csv`,
+      csv
+    },
+    rows
+  };
+}
+
 function buildBillingExport(store, user, options = {}) {
   const exportedAt = new Date().toISOString();
   const lines = store.invoices.map((invoice) => {
@@ -718,6 +765,21 @@ async function handleApi(request, response) {
 
   if (request.method === "GET" && url.pathname === "/api/state") {
     sendJson(response, 200, { ...store, analytics: buildAnalytics(store) });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/audit/export") {
+    if (!requirePermission(response, user, "practice")) return;
+    const filter = url.searchParams.get("filter") || "all";
+    const auditExport = buildAuditExport(store, user, filter);
+    const nextStore = appendAudit(
+      store,
+      "Auditexport gemaakt",
+      `${auditExport.summary.exportedEvents} events geexporteerd met filter ${filter}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, auditExport);
     return;
   }
 

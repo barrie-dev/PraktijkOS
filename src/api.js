@@ -73,6 +73,10 @@ export async function reviewRetentionPolicy(policyId) {
   });
 }
 
+export async function exportAuditLog(filter = "all") {
+  return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
+}
+
 export async function exportClient(clientId) {
   return request(`/api/clients/${clientId}/export`);
 }

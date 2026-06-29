@@ -14,6 +14,7 @@ import {
   createPortalInvite,
   createTeamMember,
   createDraft,
+  exportAuditLog,
   exportBillingPackage,
   exportClient,
   fetchApiState,
@@ -66,6 +67,8 @@ const initialState = {
   currentDraftId: null,
   selectedWaitlistId: null,
   selectedWaitlistSlot: null,
+  auditFilter: "all",
+  auditExport: null,
   billingExport: null,
   messageTemplate: {
     subject: "Opvolging afspraak",
@@ -538,6 +541,54 @@ function csvValue(value) {
   return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
 
+function auditMatchesFilter(entry, filter = "all") {
+  if (!filter || filter === "all") return true;
+  const text = `${entry.event || ""} ${entry.detail || ""}`.toLowerCase();
+  const filters = {
+    exports: ["export"],
+    access: ["toegang", "dossiertoegang", "access"],
+    ai: ["ai ", "ai-", "concept", "assistent"],
+    retention: ["retentie", "retentiereview"],
+    import: ["import", "migratie"],
+    portal: ["portal", "portaal"],
+    billing: ["factuur", "betaling", "boekhouder"]
+  };
+  return (filters[filter] || []).some((keyword) => text.includes(keyword));
+}
+
+function buildLocalAuditExport(filter = "all") {
+  const rows = (state.auditLog || []).filter((entry) => auditMatchesFilter(entry, filter));
+  const csv = [
+    ["tijdstip", "actor", "event", "detail"].map(csvValue).join(";"),
+    ...rows.map((entry) => [
+      entry.at,
+      entry.actor,
+      entry.event,
+      entry.detail
+    ].map(csvValue).join(";"))
+  ].join("\n");
+
+  return {
+    exportedAt: new Date().toISOString(),
+    exportedBy: state.currentUser,
+    filter,
+    summary: {
+      totalEvents: state.auditLog.length,
+      exportedEvents: rows.length
+    },
+    files: {
+      csvFilename: `praktijkos-audit-${filter}.csv`,
+      csv
+    },
+    rows
+  };
+}
+
+function downloadAuditExport(payload) {
+  downloadJson(`praktijkos-audit-${payload.filter}.json`, payload);
+  downloadText(payload.files.csvFilename, payload.files.csv, "text/csv");
+}
+
 function buildLocalBillingExport() {
   const lines = state.invoices.map((invoice) => {
     const appointment = state.appointments.find((item) => item.id === invoice.appointmentId);
@@ -1007,6 +1058,29 @@ export async function createBillingExport() {
     `${payload.summary.invoiceCount} facturen lokaal geexporteerd.`
   ));
   return { ok: true, message: "Lokaal boekhouderpakket aangemaakt." };
+}
+
+export async function createAuditExport(filter = state.auditFilter || "all") {
+  if (state.apiStatus === "connected") {
+    try {
+      const payload = await exportAuditLog(filter);
+      downloadAuditExport(payload);
+      await refreshFromApi();
+      setState({ auditExport: payload, auditFilter: filter, view: "security" });
+      return { ok: true, message: `${payload.summary.exportedEvents} auditevents geexporteerd.` };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const payload = buildLocalAuditExport(filter);
+  downloadAuditExport(payload);
+  commit(pushAudit(
+    { ...state, auditExport: payload, auditFilter: filter, view: "security" },
+    "Auditexport gemaakt",
+    `${payload.summary.exportedEvents} events lokaal geexporteerd met filter ${filter}.`
+  ));
+  return { ok: true, message: "Lokale auditexport aangemaakt." };
 }
 
 export async function addInvoice(formData) {
