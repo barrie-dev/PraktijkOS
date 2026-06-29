@@ -103,6 +103,49 @@ export const invoices = [
   { id: "inv-004", client: "Emma Claes", amount: 90, channel: "Overschrijving", status: "Herinnering" }
 ];
 
+export const retentionPolicies = [
+  {
+    id: "ret-001",
+    category: "Dossier",
+    label: "Actieve clientdossiers",
+    scope: "Zorginhoud, sessienota's, intake en documenten",
+    duration: "10 jaar na laatste clientcontact",
+    reviewCadence: "Jaarlijks",
+    status: "Actief",
+    owner: "Praktijkhouder"
+  },
+  {
+    id: "ret-002",
+    category: "Facturatie",
+    label: "Facturen en betaalbewijzen",
+    scope: "Boekhouding, prestaties en betaalstatus",
+    duration: "7 jaar",
+    reviewCadence: "Jaarlijks",
+    status: "Actief",
+    owner: "Administratie"
+  },
+  {
+    id: "ret-003",
+    category: "Portaal",
+    label: "Portaaltoegang en gedeelde documenten",
+    scope: "Clientlinks, gedeelde documenten en intake-antwoorden",
+    duration: "Zolang traject actief is, daarna review",
+    reviewCadence: "Bij trajectafsluiting",
+    status: "Actief",
+    owner: "Administratie"
+  },
+  {
+    id: "ret-004",
+    category: "AI",
+    label: "AI-concepten en goedgekeurde output",
+    scope: "Conceptnota's, brieven en auditspoor",
+    duration: "Concepten periodiek opschonen; goedgekeurde output volgt dossierbeleid",
+    reviewCadence: "Maandelijks",
+    status: "Review nodig",
+    owner: "Praktijkhouder"
+  }
+];
+
 export const waitlist = [
   {
     id: "wait-001",

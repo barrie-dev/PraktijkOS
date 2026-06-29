@@ -32,10 +32,11 @@ import {
   updateInvoice,
   updateMessage,
   updatePortalInvite,
-  updatePractice
+  updatePractice,
+  updateRetentionPolicy
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { appointments, clients, dayClose, invoices, waitlist, workQueue } from "./data.js";
+import { appointments, clients, dayClose, invoices, retentionPolicies, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -131,6 +132,7 @@ const initialState = {
     }
   ],
   accessOverrides: [],
+  retentionPolicies,
   appointments,
   clients,
   invoices,
@@ -432,6 +434,42 @@ export async function changeAccessOverrideStatus(overrideId, status) {
     `${override.member}: ${status} voor ${override.client}.`
   ));
   return { ok: true, message: "Toegangsstatus lokaal bijgewerkt." };
+}
+
+export async function changeRetentionPolicyStatus(policyId, status) {
+  const policy = (state.retentionPolicies || []).find((item) => item.id === policyId);
+  if (!policy || !status) {
+    return { ok: false, message: "Retentiebeleid kon niet worden bijgewerkt." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updateRetentionPolicy(policyId, { status });
+      await refreshFromApi();
+      setState({ view: "security" });
+      return { ok: true, message: "Retentiebeleid bijgewerkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedPolicy = {
+    ...policy,
+    status,
+    reviewedAt: nowLabel(),
+    reviewedBy: state.currentUser?.name || "PraktijkOS"
+  };
+
+  commit(pushAudit(
+    {
+      ...state,
+      retentionPolicies: (state.retentionPolicies || []).map((item) => item.id === policyId ? updatedPolicy : item),
+      view: "security"
+    },
+    "Retentiebeleid bijgewerkt",
+    `${updatedPolicy.label}: ${updatedPolicy.status}.`
+  ));
+  return { ok: true, message: "Retentiebeleid lokaal bijgewerkt." };
 }
 
 function downloadJson(filename, payload) {

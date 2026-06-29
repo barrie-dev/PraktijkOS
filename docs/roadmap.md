@@ -36,6 +36,7 @@
 - Access exception status changes and expiry review
 - Security center for audit, exports, portal access and import review
 - Security review reminders and overdue access alerts
+- Retention policy setup and dossier retention labels
 - Work queues for missing intakes, open invoices and follow-ups
 - Guided task screen with owner, due date, dossier context and direct actions
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
@@ -47,7 +48,7 @@
 
 ## Next Product Slice
 
-- Add retention policy setup and dossier retention labels.
+- Add retention review workflow and cleanup queue.
 
 ## Phase 4: Belgian Integrations
 

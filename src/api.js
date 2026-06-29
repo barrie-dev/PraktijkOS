@@ -59,6 +59,13 @@ export async function updateAccessOverride(overrideId, payload) {
   });
 }
 
+export async function updateRetentionPolicy(policyId, payload) {
+  return request(`/api/retention-policies/${policyId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function exportClient(clientId) {
   return request(`/api/clients/${clientId}/export`);
 }

@@ -16,6 +16,7 @@ const collections = [
   "portalInvites",
   "documents",
   "accessOverrides",
+  "retentionPolicies",
   "waitlist",
   "workQueue",
   "dayClose",
@@ -164,6 +165,7 @@ function seedIfEmpty() {
 
   seedCollectionIfEmpty("waitlist");
   seedCollectionIfEmpty("dayClose");
+  seedCollectionIfEmpty("retentionPolicies");
   seedRelationalTables();
   seedInvoicesTable();
 

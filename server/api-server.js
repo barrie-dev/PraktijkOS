@@ -1106,6 +1106,37 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/retention-policies\/[^/]+$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const policyId = url.pathname.split("/")[3];
+    const payload = await readJson(request);
+    const policy = (store.retentionPolicies || []).find((item) => item.id === policyId);
+    if (!policy) {
+      sendJson(response, 404, { error: "Retention policy not found" });
+      return;
+    }
+
+    const updatedPolicy = {
+      ...policy,
+      status: payload.status || policy.status,
+      reviewCadence: payload.reviewCadence || policy.reviewCadence,
+      reviewedAt: timestampLabel(),
+      reviewedBy: user.name
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        retentionPolicies: (store.retentionPolicies || []).map((item) => item.id === policyId ? updatedPolicy : item)
+      },
+      "Retentiebeleid bijgewerkt",
+      `${updatedPolicy.label}: ${updatedPolicy.status}, review ${updatedPolicy.reviewCadence}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedPolicy);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/clients") {
     if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);

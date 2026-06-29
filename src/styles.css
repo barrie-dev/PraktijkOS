@@ -1091,6 +1091,7 @@ textarea {
 .readiness-list,
 .dossier-actions,
 .access-policy-list,
+.retention-label-list,
 .mini-list {
   display: grid;
   gap: 8px;
@@ -1156,6 +1157,15 @@ textarea {
   display: block;
   margin-top: 3px;
   color: var(--muted);
+}
+
+.retention-label {
+  border-color: rgba(26, 95, 122, 0.18);
+  background: #f7fbfc;
+}
+
+.retention-policy-row strong {
+  overflow-wrap: anywhere;
 }
 
 .mini-list span {

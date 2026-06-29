@@ -18,6 +18,7 @@ import {
   changeInvoiceChannel,
   changeMessageStatus,
   changePortalInviteStatus,
+  changeRetentionPolicyStatus,
   closeModal,
   completeDayClose,
   completeTask,
@@ -326,6 +327,10 @@ function handleChange(event) {
 
   if (target.dataset.action === "access-override-status") {
     changeAccessOverrideStatus(target.dataset.overrideId, target.value).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "retention-policy-status") {
+    changeRetentionPolicyStatus(target.dataset.policyId, target.value).then((result) => showToast(result.message));
   }
 
   if (target.dataset.action === "portal-invite-status") {

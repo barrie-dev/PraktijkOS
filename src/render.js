@@ -768,6 +768,41 @@ function accessPolicyRows(state, client) {
   ];
 }
 
+function retentionLabelsForClient(state, client, invoices = []) {
+  const policies = state.retentionPolicies || [];
+  const byCategory = (category) => policies.find((policy) => policy.category === category);
+  const rows = [
+    {
+      category: "Dossier",
+      context: client.status,
+      policy: byCategory("Dossier")
+    }
+  ];
+
+  if (invoices.length) {
+    rows.push({
+      category: "Facturatie",
+      context: `${invoices.length} facturatie-item${invoices.length === 1 ? "" : "s"}`,
+      policy: byCategory("Facturatie")
+    });
+  }
+
+  rows.push(
+    {
+      category: "Portaal",
+      context: "Delen en clientinput",
+      policy: byCategory("Portaal")
+    },
+    {
+      category: "AI",
+      context: client.aiSuggestion,
+      policy: byCategory("AI")
+    }
+  );
+
+  return rows.filter((row) => row.policy);
+}
+
 function clientsView(state) {
   const filter = state.clientFilter.toLowerCase();
   const clients = state.clients.filter((client) =>
@@ -805,6 +840,7 @@ function clientsView(state) {
     { label: "Facturatie", done: clientInvoices.length > 0 }
   ];
   const accessRows = accessPolicyRows(state, selected);
+  const retentionRows = retentionLabelsForClient(state, selected, clientInvoices);
 
   return `
     <section class="toolbar">
@@ -905,6 +941,24 @@ function clientsView(state) {
                 <button class="ghost-action" type="submit">Uitzondering opslaan</button>
               </form>
             ` : ""}
+          </section>
+
+          <section class="dossier-section wide">
+            <div class="section-row">
+              <h3>Retentie</h3>
+              <span>${retentionRows.length} labels</span>
+            </div>
+            <div class="retention-label-list">
+              ${retentionRows.map((row) => `
+                <article class="access-policy-row retention-label">
+                  <div>
+                    <strong>${escapeHtml(row.category)} / ${escapeHtml(row.policy.label)}</strong>
+                    <span>${escapeHtml(row.policy.duration)} / ${escapeHtml(row.context)} / eigenaar ${escapeHtml(row.policy.owner || "Praktijkhouder")}</span>
+                  </div>
+                  ${badge(row.policy.status, row.policy.status === "Actief" ? "success" : "warning")}
+                </article>
+              `).join("") || `<p class="empty-state">Geen retentiebeleid ingesteld.</p>`}
+            </div>
           </section>
 
           <section class="dossier-section">
@@ -1369,6 +1423,8 @@ function securityView(state) {
   const activeInvites = (state.portalInvites || []).filter((invite) => invite.status === "Actief");
   const exportEvents = (state.auditLog || []).filter((item) => `${item.event} ${item.detail}`.toLowerCase().includes("export"));
   const importRuns = state.importRuns || [];
+  const retentionPolicies = state.retentionPolicies || [];
+  const retentionReviews = retentionPolicies.filter((policy) => policy.status !== "Actief");
   const securityAlerts = [
     ...activeOverrides.map((override) => ({
       label: "Toegang reviewen",
@@ -1387,6 +1443,12 @@ function securityView(state) {
       detail: `${run.label || run.kind}: ${run.applySummary.created} records aangemaakt. Controleer steekproef.`,
       action: "import",
       severity: "warning"
+    })),
+    ...retentionReviews.map((policy) => ({
+      label: "Retentiebeleid reviewen",
+      detail: `${policy.label}: ${policy.status}. Eigenaar: ${policy.owner || "Praktijkhouder"}`,
+      action: "security",
+      severity: "warning"
     }))
   ];
 
@@ -1395,7 +1457,7 @@ function securityView(state) {
       <article class="metric"><span>Actieve uitzonderingen</span><strong>${activeOverrides.length}</strong><small>dossiertoegang te reviewen</small></article>
       <article class="metric"><span>Portaaltoegang</span><strong>${activeInvites.length}</strong><small>actieve clientlinks</small></article>
       <article class="metric"><span>Exports</span><strong>${exportEvents.length}</strong><small>dossier of boekhouding</small></article>
-      <article class="metric"><span>Import runs</span><strong>${importRuns.length}</strong><small>previews en migraties</small></article>
+      <article class="metric"><span>Retentie</span><strong>${retentionPolicies.length}</strong><small>${retentionReviews.length} policies te reviewen</small></article>
     </section>
     <section class="content-grid">
       <div class="panel wide">
@@ -1424,6 +1486,25 @@ function securityView(state) {
               </div>
             </article>
           `).join("") || `<p class="empty-state">Geen toegangsuitzonderingen.</p>`}
+        </div>
+      </div>
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Retentiebeleid</h2><p>Bewaarregels die automatisch als label in elk dossier zichtbaar zijn.</p></div></div>
+        <div class="security-list">
+          ${retentionPolicies.map((policy) => `
+            <article class="security-row retention-policy-row">
+              <div>
+                <strong>${escapeHtml(policy.category)} / ${escapeHtml(policy.label)}</strong>
+                <span>${escapeHtml(policy.duration)} / ${escapeHtml(policy.scope)} / review ${escapeHtml(policy.reviewCadence)} / eigenaar ${escapeHtml(policy.owner || "Praktijkhouder")}${policy.reviewedAt ? ` / herzien ${escapeHtml(policy.reviewedAt)}` : ""}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(policy.status, policy.status === "Actief" ? "success" : "warning")}
+                ${can(state, "practice") ? `<label class="compact-select"><span>Status</span><select data-action="retention-policy-status" data-policy-id="${escapeHtml(policy.id)}">
+                  ${["Actief", "Review nodig", "Pauze", "Vervangen"].map((status) => `<option ${policy.status === status ? "selected" : ""}>${status}</option>`).join("")}
+                </select></label>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen retentiebeleid ingesteld.</p>`}
         </div>
       </div>
       <div class="panel">

@@ -98,6 +98,11 @@ async function verify() {
     assert(state.workQueue.some((task) => task.action), "Seed tasks should include guided workflow actions.");
     assert(state.waitlist.length > 0, "Seed waitlist should be available.");
     assert(state.dayClose.length > 0, "Seed day close checklist should be available.");
+    assert(state.retentionPolicies.length > 0, "Seed retention policies should be available.");
+    assert(
+      state.retentionPolicies.some((policy) => policy.category === "Dossier" && policy.status === "Actief"),
+      "Dossier retention policy should be active."
+    );
 
     const completedTask = await request("/api/tasks/q-001/complete", {
       method: "POST",
@@ -184,6 +189,13 @@ async function verify() {
       body: JSON.stringify({ status: "Ingetrokken" })
     });
     assert(updatedAccessOverride.status === "Ingetrokken", "Access override should be revocable.");
+
+    const updatedRetentionPolicy = await request("/api/retention-policies/ret-004", {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Actief" })
+    });
+    assert(updatedRetentionPolicy.status === "Actief", "Retention policy status should be editable.");
+    assert(updatedRetentionPolicy.reviewedAt, "Retention policy update should include review metadata.");
 
     const appointment = await request("/api/appointments", {
       method: "POST",
