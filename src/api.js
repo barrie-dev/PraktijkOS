@@ -66,6 +66,13 @@ export async function updateRetentionPolicy(policyId, payload) {
   });
 }
 
+export async function reviewRetentionPolicy(policyId) {
+  return request(`/api/retention-policies/${policyId}/review`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function exportClient(clientId) {
   return request(`/api/clients/${clientId}/export`);
 }

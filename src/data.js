@@ -112,7 +112,8 @@ export const retentionPolicies = [
     duration: "10 jaar na laatste clientcontact",
     reviewCadence: "Jaarlijks",
     status: "Actief",
-    owner: "Praktijkhouder"
+    owner: "Praktijkhouder",
+    nextReviewDue: "Volgend jaar"
   },
   {
     id: "ret-002",
@@ -122,7 +123,8 @@ export const retentionPolicies = [
     duration: "7 jaar",
     reviewCadence: "Jaarlijks",
     status: "Actief",
-    owner: "Administratie"
+    owner: "Administratie",
+    nextReviewDue: "Volgend jaar"
   },
   {
     id: "ret-003",
@@ -132,7 +134,8 @@ export const retentionPolicies = [
     duration: "Zolang traject actief is, daarna review",
     reviewCadence: "Bij trajectafsluiting",
     status: "Actief",
-    owner: "Administratie"
+    owner: "Administratie",
+    nextReviewDue: "Bij trajectafsluiting"
   },
   {
     id: "ret-004",
@@ -142,7 +145,8 @@ export const retentionPolicies = [
     duration: "Concepten periodiek opschonen; goedgekeurde output volgt dossierbeleid",
     reviewCadence: "Maandelijks",
     status: "Review nodig",
-    owner: "Praktijkhouder"
+    owner: "Praktijkhouder",
+    nextReviewDue: "Vandaag"
   }
 ];
 
@@ -212,6 +216,17 @@ export const workQueue = [
     dueAt: "Vandaag",
     category: "Opvolging",
     action: "message"
+  },
+  {
+    id: "q-005",
+    label: "Retentiecleanup uitvoeren",
+    description: "Controleer AI-concepten, portaaltoegang en tijdelijke dossieruitzonderingen in het security center.",
+    owner: "Praktijkhouder",
+    priority: "Hoog",
+    status: "Open",
+    dueAt: "Vandaag",
+    category: "Retentie",
+    action: "security"
   }
 ];
 

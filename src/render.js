@@ -628,6 +628,7 @@ function taskCard(state, task, compact = false) {
         ${task.action === "ai-note" && can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(source)}" type="button">Nota maken</button>` : ""}
         ${task.action === "letter" && can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(source)}" type="button">Brief maken</button>` : ""}
         ${task.action === "intake" && client ? `<button class="ghost-action" data-action="start-intake" data-client-id="${escapeHtml(client.id)}" type="button">Intake</button>` : ""}
+        ${task.action === "security" ? `<button class="ghost-action" data-action="navigate" data-view="security" type="button">Veiligheid</button>` : ""}
         ${status !== "Klaar" ? `<button class="primary-action" data-action="complete-task" data-task-id="${escapeHtml(task.id)}" type="button">Klaar</button>` : ""}
       </div>
     </article>
@@ -1417,6 +1418,63 @@ function importView(state) {
   `;
 }
 
+function retentionCleanupQueue(state) {
+  const activeOverrides = (state.accessOverrides || []).filter((item) => item.status === "Actief");
+  const activeInvites = (state.portalInvites || []).filter((invite) => invite.status === "Actief");
+  const reviewDocuments = (state.documents || []).filter((document) => document.status === "Review nodig");
+  const retentionReviews = (state.retentionPolicies || []).filter((policy) => policy.status !== "Actief");
+  const importRuns = (state.importRuns || []).filter((run) => run.applySummary && !run.rolledBackAt);
+  const items = retentionReviews.map((policy) => ({
+    id: `policy-${policy.id}`,
+    label: `${policy.category}: review afronden`,
+    detail: `${policy.label} staat op ${policy.status}. Volgende review: ${policy.nextReviewDue || "Nog te bepalen"}.`,
+    severity: "warning",
+    policyId: policy.id
+  }));
+
+  if (activeOverrides.length) {
+    items.push({
+      id: "access-overrides",
+      label: "Tijdelijke dossiertoegang opruimen",
+      detail: `${activeOverrides.length} actieve uitzondering${activeOverrides.length === 1 ? "" : "en"} controleren of intrekken.`,
+      severity: "warning",
+      view: "clients"
+    });
+  }
+
+  if (activeInvites.length) {
+    items.push({
+      id: "portal-invites",
+      label: "Portaaltoegang nakijken",
+      detail: `${activeInvites.length} actieve clientlink${activeInvites.length === 1 ? "" : "s"} bevestigen of afsluiten.`,
+      severity: "warning",
+      view: "portal"
+    });
+  }
+
+  if (reviewDocuments.length) {
+    items.push({
+      id: "documents-review",
+      label: "Documenten met review nodig",
+      detail: `${reviewDocuments.length} document${reviewDocuments.length === 1 ? "" : "en"} afronden voor retentie.`,
+      severity: "warning",
+      view: "portal"
+    });
+  }
+
+  if (importRuns.length) {
+    items.push({
+      id: "import-review",
+      label: "Migratiesteekproef vastleggen",
+      detail: `${importRuns.length} uitgevoerde import${importRuns.length === 1 ? "" : "s"} controleren na cleanup.`,
+      severity: "warning",
+      view: "import"
+    });
+  }
+
+  return items;
+}
+
 function securityView(state) {
   const activeOverrides = (state.accessOverrides || []).filter((item) => item.status === "Actief");
   const inactiveOverrides = (state.accessOverrides || []).filter((item) => item.status !== "Actief");
@@ -1425,6 +1483,7 @@ function securityView(state) {
   const importRuns = state.importRuns || [];
   const retentionPolicies = state.retentionPolicies || [];
   const retentionReviews = retentionPolicies.filter((policy) => policy.status !== "Actief");
+  const cleanupQueue = retentionCleanupQueue(state);
   const securityAlerts = [
     ...activeOverrides.map((override) => ({
       label: "Toegang reviewen",
@@ -1457,7 +1516,7 @@ function securityView(state) {
       <article class="metric"><span>Actieve uitzonderingen</span><strong>${activeOverrides.length}</strong><small>dossiertoegang te reviewen</small></article>
       <article class="metric"><span>Portaaltoegang</span><strong>${activeInvites.length}</strong><small>actieve clientlinks</small></article>
       <article class="metric"><span>Exports</span><strong>${exportEvents.length}</strong><small>dossier of boekhouding</small></article>
-      <article class="metric"><span>Retentie</span><strong>${retentionPolicies.length}</strong><small>${retentionReviews.length} policies te reviewen</small></article>
+      <article class="metric"><span>Cleanup</span><strong>${cleanupQueue.length}</strong><small>${retentionReviews.length} retentiereviews open</small></article>
     </section>
     <section class="content-grid">
       <div class="panel wide">
@@ -1488,7 +1547,7 @@ function securityView(state) {
           `).join("") || `<p class="empty-state">Geen toegangsuitzonderingen.</p>`}
         </div>
       </div>
-      <div class="panel wide">
+      <div class="panel wide" data-section="retention-policies">
         <div class="panel-header"><div><h2>Retentiebeleid</h2><p>Bewaarregels die automatisch als label in elk dossier zichtbaar zijn.</p></div></div>
         <div class="security-list">
           ${retentionPolicies.map((policy) => `
@@ -1502,9 +1561,27 @@ function securityView(state) {
                 ${can(state, "practice") ? `<label class="compact-select"><span>Status</span><select data-action="retention-policy-status" data-policy-id="${escapeHtml(policy.id)}">
                   ${["Actief", "Review nodig", "Pauze", "Vervangen"].map((status) => `<option ${policy.status === status ? "selected" : ""}>${status}</option>`).join("")}
                 </select></label>` : ""}
+                ${can(state, "practice") && policy.status !== "Actief" ? `<button class="primary-action" data-action="complete-retention-review" data-policy-id="${escapeHtml(policy.id)}" type="button">Review klaar</button>` : ""}
               </div>
             </article>
           `).join("") || `<p class="empty-state">Nog geen retentiebeleid ingesteld.</p>`}
+        </div>
+      </div>
+      <div class="panel wide" data-section="cleanup-queue">
+        <div class="panel-header"><div><h2>Cleanup queue</h2><p>Concrete retentie-acties voor toegang, portaal, documenten en migratie.</p></div></div>
+        <div class="security-list">
+          ${cleanupQueue.slice(0, 10).map((item) => `
+            <article class="security-row ${escapeHtml(item.severity)}">
+              <div>
+                <strong>${escapeHtml(item.label)}</strong>
+                <span>${escapeHtml(item.detail)}</span>
+              </div>
+              <div class="inline-actions">
+                ${item.policyId && can(state, "practice") ? `<button class="primary-action" data-action="complete-retention-review" data-policy-id="${escapeHtml(item.policyId)}" type="button">Review klaar</button>` : ""}
+                ${item.view ? `<button class="ghost-action" data-action="navigate" data-view="${escapeHtml(item.view)}" type="button">Open</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen cleanup-acties open.</p>`}
         </div>
       </div>
       <div class="panel">

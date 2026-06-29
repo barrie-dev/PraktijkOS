@@ -37,6 +37,7 @@
 - Security center for audit, exports, portal access and import review
 - Security review reminders and overdue access alerts
 - Retention policy setup and dossier retention labels
+- Retention review workflow and cleanup queue
 - Work queues for missing intakes, open invoices and follow-ups
 - Guided task screen with owner, due date, dossier context and direct actions
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
@@ -48,7 +49,7 @@
 
 ## Next Product Slice
 
-- Add retention review workflow and cleanup queue.
+- Add fine-grained audit export filters.
 
 ## Phase 4: Belgian Integrations
 

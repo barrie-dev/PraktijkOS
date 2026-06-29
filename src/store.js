@@ -23,6 +23,7 @@ import {
   login,
   logout,
   previewImport,
+  reviewRetentionPolicy,
   rollbackImport,
   scheduleWaitlistEntry,
   sendInvoiceReminder,
@@ -182,6 +183,14 @@ function nowLabel() {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date());
+}
+
+function nextRetentionReviewLabel(reviewCadence = "") {
+  const cadence = reviewCadence.toLowerCase();
+  if (cadence.includes("maand")) return "Volgende maand";
+  if (cadence.includes("jaar")) return "Volgend jaar";
+  if (cadence.includes("traject")) return "Bij trajectafsluiting";
+  return "Volgende reviewronde";
 }
 
 function commit(nextState) {
@@ -470,6 +479,43 @@ export async function changeRetentionPolicyStatus(policyId, status) {
     `${updatedPolicy.label}: ${updatedPolicy.status}.`
   ));
   return { ok: true, message: "Retentiebeleid lokaal bijgewerkt." };
+}
+
+export async function completeRetentionReview(policyId) {
+  const policy = (state.retentionPolicies || []).find((item) => item.id === policyId);
+  if (!policy) {
+    return { ok: false, message: "Retentiereview kon niet worden afgerond." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await reviewRetentionPolicy(policyId);
+      await refreshFromApi();
+      setState({ view: "security" });
+      return { ok: true, message: "Retentiereview afgerond." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedPolicy = {
+    ...policy,
+    status: "Actief",
+    reviewedAt: nowLabel(),
+    reviewedBy: state.currentUser?.name || "PraktijkOS",
+    nextReviewDue: nextRetentionReviewLabel(policy.reviewCadence)
+  };
+
+  commit(pushAudit(
+    {
+      ...state,
+      retentionPolicies: (state.retentionPolicies || []).map((item) => item.id === policyId ? updatedPolicy : item),
+      view: "security"
+    },
+    "Retentiereview afgerond",
+    `${updatedPolicy.label}: volgende review ${updatedPolicy.nextReviewDue}.`
+  ));
+  return { ok: true, message: "Retentiereview lokaal afgerond." };
 }
 
 function downloadJson(filename, payload) {

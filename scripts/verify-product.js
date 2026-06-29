@@ -192,10 +192,16 @@ async function verify() {
 
     const updatedRetentionPolicy = await request("/api/retention-policies/ret-004", {
       method: "PATCH",
-      body: JSON.stringify({ status: "Actief" })
+      body: JSON.stringify({ status: "Review nodig" })
     });
-    assert(updatedRetentionPolicy.status === "Actief", "Retention policy status should be editable.");
+    assert(updatedRetentionPolicy.status === "Review nodig", "Retention policy status should be editable.");
     assert(updatedRetentionPolicy.reviewedAt, "Retention policy update should include review metadata.");
+    const reviewedRetentionPolicy = await request("/api/retention-policies/ret-004/review", {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(reviewedRetentionPolicy.status === "Actief", "Retention review should reactivate the policy.");
+    assert(reviewedRetentionPolicy.nextReviewDue, "Retention review should set the next review label.");
 
     const appointment = await request("/api/appointments", {
       method: "POST",

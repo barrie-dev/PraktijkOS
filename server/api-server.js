@@ -104,6 +104,14 @@ function timestampLabel() {
   }).format(new Date());
 }
 
+function nextRetentionReviewLabel(reviewCadence = "") {
+  const cadence = reviewCadence.toLowerCase();
+  if (cadence.includes("maand")) return "Volgende maand";
+  if (cadence.includes("jaar")) return "Volgend jaar";
+  if (cadence.includes("traject")) return "Bij trajectafsluiting";
+  return "Volgende reviewronde";
+}
+
 function appointmentSignal(status) {
   if (["No-show risico", "Geannuleerd"].includes(status)) return "danger";
   if (["Intake ontbreekt", "Opvolging nodig"].includes(status)) return "warning";
@@ -1130,6 +1138,36 @@ async function handleApi(request, response) {
       },
       "Retentiebeleid bijgewerkt",
       `${updatedPolicy.label}: ${updatedPolicy.status}, review ${updatedPolicy.reviewCadence}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedPolicy);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/retention-policies\/[^/]+\/review$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const policyId = url.pathname.split("/")[3];
+    const policy = (store.retentionPolicies || []).find((item) => item.id === policyId);
+    if (!policy) {
+      sendJson(response, 404, { error: "Retention policy not found" });
+      return;
+    }
+
+    const updatedPolicy = {
+      ...policy,
+      status: "Actief",
+      reviewedAt: timestampLabel(),
+      reviewedBy: user.name,
+      nextReviewDue: nextRetentionReviewLabel(policy.reviewCadence)
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        retentionPolicies: (store.retentionPolicies || []).map((item) => item.id === policyId ? updatedPolicy : item)
+      },
+      "Retentiereview afgerond",
+      `${updatedPolicy.label}: volgende review ${updatedPolicy.nextReviewDue}.`,
       user.name
     );
     writeStore(nextStore);

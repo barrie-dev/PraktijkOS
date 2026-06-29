@@ -27,6 +27,7 @@ npm run verify
 - `POST /api/clients/:id/access-overrides`
 - `PATCH /api/access-overrides/:id`
 - `PATCH /api/retention-policies/:id`
+- `POST /api/retention-policies/:id/review`
 - `GET /api/clients/:id/export`
 - `POST /api/appointments`
 - `PATCH /api/appointments/:id`
