@@ -1688,6 +1688,14 @@ function securityView(state) {
           <button class="primary-action" data-action="export-iso-evidence" type="button">Evidence export</button>
         </div>
         ${isoEvidenceExport ? `<p class="handoff-note">${escapeHtml(isoEvidenceExport.summary.evidenceRows)} bewijsregels klaar in ${escapeHtml(isoEvidenceExport.files.csvFilename)}.</p>` : `<p class="handoff-note">Maak een export wanneer een auditor, DPO of adviseur bewijs wil nakijken.</p>`}
+        <form class="inline-form" data-form="iso-evidence-note">
+          <label class="field"><span>Bewijsmap</span><select name="packId">
+            ${isoEvidencePacks.map((pack) => `<option value="${escapeHtml(pack.id)}">${escapeHtml(pack.label)}</option>`).join("")}
+          </select></label>
+          <label class="field"><span>Status</span><select name="status"><option>Opvolging</option><option>Vraag auditor</option><option>Akkoord</option><option>Gap</option></select></label>
+          <label class="field grow"><span>Reviewnotitie</span><input name="note" placeholder="Bijv. DPIA toevoegen voor AI-leverancier" required></label>
+          <button class="primary-action" type="submit">Notitie toevoegen</button>
+        </form>
         <div class="security-list">
           ${isoEvidencePacks.map((pack) => `
             <article class="security-row">
@@ -1698,6 +1706,7 @@ function securityView(state) {
                 <span>Bewijs: ${(pack.evidence || []).map((item) => `${escapeHtml(item.label)} (${escapeHtml(item.status)})`).join(" / ")}</span>
                 <span>Gaps: ${(pack.gaps || []).map((gap) => escapeHtml(gap)).join(" / ") || "Geen open gaps"}</span>
                 ${pack.snapshot ? `<span>Snapshot: ${escapeHtml(pack.snapshot.counts.auditEvents)} audit-events / ${escapeHtml(pack.snapshot.counts.retentionPolicies)} retentiebeleid / ${escapeHtml(pack.snapshot.counts.aiModels)} AI-modellen</span>` : ""}
+                ${(pack.reviewerNotes || []).slice(0, 3).map((note) => `<span>Notitie: ${escapeHtml(note.status)} / ${escapeHtml(note.note)} / ${escapeHtml(note.createdBy || "PraktijkOS")} ${escapeHtml(note.createdAt || "")}</span>`).join("")}
               </div>
               <div class="status-stack">
                 ${badge(pack.status || "Open", pack.status === "Bewijs verzameld" ? "success" : "warning")}

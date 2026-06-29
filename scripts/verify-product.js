@@ -479,6 +479,12 @@ async function verify() {
     });
     assert(evidenceExport.summary.packCount >= 1, "ISO evidence export should summarize packs.");
     assert(evidenceExport.files.csv.includes("bewijsmap"), "ISO evidence export should include CSV headers.");
+    const evidenceNote = await request(`/api/iso-evidence/${isoEvidencePack.id}/notes`, {
+      method: "POST",
+      body: JSON.stringify({ status: "Vraag auditor", note: "Controleer leveranciersbeoordeling voor AI-model." })
+    });
+    assert(evidenceNote.status === "Vraag auditor", "ISO evidence note should store reviewer status.");
+    assert(evidenceNote.note.includes("leveranciersbeoordeling"), "ISO evidence note should store reviewer note.");
 
     const modelEvaluation = await request("/api/ai-models/model-care-review/evaluations", {
       method: "POST",

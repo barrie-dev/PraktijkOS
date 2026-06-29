@@ -11,6 +11,7 @@ import {
   createDocument,
   createIntake,
   createInvoice,
+  createIsoEvidenceNote,
   createMessage,
   createNote,
   createPortalInvite,
@@ -1003,6 +1004,47 @@ export async function createIsoEvidenceExport() {
     `${payload.summary.packCount} bewijsdomeinen lokaal geexporteerd.`
   ));
   return { ok: true, message: "Lokale ISO evidence export aangemaakt." };
+}
+
+export async function addIsoEvidenceNote(formData) {
+  const payload = formPayload(formData);
+  const pack = (state.isoEvidencePacks || []).find((item) => item.id === payload.packId);
+  if (!pack || !payload.note) {
+    return { ok: false, message: "Kies een bewijsmap en schrijf een notitie." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createIsoEvidenceNote(pack.id, { note: payload.note, status: payload.status });
+      await refreshFromApi();
+      setState({ view: "security" });
+      return { ok: true, message: "Reviewnotitie toegevoegd." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const note = {
+    id: uid("iso-note"),
+    note: payload.note,
+    status: payload.status || "Opvolging",
+    createdAt: nowLabel(),
+    createdBy: state.currentUser?.name || "PraktijkOS"
+  };
+  const updatedPack = {
+    ...pack,
+    reviewerNotes: [note, ...(pack.reviewerNotes || [])].slice(0, 20)
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      isoEvidencePacks: (state.isoEvidencePacks || []).map((item) => item.id === pack.id ? updatedPack : item),
+      view: "security"
+    },
+    "ISO reviewnotitie toegevoegd",
+    `${pack.label}: ${note.status}.`
+  ));
+  return { ok: true, message: "Reviewnotitie lokaal toegevoegd." };
 }
 
 function downloadJson(filename, payload) {

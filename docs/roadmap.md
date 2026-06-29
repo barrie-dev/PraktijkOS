@@ -57,7 +57,7 @@
 
 ## Next Product Slice
 
-- Add evidence pack attachments and reviewer notes.
+- Add evidence pack attachments.
 
 ## Phase 4: Belgian Integrations
 
@@ -71,6 +71,7 @@
 - ISO 27001 preparation and security center
 - ISO 27001 evidence pack workspace with source snapshots
 - Advanced audit evidence pack export
+- Evidence pack reviewer notes
 
 ## Phase 5: Defensibility
 

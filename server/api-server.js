@@ -1526,6 +1526,41 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/iso-evidence\/[^/]+\/notes$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const packId = url.pathname.split("/")[3];
+    const pack = (store.isoEvidencePacks || []).find((item) => item.id === packId);
+    const payload = await readJson(request);
+    if (!pack || !payload.note) {
+      sendJson(response, 422, { error: "pack and note are required" });
+      return;
+    }
+
+    const note = {
+      id: uid("iso-note"),
+      note: payload.note,
+      status: payload.status || "Opvolging",
+      createdAt: timestampLabel(),
+      createdBy: user.name
+    };
+    const updatedPack = {
+      ...pack,
+      reviewerNotes: [note, ...(pack.reviewerNotes || [])].slice(0, 20)
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        isoEvidencePacks: (store.isoEvidencePacks || []).map((item) => item.id === packId ? updatedPack : item)
+      },
+      "ISO reviewnotitie toegevoegd",
+      `${pack.label}: ${note.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, note);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/clients") {
     if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);
