@@ -250,10 +250,18 @@ async function verify() {
     assert(voiceConsent.status === "Actief", "Voice consent should be recorded.");
     const voiceNote = await request(`/api/clients/${client.id}/voice-notes`, {
       method: "POST",
-      body: JSON.stringify({ transcript: "Client benoemt stress en concrete vervolgstap.", consentConfirmed: true })
+      body: JSON.stringify({
+        transcript: "Client benoemt stress en concrete vervolgstap.",
+        transcriptSource: "Dictaat zorgverlener",
+        quality: "Nagekeken door zorgverlener",
+        transcriptReviewed: true,
+        consentConfirmed: true
+      })
     });
     assert(voiceNote.status === "Review nodig", "Voice transcript should become a review note.");
     assert(voiceNote.consentId === voiceConsent.id, "Voice note should reference consent.");
+    assert(voiceNote.transcriptSource === "Dictaat zorgverlener", "Voice note should store transcript provenance.");
+    assert(voiceNote.transcriptReviewed === true, "Voice note should require transcript review.");
 
     const risky = await request(`/api/appointments/${appointment.id}`, {
       method: "PATCH",

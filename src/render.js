@@ -1379,8 +1379,13 @@ function aiView(state) {
           <form data-form="voice-note" class="voice-card">
             <input type="hidden" name="clientId" value="${escapeHtml(voiceClient?.id || "")}">
             <label class="field"><span>Titel</span><input name="title" value="Voice-to-note concept"></label>
+            <div class="form-grid">
+              <label class="field"><span>Transcriptbron</span><select name="transcriptSource"><option>Handmatig transcript</option><option>Dictaat zorgverlener</option><option>Extern transcript nagekeken</option></select></label>
+              <label class="field"><span>Kwaliteit</span><select name="quality"><option>Nagekeken door zorgverlener</option><option>Onzekerheden gemarkeerd</option><option>Alleen ruwe notities</option></select></label>
+            </div>
             <label class="field"><span>Transcript</span><textarea name="transcript" rows="6" placeholder="Plak hier het nagekeken transcript of dictaat." required></textarea></label>
             <label class="checkbox-line"><input name="consentConfirmed" type="checkbox" ${voiceConsent ? "" : "disabled"}><span>Toestemming gecontroleerd voor dit dossier</span></label>
+            <label class="checkbox-line"><input name="transcriptReviewed" type="checkbox" ${voiceConsent ? "" : "disabled"}><span>Transcript nagekeken voor opslag als concept</span></label>
             <button class="primary-action" type="submit" ${voiceConsent ? "" : "disabled"}>Maak notaconcept</button>
           </form>
         </div>

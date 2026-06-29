@@ -475,8 +475,8 @@ export async function createVoiceNoteDraft(formData) {
   if (!client || !payload.transcript) {
     return { ok: false, message: "Client en transcript zijn verplicht." };
   }
-  if (!consent || payload.consentConfirmed !== "on") {
-    return { ok: false, message: "Actieve toestemming en bevestiging zijn verplicht." };
+  if (!consent || payload.consentConfirmed !== "on" || payload.transcriptReviewed !== "on") {
+    return { ok: false, message: "Actieve toestemming, transcriptreview en bevestiging zijn verplicht." };
   }
 
   if (state.apiStatus === "connected") {
@@ -484,6 +484,9 @@ export async function createVoiceNoteDraft(formData) {
       await createVoiceNote(client.id, {
         title: payload.title,
         transcript: payload.transcript,
+        transcriptSource: payload.transcriptSource,
+        quality: payload.quality,
+        transcriptReviewed: true,
         consentConfirmed: true
       });
       await refreshFromApi();
@@ -499,12 +502,23 @@ export async function createVoiceNoteDraft(formData) {
     clientId: client.id,
     client: client.name,
     title: payload.title || "Voice-to-note concept",
-    body: `Transcript verwerkt als conceptnota:\n\n${payload.transcript}`,
+    body: [
+      "Transcript verwerkt als conceptnota:",
+      "",
+      payload.transcript,
+      "",
+      `Transcriptbron: ${payload.transcriptSource || "Handmatig transcript"}`,
+      `Kwaliteitscheck: ${payload.quality || "Nog te reviewen"}`,
+      `Consent: ${consent.id}`
+    ].join("\n"),
     author: state.currentUser?.name || "PraktijkOS",
     status: "Review nodig",
     createdAt: nowLabel(),
     source: "voice-to-note",
-    consentId: consent.id
+    consentId: consent.id,
+    transcriptSource: payload.transcriptSource || "Handmatig transcript",
+    quality: payload.quality || "Nog te reviewen",
+    transcriptReviewed: true
   };
   commit(pushAudit(
     {

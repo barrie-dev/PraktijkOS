@@ -1331,22 +1331,35 @@ async function handleApi(request, response) {
       sendJson(response, 422, { error: "client and transcript are required" });
       return;
     }
-    if (!consent || !payload.consentConfirmed) {
+    if (!consent || !payload.consentConfirmed || !payload.transcriptReviewed) {
       sendJson(response, 403, { error: "Active voice consent is required" });
       return;
     }
 
+    const transcriptSource = payload.transcriptSource || "Handmatig transcript";
+    const quality = payload.quality || "Nog te reviewen";
     const note = {
       id: uid("note"),
       clientId: client.id,
       client: client.name,
       title: payload.title || "Voice-to-note concept",
-      body: `Transcript verwerkt als conceptnota:\n\n${payload.transcript}`,
+      body: [
+        "Transcript verwerkt als conceptnota:",
+        "",
+        payload.transcript,
+        "",
+        `Transcriptbron: ${transcriptSource}`,
+        `Kwaliteitscheck: ${quality}`,
+        `Consent: ${consent.id}`
+      ].join("\n"),
       author: user.name,
       status: "Review nodig",
       createdAt: timestampLabel(),
       source: "voice-to-note",
-      consentId: consent.id
+      consentId: consent.id,
+      transcriptSource,
+      quality,
+      transcriptReviewed: true
     };
     const nextStore = appendAudit(
       { ...store, notes: [note, ...(store.notes || [])] },
