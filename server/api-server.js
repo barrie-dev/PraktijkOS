@@ -1523,6 +1523,9 @@ async function handleApi(request, response) {
       content: payload.content,
       status: payload.status || "Actief",
       owner: payload.owner || user.role,
+      version: 1,
+      reviewDue: payload.reviewDue || "Volgend kwartaal",
+      history: [],
       createdAt: timestampLabel(),
       createdBy: user.name
     };
@@ -1534,6 +1537,57 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, item);
+    return;
+  }
+
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/knowledge-base\/[^/]+$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const itemId = url.pathname.split("/")[3];
+    const payload = await readJson(request);
+    const item = (store.knowledgeBase || []).find((entry) => entry.id === itemId);
+    if (!item) {
+      sendJson(response, 404, { error: "Knowledge base item not found" });
+      return;
+    }
+
+    const changedContent = Boolean(payload.content && payload.content !== item.content);
+    const changedStatus = Boolean(payload.status && payload.status !== item.status);
+    const nextVersion = changedContent || changedStatus ? Number(item.version || 1) + 1 : Number(item.version || 1);
+    const updatedItem = {
+      ...item,
+      category: payload.category || item.category,
+      title: payload.title || item.title,
+      content: payload.content || item.content,
+      status: payload.status || item.status,
+      owner: payload.owner || item.owner,
+      reviewDue: payload.reviewDue || item.reviewDue || "Volgend kwartaal",
+      version: nextVersion,
+      reviewedAt: timestampLabel(),
+      reviewedBy: user.name,
+      history: changedContent || changedStatus
+        ? [
+          {
+            version: item.version || 1,
+            status: item.status,
+            content: item.content,
+            changedAt: timestampLabel(),
+            changedBy: user.name
+          },
+          ...(item.history || [])
+        ].slice(0, 10)
+        : item.history || []
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        knowledgeBase: (store.knowledgeBase || []).map((entry) => entry.id === itemId ? updatedItem : entry)
+      },
+      "Kennisbankitem herzien",
+      `${updatedItem.title}: versie ${updatedItem.version}, status ${updatedItem.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedItem);
     return;
   }
 

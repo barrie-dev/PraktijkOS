@@ -27,6 +27,7 @@
 - Practice-specific knowledge base for AI responses
 - AI model registry and model usage labels
 - Voice-to-note exploration with strict consent controls
+- Knowledge base review automation
 
 ## Phase 3: Group Practice Operations
 
@@ -53,7 +54,7 @@
 
 ## Next Product Slice
 
-- Add knowledge base governance and versioning.
+- Add AI model governance and evaluation history.
 
 ## Phase 4: Belgian Integrations
 

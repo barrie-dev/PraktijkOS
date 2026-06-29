@@ -18,6 +18,7 @@ import {
   changeAccessOverrideStatus,
   changeDocumentStatus,
   changeInvoiceChannel,
+  changeKnowledgeItemStatus,
   changeMessageStatus,
   changePortalInviteStatus,
   changeRetentionPolicyStatus,
@@ -356,6 +357,10 @@ function handleChange(event) {
 
   if (target.dataset.action === "retention-policy-status") {
     changeRetentionPolicyStatus(target.dataset.policyId, target.value).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "knowledge-status") {
+    changeKnowledgeItemStatus(target.dataset.knowledgeId, target.value).then((result) => showToast(result.message));
   }
 
   if (target.dataset.action === "portal-invite-status") {

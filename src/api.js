@@ -137,6 +137,13 @@ export async function createKnowledgeBaseItem(payload) {
   });
 }
 
+export async function updateKnowledgeBaseItem(itemId, payload) {
+  return request(`/api/knowledge-base/${itemId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function approveDraft(draftId, payload = {}) {
   return request(`/api/ai/drafts/${draftId}/approve`, {
     method: "POST",

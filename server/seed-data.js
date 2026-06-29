@@ -114,7 +114,10 @@ const seedData = {
       title: "Inhoudelijke info via clientportaal",
       content: "Gebruik het clientportaal voor zorginhoudelijke informatie. E-mail en sms blijven beperkt tot praktische afspraken.",
       status: "Actief",
-      owner: "Praktijkhouder"
+      owner: "Praktijkhouder",
+      version: 1,
+      reviewDue: "Volgend kwartaal",
+      history: []
     },
     {
       id: "kb-002",
@@ -122,7 +125,10 @@ const seedData = {
       title: "Annulatiebeleid",
       content: "Vermeld bij no-show risico altijd dat annuleren minstens 24 uur vooraf moet gebeuren, tenzij overmacht.",
       status: "Actief",
-      owner: "Administratie"
+      owner: "Administratie",
+      version: 1,
+      reviewDue: "Einde maand",
+      history: []
     },
     {
       id: "kb-003",
@@ -130,7 +136,10 @@ const seedData = {
       title: "Professionele review verplicht",
       content: "AI-output is altijd concept. Een zorgverlener controleert inhoud, toon en dossiercontext voor opslag of verzending.",
       status: "Actief",
-      owner: "Praktijkhouder"
+      owner: "Praktijkhouder",
+      version: 1,
+      reviewDue: "Maandelijks",
+      history: []
     }
   ],
   aiModels: [

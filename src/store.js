@@ -35,6 +35,7 @@ import {
   updateAccessOverride,
   updateDocument,
   updateInvoice,
+  updateKnowledgeBaseItem,
   updateMessage,
   updatePortalInvite,
   updatePractice,
@@ -609,6 +610,9 @@ export async function addKnowledgeItem(formData) {
     content: payload.content,
     status: payload.status || "Actief",
     owner: payload.owner || state.currentUser?.role || "Praktijkhouder",
+    version: 1,
+    reviewDue: payload.reviewDue || "Volgend kwartaal",
+    history: [],
     createdAt: nowLabel(),
     createdBy: state.currentUser?.name || "PraktijkOS"
   };
@@ -623,6 +627,54 @@ export async function addKnowledgeItem(formData) {
     `${item.category}: ${item.title}.`
   ));
   return { ok: true, message: "Kennisregel lokaal toegevoegd." };
+}
+
+export async function changeKnowledgeItemStatus(itemId, status) {
+  const item = (state.knowledgeBase || []).find((entry) => entry.id === itemId);
+  if (!item || !status) {
+    return { ok: false, message: "Kennisregel kon niet worden bijgewerkt." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updateKnowledgeBaseItem(itemId, { status });
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Kennisregel bijgewerkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedItem = {
+    ...item,
+    status,
+    version: Number(item.version || 1) + (status === item.status ? 0 : 1),
+    reviewedAt: nowLabel(),
+    reviewedBy: state.currentUser?.name || "PraktijkOS",
+    history: status === item.status
+      ? item.history || []
+      : [
+        {
+          version: item.version || 1,
+          status: item.status,
+          content: item.content,
+          changedAt: nowLabel(),
+          changedBy: state.currentUser?.name || "PraktijkOS"
+        },
+        ...(item.history || [])
+      ].slice(0, 10)
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      knowledgeBase: (state.knowledgeBase || []).map((entry) => entry.id === itemId ? updatedItem : entry),
+      view: "settings"
+    },
+    "Kennisbankitem herzien",
+    `${updatedItem.title}: versie ${updatedItem.version}, status ${updatedItem.status}.`
+  ));
+  return { ok: true, message: "Kennisregel lokaal bijgewerkt." };
 }
 
 export async function completeRetentionReview(policyId) {

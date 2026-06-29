@@ -1723,14 +1723,26 @@ function settingsView(state) {
           <label class="field"><span>Status</span><select name="status"><option>Actief</option><option>Concept</option></select></label>
           <label class="field"><span>Eigenaar</span><input name="owner" value="Praktijkhouder"></label>
         </div>
+        <label class="field"><span>Reviewtermijn</span><select name="reviewDue"><option>Volgend kwartaal</option><option>Maandelijks</option><option>Einde maand</option><option>Jaarlijks</option></select></label>
         <button class="primary-action" type="submit">Kennisregel toevoegen</button>
       </form>
 
       <div class="panel wide">
         <div class="panel-header"><div><h2>Kennisbank</h2><p>${(state.knowledgeBase || []).length} regels beschikbaar voor AI-context.</p></div></div>
-        <div class="mini-list">
+        <div class="security-list">
           ${(state.knowledgeBase || []).map((item) => `
-            <article><div><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.category)} / ${escapeHtml(item.content)} / eigenaar ${escapeHtml(item.owner || "Praktijkhouder")}</span></div>${badge(item.status || "Actief", item.status === "Actief" ? "success" : "warning")}</article>
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(item.title)} / v${escapeHtml(item.version || 1)}</strong>
+                <span>${escapeHtml(item.category)} / ${escapeHtml(item.content)} / review ${escapeHtml(item.reviewDue || "Volgend kwartaal")} / ${(item.history || []).length} vorige versies</span>
+              </div>
+              <div class="status-stack">
+                <label class="compact-select"><span>Status</span><select data-action="knowledge-status" data-knowledge-id="${escapeHtml(item.id)}">
+                  ${["Actief", "Concept", "Gearchiveerd"].map((status) => `<option ${item.status === status ? "selected" : ""}>${status}</option>`).join("")}
+                </select></label>
+                ${badge(item.status || "Actief", item.status === "Actief" ? "success" : "warning")}
+              </div>
+            </article>
           `).join("") || `<p class="empty-state">Nog geen kennisregels.</p>`}
         </div>
       </div>

@@ -394,6 +394,15 @@ async function verify() {
       })
     });
     assert(knowledgeItem.title === "Verificatie kennisregel", "Knowledge base item should be created.");
+    const updatedKnowledgeItem = await request(`/api/knowledge-base/${knowledgeItem.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        status: "Gearchiveerd",
+        content: "Gebruik korte, duidelijke taal in concepten. Gearchiveerd na verificatie."
+      })
+    });
+    assert(updatedKnowledgeItem.version === 2, "Knowledge base update should increment version.");
+    assert(updatedKnowledgeItem.history.length === 1, "Knowledge base update should keep version history.");
 
     const draft = await request("/api/ai/generate", {
       method: "POST",
