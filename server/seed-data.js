@@ -208,6 +208,7 @@ const seedData = {
       expiresAt: "Einde traject"
     }
   ],
+  peppolPreparations: [],
   appointments: [
     {
       id: "apt-001",

@@ -21,6 +21,7 @@ const collections = [
   "aiModels",
   "aiModelEvaluations",
   "voiceConsents",
+  "peppolPreparations",
   "waitlist",
   "workQueue",
   "dayClose",
@@ -174,6 +175,7 @@ function seedIfEmpty() {
   seedCollectionIfEmpty("aiModels");
   seedCollectionIfEmpty("aiModelEvaluations");
   seedCollectionIfEmpty("voiceConsents");
+  seedCollectionIfEmpty("peppolPreparations");
   seedRelationalTables();
   seedInvoicesTable();
 

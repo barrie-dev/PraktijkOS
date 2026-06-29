@@ -179,6 +179,13 @@ export async function exportBillingPackage(payload = {}) {
   });
 }
 
+export async function preparePeppolInvoice(invoiceId) {
+  return request(`/api/invoices/${invoiceId}/peppol/prepare`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function createInvoice(payload) {
   return request("/api/invoices", {
     method: "POST",

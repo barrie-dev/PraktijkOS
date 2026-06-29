@@ -255,6 +255,38 @@ function activeVoiceConsent(store, clientId) {
   return (store.voiceConsents || []).find((consent) => consent.clientId === clientId && consent.status === "Actief");
 }
 
+function buildPeppolPreparation(store, invoice, user) {
+  const appointment = invoice.appointmentId ? store.appointments.find((item) => item.id === invoice.appointmentId) : null;
+  const missing = [];
+  if (invoice.channel !== "Peppol") missing.push("Betaalmethode moet Peppol zijn");
+  if (!invoice.clientId) missing.push("Clientkoppeling ontbreekt");
+  if (!invoice.dueAt) missing.push("Vervaldag ontbreekt");
+  if (!appointment) missing.push("Prestatie of afspraak ontbreekt");
+  if (Number(invoice.amount || 0) <= 0) missing.push("Bedrag ontbreekt");
+
+  const status = missing.length ? "Aanvullen" : "Klaar voor Peppol";
+  return {
+    id: uid("peppol"),
+    invoiceId: invoice.id,
+    clientId: invoice.clientId || "",
+    client: invoice.client,
+    amount: Number(invoice.amount || 0),
+    status,
+    missing,
+    preparedAt: timestampLabel(),
+    preparedBy: user.name,
+    deliveryReference: missing.length ? "" : `PEPPOL-${invoice.id.toUpperCase()}`,
+    payload: missing.length ? null : {
+      invoiceId: invoice.id,
+      receiver: invoice.client,
+      amount: Number(invoice.amount || 0),
+      dueAt: invoice.dueAt,
+      service: appointment?.type || "Prestatie",
+      clinician: appointment?.clinician || ""
+    }
+  };
+}
+
 function buildBillingExport(store, user, options = {}) {
   const exportedAt = new Date().toISOString();
   const lines = store.invoices.map((invoice) => {
@@ -1834,6 +1866,33 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/invoices\/[^/]+\/peppol\/prepare$/)) {
+    if (!requirePermission(response, user, "billing")) return;
+    const invoiceId = url.pathname.split("/")[3];
+    const invoice = store.invoices.find((item) => item.id === invoiceId);
+    if (!invoice) {
+      sendJson(response, 404, { error: "Invoice not found" });
+      return;
+    }
+
+    const preparation = buildPeppolPreparation(store, invoice, user);
+    const nextStore = appendAudit(
+      {
+        ...store,
+        peppolPreparations: [
+          preparation,
+          ...(store.peppolPreparations || []).filter((item) => item.invoiceId !== invoice.id)
+        ].slice(0, 100)
+      },
+      "Peppol voorbereiding gemaakt",
+      `${invoice.client}: ${preparation.status}${preparation.missing.length ? ` (${preparation.missing.join(", ")})` : ""}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, preparation);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/import/preview") {
     if (!requirePermission(response, user, "practice")) return;
     const payload = await readJson(request);
@@ -1912,6 +1971,8 @@ async function handleApi(request, response) {
       ...invoice,
       status: payload.status || invoice.status,
       channel: payload.channel || invoice.channel,
+      issuedAt: payload.issuedAt || invoice.issuedAt,
+      dueAt: payload.dueAt || invoice.dueAt,
       reminderSentAt: payload.reminderSentAt || invoice.reminderSentAt,
       paidAt: payload.status === "Betaald"
         ? timestampLabel()

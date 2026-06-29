@@ -282,6 +282,17 @@ async function verify() {
       billing.invoices.some((invoice) => invoice.appointmentId === appointment.id),
       "Billable appointment should create an invoice proposal."
     );
+    const billableInvoice = billing.invoices.find((invoice) => invoice.appointmentId === appointment.id);
+    const peppolInvoice = await request(`/api/invoices/${billableInvoice.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ channel: "Peppol", dueAt: "15/07" })
+    });
+    const peppolPreparation = await request(`/api/invoices/${peppolInvoice.id}/peppol/prepare`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(peppolPreparation.status === "Klaar voor Peppol", "Complete Peppol invoice should be ready.");
+    assert(peppolPreparation.deliveryReference, "Peppol preparation should include a delivery reference.");
 
     const billingExport = await request("/api/billing/export", {
       method: "POST",

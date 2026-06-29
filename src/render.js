@@ -1250,6 +1250,7 @@ function portalView(state) {
 function billingView(state) {
   const paid = state.invoices.filter((invoice) => invoice.status === "Betaald").reduce((total, invoice) => total + invoice.amount, 0);
   const open = state.invoices.filter((invoice) => invoice.status !== "Betaald").reduce((total, invoice) => total + invoice.amount, 0);
+  const peppolPreparations = state.peppolPreparations || [];
   const invoiceAppointments = state.appointments.filter((appointment) =>
     !state.invoices.some((invoice) => invoice.appointmentId === appointment.id)
   );
@@ -1269,6 +1270,8 @@ function billingView(state) {
               </select></label>
               <div class="invoice-actions">
                 ${badge(invoice.status, invoice.status === "Herinnering" ? "warning" : invoice.status === "Betaald" ? "success" : "warning")}
+                ${invoice.channel === "Peppol" ? badge((peppolPreparations.find((item) => item.invoiceId === invoice.id)?.status || "Peppol te checken"), peppolPreparations.find((item) => item.invoiceId === invoice.id)?.status === "Klaar voor Peppol" ? "success" : "warning") : ""}
+                ${invoice.channel === "Peppol" ? `<button class="ghost-action" data-action="prepare-peppol" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Peppol check</button>` : ""}
                 <button class="ghost-action" data-action="remind-invoice" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Herinner</button>
                 <button class="ghost-action" data-action="mark-invoice-paid" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Betaald</button>
               </div>
@@ -1293,6 +1296,20 @@ function billingView(state) {
         </div>
         ${state.billingExport ? `<p class="handoff-note">${escapeHtml(state.billingExport.accountantMessage)}</p>` : `<p class="handoff-note">Maak een export wanneer de boekhouder of accountant om een actuele stand vraagt.</p>`}
         <button class="primary-action" data-action="export-billing" type="button">Maak boekhouderpakket</button>
+      </div>
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Peppol voorbereiding</h2><p>Controleer of Peppol-facturen klaar zijn voor levering.</p></div></div>
+        <div class="security-list">
+          ${peppolPreparations.slice(0, 8).map((item) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(item.client)} / ${formatEuro(item.amount)}</strong>
+                <span>${item.missing?.length ? escapeHtml(item.missing.join(" / ")) : `Referentie ${escapeHtml(item.deliveryReference)}`} / ${escapeHtml(item.preparedAt)} / ${escapeHtml(item.preparedBy)}</span>
+              </div>
+              ${badge(item.status, item.status === "Klaar voor Peppol" ? "success" : "warning")}
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen Peppol checks uitgevoerd.</p>`}
+        </div>
       </div>
       <form class="panel" data-form="invoice">
         <div class="panel-header"><div><h2>Nieuwe factuur</h2><p>Maak een factuur of voorschot buiten de automatische voorstellen.</p></div></div>

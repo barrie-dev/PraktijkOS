@@ -255,6 +255,8 @@ export const voiceConsents = [
   }
 ];
 
+export const peppolPreparations = [];
+
 export const waitlist = [
   {
     id: "wait-001",

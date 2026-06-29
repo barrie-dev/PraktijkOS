@@ -28,6 +28,7 @@ import {
   login,
   logout,
   previewImport,
+  preparePeppolInvoice,
   reviewKnowledgeBaseItem,
   reviewRetentionPolicy,
   rollbackImport,
@@ -44,7 +45,7 @@ import {
   updateRetentionPolicy
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, invoices, knowledgeBase, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, invoices, knowledgeBase, peppolPreparations, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -149,6 +150,7 @@ const initialState = {
   aiModels,
   aiModelEvaluations,
   voiceConsents,
+  peppolPreparations,
   appointments,
   clients,
   invoices,
@@ -895,6 +897,38 @@ function activeVoiceConsentForClient(clientId) {
   return (state.voiceConsents || []).find((consent) => consent.clientId === clientId && consent.status === "Actief");
 }
 
+function buildLocalPeppolPreparation(invoice) {
+  const appointment = invoice.appointmentId ? state.appointments.find((item) => item.id === invoice.appointmentId) : null;
+  const missing = [];
+  if (invoice.channel !== "Peppol") missing.push("Betaalmethode moet Peppol zijn");
+  if (!invoice.clientId) missing.push("Clientkoppeling ontbreekt");
+  if (!invoice.dueAt) missing.push("Vervaldag ontbreekt");
+  if (!appointment) missing.push("Prestatie of afspraak ontbreekt");
+  if (Number(invoice.amount || 0) <= 0) missing.push("Bedrag ontbreekt");
+
+  const status = missing.length ? "Aanvullen" : "Klaar voor Peppol";
+  return {
+    id: uid("peppol"),
+    invoiceId: invoice.id,
+    clientId: invoice.clientId || "",
+    client: invoice.client,
+    amount: Number(invoice.amount || 0),
+    status,
+    missing,
+    preparedAt: nowLabel(),
+    preparedBy: state.currentUser?.name || "PraktijkOS",
+    deliveryReference: missing.length ? "" : `PEPPOL-${invoice.id.toUpperCase()}`,
+    payload: missing.length ? null : {
+      invoiceId: invoice.id,
+      receiver: invoice.client,
+      amount: Number(invoice.amount || 0),
+      dueAt: invoice.dueAt,
+      service: appointment?.type || "Prestatie",
+      clinician: appointment?.clinician || ""
+    }
+  };
+}
+
 function downloadAuditExport(payload) {
   downloadJson(`praktijkos-audit-${payload.filter}.json`, payload);
   downloadText(payload.files.csvFilename, payload.files.csv, "text/csv");
@@ -1376,6 +1410,39 @@ export async function createBillingExport() {
     `${payload.summary.invoiceCount} facturen lokaal geexporteerd.`
   ));
   return { ok: true, message: "Lokaal boekhouderpakket aangemaakt." };
+}
+
+export async function prepareInvoiceForPeppol(invoiceId) {
+  const invoice = state.invoices.find((item) => item.id === invoiceId);
+  if (!invoice) {
+    return { ok: false, message: "Factuur niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const preparation = await preparePeppolInvoice(invoiceId);
+      await refreshFromApi();
+      setState({ view: "billing" });
+      return { ok: true, message: preparation.status === "Klaar voor Peppol" ? "Peppol voorbereiding klaar." : "Peppol gegevens aan te vullen." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const preparation = buildLocalPeppolPreparation(invoice);
+  commit(pushAudit(
+    {
+      ...state,
+      peppolPreparations: [
+        preparation,
+        ...(state.peppolPreparations || []).filter((item) => item.invoiceId !== invoice.id)
+      ].slice(0, 100),
+      view: "billing"
+    },
+    "Peppol voorbereiding gemaakt",
+    `${invoice.client}: ${preparation.status}.`
+  ));
+  return { ok: true, message: preparation.status === "Klaar voor Peppol" ? "Peppol voorbereiding lokaal klaar." : "Peppol gegevens lokaal aan te vullen." };
 }
 
 export async function createAuditExport(filter = state.auditFilter || "all") {

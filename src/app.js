@@ -39,6 +39,7 @@ import {
   logoutUser,
   openModal,
   prepareImportPreview,
+  prepareInvoiceForPeppol,
   markInvoicePaid,
   remindInvoice,
   resetDemoState,
@@ -240,6 +241,12 @@ async function handleClick(event) {
 
   if (action === "export-billing") {
     const result = await createBillingExport();
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "prepare-peppol") {
+    const result = await prepareInvoiceForPeppol(target.dataset.invoiceId);
     showToast(result.message);
     return;
   }
