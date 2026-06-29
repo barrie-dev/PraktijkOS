@@ -1061,6 +1061,7 @@ async function handleApi(request, response) {
       reason: payload.reason,
       status: "Actief",
       createdAt: timestampLabel(),
+      reviewDue: payload.reviewDue || "Binnen 7 dagen",
       createdBy: user.name
     };
 

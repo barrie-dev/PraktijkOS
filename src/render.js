@@ -883,7 +883,7 @@ function clientsView(state) {
                 <article class="access-policy-row">
                   <div>
                     <strong>${escapeHtml(override.member)}</strong>
-                    <span>${escapeHtml(override.access)} / ${escapeHtml(override.reason)} / ${escapeHtml(override.createdBy || "PraktijkOS")}${override.reviewedAt ? ` / herzien ${escapeHtml(override.reviewedAt)}` : ""}</span>
+                    <span>${escapeHtml(override.access)} / ${escapeHtml(override.reason)} / review ${escapeHtml(override.reviewDue || "Binnen 7 dagen")} / ${escapeHtml(override.createdBy || "PraktijkOS")}${override.reviewedAt ? ` / herzien ${escapeHtml(override.reviewedAt)}` : ""}</span>
                   </div>
                   ${can(state, "practice") ? `
                     <label class="compact-select"><span>Status</span><select data-action="access-override-status" data-override-id="${escapeHtml(override.id)}">
@@ -900,6 +900,7 @@ function clientsView(state) {
                   ${(state.team || []).map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.name)} / ${escapeHtml(member.role)}</option>`).join("")}
                 </select></label>
                 <label class="field"><span>Toegang</span><select name="access"><option>Extra toegang</option><option>Beperkte toegang</option><option>Tijdelijke review</option></select></label>
+                <label class="field"><span>Reviewtermijn</span><select name="reviewDue"><option>Binnen 7 dagen</option><option>Vandaag</option><option>Einde maand</option></select></label>
                 <label class="field"><span>Reden</span><input name="reason" placeholder="Bijv. vervanging tijdens verlof" required></label>
                 <button class="ghost-action" type="submit">Uitzondering opslaan</button>
               </form>
@@ -1368,6 +1369,26 @@ function securityView(state) {
   const activeInvites = (state.portalInvites || []).filter((invite) => invite.status === "Actief");
   const exportEvents = (state.auditLog || []).filter((item) => `${item.event} ${item.detail}`.toLowerCase().includes("export"));
   const importRuns = state.importRuns || [];
+  const securityAlerts = [
+    ...activeOverrides.map((override) => ({
+      label: "Toegang reviewen",
+      detail: `${override.member} heeft ${override.access} op ${override.client}. Review: ${override.reviewDue || "Binnen 7 dagen"}`,
+      action: "clients",
+      severity: override.reviewDue === "Vandaag" ? "danger" : "warning"
+    })),
+    ...(activeInvites.length ? [{
+      label: "Portaaltoegang actief",
+      detail: `${activeInvites.length} clientlinks zijn actief. Controleer of ze nog nodig zijn.`,
+      action: "portal",
+      severity: "warning"
+    }] : []),
+    ...importRuns.filter((run) => run.applySummary && !run.rolledBackAt).slice(0, 2).map((run) => ({
+      label: "Import nagekeken?",
+      detail: `${run.label || run.kind}: ${run.applySummary.created} records aangemaakt. Controleer steekproef.`,
+      action: "import",
+      severity: "warning"
+    }))
+  ];
 
   return `
     <section class="metric-grid">
@@ -1377,6 +1398,17 @@ function securityView(state) {
       <article class="metric"><span>Import runs</span><strong>${importRuns.length}</strong><small>previews en migraties</small></article>
     </section>
     <section class="content-grid">
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Review alerts</h2><p>Wat moet vandaag of deze week security-aandacht krijgen?</p></div></div>
+        <div class="security-alerts">
+          ${securityAlerts.slice(0, 8).map((alert) => `
+            <article class="security-alert ${escapeHtml(alert.severity)}">
+              <div><strong>${escapeHtml(alert.label)}</strong><span>${escapeHtml(alert.detail)}</span></div>
+              <button class="ghost-action" data-action="navigate" data-view="${escapeHtml(alert.action)}" type="button">Open</button>
+            </article>
+          `).join("") || `<p class="empty-state">Geen security alerts open.</p>`}
+        </div>
+      </div>
       <div class="panel wide">
         <div class="panel-header"><div><h2>Access review</h2><p>Bekijk tijdelijke toegang en trek uitzonderingen in wanneer ze niet meer nodig zijn.</p></div></div>
         <div class="security-list">

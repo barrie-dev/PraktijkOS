@@ -385,6 +385,7 @@ export async function addAccessOverride(formData) {
     reason: payload.reason,
     status: "Actief",
     createdAt: nowLabel(),
+    reviewDue: payload.reviewDue || "Binnen 7 dagen",
     createdBy: state.currentUser?.name || "PraktijkOS"
   };
 

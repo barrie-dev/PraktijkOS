@@ -35,6 +35,7 @@
 - Editable per-dossier access exceptions with audit trail
 - Access exception status changes and expiry review
 - Security center for audit, exports, portal access and import review
+- Security review reminders and overdue access alerts
 - Work queues for missing intakes, open invoices and follow-ups
 - Guided task screen with owner, due date, dossier context and direct actions
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
@@ -46,7 +47,7 @@
 
 ## Next Product Slice
 
-- Add security review reminders and overdue access alerts.
+- Add retention policy setup and dossier retention labels.
 
 ## Phase 4: Belgian Integrations
 
