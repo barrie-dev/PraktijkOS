@@ -1256,6 +1256,8 @@ function billingView(state) {
     !state.invoices.some((invoice) => invoice.appointmentId === appointment.id)
   );
   const exportSummary = state.billingExport?.summary;
+  const accountingExport = state.accountingExport;
+  const accountingTool = state.accountingTool || "exact";
 
   return `
     <section class="content-grid">
@@ -1299,6 +1301,21 @@ function billingView(state) {
         </div>
         ${state.billingExport ? `<p class="handoff-note">${escapeHtml(state.billingExport.accountantMessage)}</p>` : `<p class="handoff-note">Maak een export wanneer de boekhouder of accountant om een actuele stand vraagt.</p>`}
         <button class="primary-action" data-action="export-billing" type="button">Maak boekhouderpakket</button>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div><h2>Boekhoudtools</h2><p>Exportprofielen voor veelgebruikte Belgische workflows.</p></div></div>
+        <label class="field"><span>Tool</span><select data-action="accounting-tool">
+          <option value="exact" ${accountingTool === "exact" ? "selected" : ""}>Exact Online</option>
+          <option value="yuki" ${accountingTool === "yuki" ? "selected" : ""}>Yuki</option>
+          <option value="octopus" ${accountingTool === "octopus" ? "selected" : ""}>Octopus</option>
+        </select></label>
+        <div class="handoff-summary">
+          <div><strong>${accountingExport ? accountingExport.summary.invoiceCount : state.invoices.length}</strong><span>facturen</span></div>
+          <div><strong>${accountingExport ? formatEuro(accountingExport.summary.totalAmount) : formatEuro(open + paid)}</strong><span>exportwaarde</span></div>
+          <div><strong>${accountingExport ? accountingExport.summary.peppolCount : state.invoices.filter((invoice) => invoice.channel === "Peppol").length}</strong><span>Peppolregels</span></div>
+        </div>
+        ${accountingExport ? `<p class="handoff-note">${escapeHtml(accountingExport.label)} export klaar: ${escapeHtml(accountingExport.files.csvFilename)}</p>` : `<p class="handoff-note">Kies een profiel en maak een CSV/JSON export voor de boekhouder.</p>`}
+        <button class="primary-action" data-action="export-accounting" type="button">Maak tool-export</button>
       </div>
       <div class="panel wide">
         <div class="panel-header"><div><h2>Peppol voorbereiding</h2><p>Controleer of Peppol-facturen klaar zijn voor levering.</p></div></div>

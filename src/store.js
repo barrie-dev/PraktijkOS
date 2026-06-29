@@ -19,6 +19,7 @@ import {
   createDraft,
   createKnowledgeBaseItem,
   exportAuditLog,
+  exportAccountingPackage,
   exportBillingPackage,
   exportClient,
   fetchApiState,
@@ -80,6 +81,8 @@ const initialState = {
   auditFilter: "all",
   auditExport: null,
   billingExport: null,
+  accountingTool: "exact",
+  accountingExport: null,
   messageTemplate: {
     subject: "Opvolging afspraak",
     body: "",
@@ -1039,7 +1042,61 @@ function buildLocalBillingExport() {
   };
 }
 
+function buildLocalAccountingToolExport(tool = "exact") {
+  const normalizedTool = ["exact", "yuki", "octopus"].includes(tool) ? tool : "exact";
+  const labels = { exact: "Exact Online", yuki: "Yuki", octopus: "Octopus" };
+  const lines = state.invoices.map((invoice) => ({
+    invoiceId: invoice.id,
+    customer: invoice.client,
+    amount: Number(invoice.amount || 0),
+    status: invoice.status,
+    channel: invoice.channel,
+    date: invoice.issuedAt || "",
+    dueDate: invoice.dueAt || "",
+    journal: invoice.channel === "Peppol" ? "VERK-PEPPOL" : "VERK",
+    vatCode: "BE-VRIJ",
+    reference: `${labels[normalizedTool]}-${invoice.id}`
+  }));
+  const headersByTool = {
+    exact: ["boekstuk", "relatie", "datum", "vervaldatum", "bedrag", "btwcode", "dagboek", "referentie"],
+    yuki: ["document_id", "contact", "invoice_date", "due_date", "total", "payment_method", "reference"],
+    octopus: ["stuknummer", "klant", "datum", "bedrag", "kanaal", "dagboek", "memo"]
+  };
+  const rows = lines.map((line) => {
+    if (normalizedTool === "yuki") return [line.invoiceId, line.customer, line.date, line.dueDate, line.amount.toFixed(2), line.channel, line.reference];
+    if (normalizedTool === "octopus") return [line.invoiceId, line.customer, line.date, line.amount.toFixed(2), line.channel, line.journal, line.status];
+    return [line.invoiceId, line.customer, line.date, line.dueDate, line.amount.toFixed(2), line.vatCode, line.journal, line.reference];
+  });
+
+  return {
+    id: uid("accounting-export"),
+    tool: normalizedTool,
+    label: labels[normalizedTool],
+    exportedAt: new Date().toISOString(),
+    exportedBy: state.currentUser,
+    summary: {
+      invoiceCount: lines.length,
+      totalAmount: lines.reduce((total, line) => total + line.amount, 0),
+      peppolCount: lines.filter((line) => line.channel === "Peppol").length
+    },
+    files: {
+      csvFilename: `praktijkos-${normalizedTool}-export.csv`,
+      jsonFilename: `praktijkos-${normalizedTool}-export.json`,
+      csv: [
+        headersByTool[normalizedTool].map(csvValue).join(";"),
+        ...rows.map((row) => row.map(csvValue).join(";"))
+      ].join("\n")
+    },
+    lines
+  };
+}
+
 function downloadBillingExport(payload) {
+  downloadJson(payload.files.jsonFilename, payload);
+  downloadText(payload.files.csvFilename, payload.files.csv, "text/csv");
+}
+
+function downloadAccountingExport(payload) {
   downloadJson(payload.files.jsonFilename, payload);
   downloadText(payload.files.csvFilename, payload.files.csv, "text/csv");
 }
@@ -1435,6 +1492,33 @@ export async function createBillingExport() {
     `${payload.summary.invoiceCount} facturen lokaal geexporteerd.`
   ));
   return { ok: true, message: "Lokaal boekhouderpakket aangemaakt." };
+}
+
+export async function createAccountingExport(tool = state.accountingTool || "exact") {
+  if (!state.invoices.length) {
+    return { ok: false, message: "Er zijn nog geen facturen om te exporteren." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const payload = await exportAccountingPackage({ tool });
+      downloadAccountingExport(payload);
+      await refreshFromApi();
+      setState({ accountingExport: payload, accountingTool: tool, view: "billing" });
+      return { ok: true, message: `${payload.label} export aangemaakt.` };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const payload = buildLocalAccountingToolExport(tool);
+  downloadAccountingExport(payload);
+  commit(pushAudit(
+    { ...state, accountingExport: payload, accountingTool: tool, view: "billing" },
+    "Boekhoudtool export aangemaakt",
+    `${payload.label}: ${payload.summary.invoiceCount} facturen lokaal geexporteerd.`
+  ));
+  return { ok: true, message: `${payload.label} export lokaal aangemaakt.` };
 }
 
 export async function prepareInvoiceForPeppol(invoiceId) {

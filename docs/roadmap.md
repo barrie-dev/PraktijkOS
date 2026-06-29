@@ -57,7 +57,7 @@
 
 ## Next Product Slice
 
-- Add accounting exports for common Belgian tools.
+- Add Itsme/eID and eHealth feasibility workspace.
 
 ## Phase 4: Belgian Integrations
 

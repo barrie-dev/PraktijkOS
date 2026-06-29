@@ -43,6 +43,7 @@ npm run verify
 - AI draft responses include model registry metadata: `modelId`, `modelName`, `promptVersion` and `riskLevel`.
 - `POST /api/billing/proposals`
 - `POST /api/billing/export`
+- `POST /api/accounting/export`
 - `PATCH /api/invoices/:id`
 - `POST /api/invoices/:id/peppol/prepare`
 - `POST /api/invoices/:id/payment-request`

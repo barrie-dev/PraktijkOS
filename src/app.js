@@ -29,6 +29,7 @@ import {
   completeRetentionReview,
   completeTask,
   completeOnboarding,
+  createAccountingExport,
   createAuditExport,
   createBillingExport,
   createVoiceNoteDraft,
@@ -246,6 +247,12 @@ async function handleClick(event) {
     return;
   }
 
+  if (action === "export-accounting") {
+    const result = await createAccountingExport(getState().accountingTool || "exact");
+    showToast(result.message);
+    return;
+  }
+
   if (action === "prepare-peppol") {
     const result = await prepareInvoiceForPeppol(target.dataset.invoiceId);
     showToast(result.message);
@@ -391,6 +398,10 @@ function handleChange(event) {
 
   if (target.dataset.action === "audit-filter") {
     setState({ auditFilter: target.value });
+  }
+
+  if (target.dataset.action === "accounting-tool") {
+    setState({ accountingTool: target.value });
   }
 }
 

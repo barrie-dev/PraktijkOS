@@ -310,6 +310,12 @@ async function verify() {
     });
     assert(paymentRequest.status === "Klaar om te delen", "Wero invoice should create a payment request.");
     assert(paymentRequest.reference.includes("WERO"), "Payment request should include channel reference.");
+    const accountingExport = await request("/api/accounting/export", {
+      method: "POST",
+      body: JSON.stringify({ tool: "yuki" })
+    });
+    assert(accountingExport.label === "Yuki", "Accounting export should target the selected tool.");
+    assert(accountingExport.files.csv.includes("document_id"), "Yuki export should include tool-specific headers.");
 
     const billingExport = await request("/api/billing/export", {
       method: "POST",

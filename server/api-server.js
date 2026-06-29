@@ -396,6 +396,63 @@ function buildBillingExport(store, user, options = {}) {
   };
 }
 
+function buildAccountingToolExport(store, user, tool = "exact") {
+  const normalizedTool = ["exact", "yuki", "octopus"].includes(tool) ? tool : "exact";
+  const labels = {
+    exact: "Exact Online",
+    yuki: "Yuki",
+    octopus: "Octopus"
+  };
+  const lines = store.invoices.map((invoice) => ({
+    invoiceId: invoice.id,
+    customer: invoice.client,
+    amount: Number(invoice.amount || 0),
+    status: invoice.status,
+    channel: invoice.channel,
+    date: invoice.issuedAt || "",
+    dueDate: invoice.dueAt || "",
+    journal: invoice.channel === "Peppol" ? "VERK-PEPPOL" : "VERK",
+    vatCode: "BE-VRIJ",
+    reference: `${labels[normalizedTool]}-${invoice.id}`
+  }));
+  const headersByTool = {
+    exact: ["boekstuk", "relatie", "datum", "vervaldatum", "bedrag", "btwcode", "dagboek", "referentie"],
+    yuki: ["document_id", "contact", "invoice_date", "due_date", "total", "payment_method", "reference"],
+    octopus: ["stuknummer", "klant", "datum", "bedrag", "kanaal", "dagboek", "memo"]
+  };
+  const rows = lines.map((line) => {
+    if (normalizedTool === "yuki") {
+      return [line.invoiceId, line.customer, line.date, line.dueDate, line.amount.toFixed(2), line.channel, line.reference];
+    }
+    if (normalizedTool === "octopus") {
+      return [line.invoiceId, line.customer, line.date, line.amount.toFixed(2), line.channel, line.journal, line.status];
+    }
+    return [line.invoiceId, line.customer, line.date, line.dueDate, line.amount.toFixed(2), line.vatCode, line.journal, line.reference];
+  });
+
+  return {
+    id: uid("accounting-export"),
+    tool: normalizedTool,
+    label: labels[normalizedTool],
+    exportedAt: new Date().toISOString(),
+    exportedBy: { id: user.id, name: user.name, role: user.role },
+    summary: {
+      invoiceCount: lines.length,
+      totalAmount: lines.reduce((total, line) => total + line.amount, 0),
+      peppolCount: lines.filter((line) => line.channel === "Peppol").length
+    },
+    files: {
+      csvFilename: `praktijkos-${normalizedTool}-export.csv`,
+      jsonFilename: `praktijkos-${normalizedTool}-export.json`,
+      csv: [
+        headersByTool[normalizedTool].map(csvValue).join(";"),
+        ...rows.map((row) => row.map(csvValue).join(";"))
+      ].join("\n")
+    },
+    lines
+  };
+}
+
 function splitDelimitedLine(line, delimiter) {
   const cells = [];
   let current = "";
@@ -1886,6 +1943,21 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, billingExport);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/accounting/export") {
+    if (!requirePermission(response, user, "billing")) return;
+    const payload = await readJson(request);
+    const accountingExport = buildAccountingToolExport(store, user, payload.tool || "exact");
+    const nextStore = appendAudit(
+      store,
+      "Boekhoudtool export aangemaakt",
+      `${accountingExport.label}: ${accountingExport.summary.invoiceCount} facturen.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, accountingExport);
     return;
   }
 
