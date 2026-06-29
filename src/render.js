@@ -11,6 +11,7 @@ const viewTitles = {
   billing: "Facturatie",
   ai: "Assistent",
   import: "Import",
+  security: "Veiligheid",
   settings: "Instellingen"
 };
 
@@ -63,6 +64,7 @@ const viewPermissions = {
   billing: "billing",
   ai: "ai",
   import: "practice",
+  security: "practice",
   settings: "practice"
 };
 
@@ -75,7 +77,7 @@ function canView(state, view) {
 }
 
 function firstAvailableView(state) {
-  return ["dashboard", "work", "agenda", "waiting", "clients", "billing", "ai", "import", "settings"].find((view) => canView(state, view)) || "dashboard";
+  return ["dashboard", "work", "agenda", "waiting", "clients", "billing", "ai", "import", "security", "settings"].find((view) => canView(state, view)) || "dashboard";
 }
 
 function commandResults(state) {
@@ -183,6 +185,7 @@ function shell(state) {
     ["billing", "E", "Facturatie"],
     ["ai", "AI", "Assistent"],
     ["import", "M", "Import"],
+    ["security", "V", "Veiligheid"],
     ["settings", "S", "Instellingen"]
   ].filter(([view]) => canView(state, view));
 
@@ -296,6 +299,7 @@ function renderView(state) {
   if (state.view === "billing") return billingView(state);
   if (state.view === "ai") return aiView(state);
   if (state.view === "import") return importView(state);
+  if (state.view === "security") return securityView(state);
   if (state.view === "settings") return settingsView(state);
   return dashboardView(state);
 }
@@ -1353,6 +1357,78 @@ function importView(state) {
             </article>
           `).join("") || `<p class="empty-state">Nog geen importpreviews.</p>`}
         </div>
+      </div>
+    </section>
+  `;
+}
+
+function securityView(state) {
+  const activeOverrides = (state.accessOverrides || []).filter((item) => item.status === "Actief");
+  const inactiveOverrides = (state.accessOverrides || []).filter((item) => item.status !== "Actief");
+  const activeInvites = (state.portalInvites || []).filter((invite) => invite.status === "Actief");
+  const exportEvents = (state.auditLog || []).filter((item) => `${item.event} ${item.detail}`.toLowerCase().includes("export"));
+  const importRuns = state.importRuns || [];
+
+  return `
+    <section class="metric-grid">
+      <article class="metric"><span>Actieve uitzonderingen</span><strong>${activeOverrides.length}</strong><small>dossiertoegang te reviewen</small></article>
+      <article class="metric"><span>Portaaltoegang</span><strong>${activeInvites.length}</strong><small>actieve clientlinks</small></article>
+      <article class="metric"><span>Exports</span><strong>${exportEvents.length}</strong><small>dossier of boekhouding</small></article>
+      <article class="metric"><span>Import runs</span><strong>${importRuns.length}</strong><small>previews en migraties</small></article>
+    </section>
+    <section class="content-grid">
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Access review</h2><p>Bekijk tijdelijke toegang en trek uitzonderingen in wanneer ze niet meer nodig zijn.</p></div></div>
+        <div class="security-list">
+          ${[...activeOverrides, ...inactiveOverrides].slice(0, 12).map((override) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(override.member)} / ${escapeHtml(override.client)}</strong>
+                <span>${escapeHtml(override.access)} / ${escapeHtml(override.reason)} / aangemaakt door ${escapeHtml(override.createdBy || "PraktijkOS")}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(override.status || "Actief", override.status === "Actief" ? "success" : "warning")}
+                ${override.status === "Actief" ? `<label class="compact-select"><span>Status</span><select data-action="access-override-status" data-override-id="${escapeHtml(override.id)}"><option selected>Actief</option><option>Verlopen</option><option>Ingetrokken</option></select></label>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen toegangsuitzonderingen.</p>`}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div><h2>Portaal en delen</h2><p>Actieve links en deelstatus.</p></div></div>
+        <div class="security-list">
+          ${activeInvites.slice(0, 6).map((invite) => `
+            <article class="security-row compact">
+              <div><strong>${escapeHtml(invite.client)}</strong><span>${escapeHtml(invite.createdBy || "PraktijkOS")} / ${escapeHtml(invite.status)}</span></div>
+              ${badge(invite.status, "success")}
+            </article>
+          `).join("") || `<p class="empty-state">Geen actieve portaaltoegangen.</p>`}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div><h2>Exports</h2><p>Laatste dossier- en boekhouderexports.</p></div></div>
+        <div class="security-list">
+          ${exportEvents.slice(0, 8).map((event) => `
+            <article class="security-row compact">
+              <div><strong>${escapeHtml(event.event)}</strong><span>${escapeHtml(event.detail)} / ${escapeHtml(event.actor)} / ${escapeHtml(event.at)}</span></div>
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen exports gelogd.</p>`}
+        </div>
+      </div>
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Importcontrole</h2><p>Previews, uitgevoerde imports en rollbacks.</p></div><button class="ghost-action" data-action="navigate" data-view="import" type="button">Import openen</button></div>
+        <div class="security-list">
+          ${importRuns.slice(0, 8).map((run) => `
+            <article class="security-row">
+              <div><strong>${escapeHtml(run.label || run.kind)}</strong><span>${escapeHtml(run.rowCount || 0)} rijen / ${escapeHtml(run.createdAt || "")} / ${escapeHtml(run.appliedAt ? "geimporteerd" : "preview")}${run.rolledBackAt ? " / teruggedraaid" : ""}</span></div>
+              ${badge(run.rolledBackAt ? "Teruggedraaid" : run.applySummary ? "Geimporteerd" : "Preview", run.warnings?.length ? "warning" : "success")}
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen importactiviteit.</p>`}
+        </div>
+      </div>
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Auditlog</h2><p>Laatste acties rond dossiers, toegang, AI en migratie.</p></div></div>
+        ${auditList(state, 12)}
       </div>
     </section>
   `;

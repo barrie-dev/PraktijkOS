@@ -1332,6 +1332,32 @@ textarea {
   background: var(--surface-soft);
 }
 
+.security-list {
+  display: grid;
+  gap: 8px;
+}
+
+.security-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.security-row.compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.security-row span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+}
+
 .insight-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1694,6 +1720,7 @@ pre {
   .invoice-row,
   .invoice-row.rich-row,
   .import-row,
+  .security-row,
   .task-item.rich-task,
   .waitlist-item,
   .secretary-lane,
