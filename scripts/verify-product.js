@@ -103,10 +103,27 @@ async function verify() {
     assert(state.aiModels.length > 0, "Seed AI model registry should be available.");
     assert(state.aiModelEvaluations.length > 0, "Seed AI model evaluations should be available.");
     assert(state.voiceConsents.length > 0, "Seed voice consent controls should be available.");
+    assert(state.practice.saasAccount?.tenantId, "SaaS tenant account should be available.");
+    assert(state.practice.saasAccount?.plan, "SaaS account should include a subscription plan.");
     assert(
       state.retentionPolicies.some((policy) => policy.category === "Dossier" && policy.status === "Actief"),
       "Dossier retention policy should be active."
     );
+
+    const updatedSaasPractice = await request("/api/practice", {
+      method: "PUT",
+      body: JSON.stringify({
+        ...state.practice,
+        saasAccount: {
+          ...state.practice.saasAccount,
+          plan: "Scale",
+          seatsIncluded: 12,
+          dataRegion: "EU / Belgie"
+        }
+      })
+    });
+    assert(updatedSaasPractice.saasAccount.plan === "Scale", "SaaS plan should be editable.");
+    assert(updatedSaasPractice.saasAccount.seatsIncluded === 12, "SaaS seat limit should be editable.");
 
     const completedTask = await request("/api/tasks/q-001/complete", {
       method: "POST",

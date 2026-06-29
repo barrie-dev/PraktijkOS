@@ -2,6 +2,7 @@
 
 ## Phase 1: Practice Core
 
+- SaaS tenant account, subscription plan and usage limits
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks

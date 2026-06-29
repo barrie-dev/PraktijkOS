@@ -1018,6 +1018,9 @@ async function handleApi(request, response) {
       locations: Array.isArray(payload.locations) ? payload.locations : store.practice.locations,
       paymentMethods: Array.isArray(payload.paymentMethods) ? payload.paymentMethods : store.practice.paymentMethods,
       aiPolicy: payload.aiPolicy || store.practice.aiPolicy,
+      saasAccount: payload.saasAccount && typeof payload.saasAccount === "object"
+        ? { ...(store.practice.saasAccount || {}), ...payload.saasAccount }
+        : store.practice.saasAccount,
       onboardingComplete: typeof payload.onboardingComplete === "boolean"
         ? payload.onboardingComplete
         : store.practice.onboardingComplete

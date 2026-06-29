@@ -53,6 +53,7 @@ import {
   runAiWorkflow,
   scheduleFromWaitlist,
   savePracticeSettings,
+  saveSaasAccountSettings,
   selectMessageTemplate,
   setState,
   subscribe
@@ -448,6 +449,8 @@ async function handleSubmit(event) {
     result = await scheduleFromWaitlist(formData);
   } else if (form.dataset.form === "practice") {
     result = await savePracticeSettings(formData);
+  } else if (form.dataset.form === "saas-account") {
+    result = await saveSaasAccountSettings(formData);
   } else if (form.dataset.form === "team") {
     result = await addTeamMember(formData);
   } else if (form.dataset.form === "knowledge-base") {

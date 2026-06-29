@@ -5,6 +5,19 @@ const seedData = {
     locations: ["Antwerpen", "Online"],
     paymentMethods: ["Bancontact", "Wero", "Overschrijving"],
     aiPolicy: "Concepten vereisen professionele review voor opslag of verzending.",
+    saasAccount: {
+      tenantId: "tenant-de-linde",
+      plan: "Pro",
+      billingStatus: "Trial actief",
+      seatsIncluded: 8,
+      seatsUsed: 3,
+      clientLimit: 500,
+      clientCount: 4,
+      aiCreditsIncluded: 2000,
+      aiCreditsUsed: 184,
+      dataRegion: "EU / Belgie",
+      renewalDate: "31/07/2026"
+    },
     onboardingComplete: false
   },
   team: [

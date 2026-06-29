@@ -110,6 +110,19 @@ const initialState = {
     locations: ["Antwerpen", "Online"],
     paymentMethods: ["Bancontact", "Wero", "Overschrijving"],
     aiPolicy: "Concepten vereisen professionele review voor opslag of verzending.",
+    saasAccount: {
+      tenantId: "tenant-de-linde",
+      plan: "Pro",
+      billingStatus: "Trial actief",
+      seatsIncluded: 8,
+      seatsUsed: 2,
+      clientLimit: 500,
+      clientCount: clients.length,
+      aiCreditsIncluded: 2000,
+      aiCreditsUsed: 184,
+      dataRegion: "EU / Belgie",
+      renewalDate: "31/07/2026"
+    },
     onboardingComplete: false
   },
   team: [
@@ -2150,6 +2163,42 @@ export async function savePracticeSettings(formData) {
     `${practice.name} lokaal opgeslagen.`
   ));
   return { ok: true, message: "Praktijkinstellingen lokaal opgeslagen." };
+}
+
+export async function saveSaasAccountSettings(formData) {
+  const payload = formPayload(formData);
+  const saasAccount = {
+    ...(state.practice.saasAccount || {}),
+    tenantId: payload.tenantId || state.practice.saasAccount?.tenantId || "tenant",
+    plan: payload.plan || "Pro",
+    billingStatus: payload.billingStatus || "Actief",
+    seatsIncluded: Number(payload.seatsIncluded || state.practice.saasAccount?.seatsIncluded || state.team.length),
+    seatsUsed: state.team.length,
+    clientLimit: Number(payload.clientLimit || state.practice.saasAccount?.clientLimit || state.clients.length),
+    clientCount: state.clients.length,
+    aiCreditsIncluded: Number(payload.aiCreditsIncluded || state.practice.saasAccount?.aiCreditsIncluded || 0),
+    aiCreditsUsed: Number(payload.aiCreditsUsed || state.practice.saasAccount?.aiCreditsUsed || 0),
+    dataRegion: payload.dataRegion || "EU / Belgie",
+    renewalDate: payload.renewalDate || state.practice.saasAccount?.renewalDate || ""
+  };
+  const practice = { ...state.practice, saasAccount };
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updatePractice(practice);
+      await refreshFromApi();
+      return { ok: true, message: "SaaS account opgeslagen." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  commit(pushAudit(
+    { ...state, practice },
+    "SaaS account bijgewerkt",
+    `${saasAccount.tenantId}: ${saasAccount.plan}, ${saasAccount.billingStatus}.`
+  ));
+  return { ok: true, message: "SaaS account lokaal opgeslagen." };
 }
 
 export async function completeOnboarding(formData) {

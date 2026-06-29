@@ -31,6 +31,7 @@ The frontend uses the development server for normal product work, with an offlin
 
 ## Domain Objects
 
+- SaaSAccount
 - Practice
 - User
 - Role
@@ -48,6 +49,7 @@ Clients, appointments and invoices are stored in relational tables with foreign-
 
 ## Security Baseline
 
+- SaaS tenant context for practice account, plan, seats, client limits, AI credits and data region
 - Role-based write access for practice, team, care, scheduling, billing, AI review and tasks
 - Per-dossier authorization
 - Audit logging

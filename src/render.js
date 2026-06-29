@@ -1821,8 +1821,40 @@ function securityView(state) {
 
 function settingsView(state) {
   const modelEvaluations = state.aiModelEvaluations || [];
+  const saasAccount = state.practice.saasAccount || {};
+  const seatsUsed = state.team.length;
+  const seatsIncluded = Number(saasAccount.seatsIncluded || seatsUsed || 1);
+  const clientCount = state.clients.length;
+  const clientLimit = Number(saasAccount.clientLimit || clientCount || 1);
+  const aiCreditsUsed = Number(saasAccount.aiCreditsUsed || 0);
+  const aiCreditsIncluded = Number(saasAccount.aiCreditsIncluded || 1);
   return `
     <section class="settings-grid">
+      <form class="panel wide" data-form="saas-account">
+        <div class="panel-header"><div><h2>SaaS account</h2><p>Tenant, abonnement en platformlimieten voor deze praktijkomgeving.</p></div>${badge(saasAccount.billingStatus || "Actief", (saasAccount.billingStatus || "").toLowerCase().includes("pauze") ? "warning" : "success")}</div>
+        <div class="metric-grid compact-metrics">
+          <article class="metric"><span>Tenant</span><strong>${escapeHtml(saasAccount.tenantId || "tenant")}</strong><small>${escapeHtml(saasAccount.dataRegion || "EU / Belgie")}</small></article>
+          <article class="metric"><span>Plan</span><strong>${escapeHtml(saasAccount.plan || "Pro")}</strong><small>verlenging ${escapeHtml(saasAccount.renewalDate || "nog te plannen")}</small></article>
+          <article class="metric"><span>Seats</span><strong>${seatsUsed}/${seatsIncluded}</strong><small>teamleden binnen abonnement</small></article>
+          <article class="metric"><span>Clienten</span><strong>${clientCount}/${clientLimit}</strong><small>dossiers binnen tenantlimiet</small></article>
+          <article class="metric"><span>AI credits</span><strong>${aiCreditsUsed}/${aiCreditsIncluded}</strong><small>maandbudget voor AI-acties</small></article>
+        </div>
+        <div class="form-grid">
+          <label class="field"><span>Tenant ID</span><input name="tenantId" value="${escapeHtml(saasAccount.tenantId || "tenant-de-linde")}" required></label>
+          <label class="field"><span>Plan</span><select name="plan">${["Starter", "Pro", "Scale", "Enterprise"].map((plan) => `<option ${saasAccount.plan === plan ? "selected" : ""}>${plan}</option>`).join("")}</select></label>
+          <label class="field"><span>Billingstatus</span><select name="billingStatus">${["Trial actief", "Actief", "Betaalactie nodig", "Pauze"].map((status) => `<option ${saasAccount.billingStatus === status ? "selected" : ""}>${status}</option>`).join("")}</select></label>
+          <label class="field"><span>Dataregio</span><select name="dataRegion">${["EU / Belgie", "EU", "EU / Nederland"].map((region) => `<option ${saasAccount.dataRegion === region ? "selected" : ""}>${region}</option>`).join("")}</select></label>
+        </div>
+        <div class="form-grid">
+          <label class="field"><span>Seats inbegrepen</span><input name="seatsIncluded" type="number" min="1" value="${escapeHtml(seatsIncluded)}"></label>
+          <label class="field"><span>Clientlimiet</span><input name="clientLimit" type="number" min="1" value="${escapeHtml(clientLimit)}"></label>
+          <label class="field"><span>AI credits/maand</span><input name="aiCreditsIncluded" type="number" min="0" value="${escapeHtml(aiCreditsIncluded)}"></label>
+          <label class="field"><span>AI credits gebruikt</span><input name="aiCreditsUsed" type="number" min="0" value="${escapeHtml(aiCreditsUsed)}"></label>
+        </div>
+        <label class="field"><span>Volgende verlenging</span><input name="renewalDate" value="${escapeHtml(saasAccount.renewalDate || "")}" placeholder="31/07/2026"></label>
+        <button class="primary-action" type="submit">SaaS account opslaan</button>
+      </form>
+
       <form class="panel" data-form="practice">
         <div class="panel-header"><div><h2>Praktijk</h2><p>Basisconfiguratie voor de groepspraktijk.</p></div></div>
         <label class="field"><span>Praktijknaam</span><input name="name" value="${escapeHtml(state.practice.name)}" required></label>
