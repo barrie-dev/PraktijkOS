@@ -179,6 +179,11 @@ async function verify() {
     });
     assert(accessOverride.clientId === client.id, "Access override should link to the client.");
     assert(accessOverride.status === "Actief", "Access override should be active.");
+    const updatedAccessOverride = await request(`/api/access-overrides/${accessOverride.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Ingetrokken" })
+    });
+    assert(updatedAccessOverride.status === "Ingetrokken", "Access override should be revocable.");
 
     const appointment = await request("/api/appointments", {
       method: "POST",

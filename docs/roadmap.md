@@ -33,6 +33,7 @@
 - Role-based access per dossier
 - Per-dossier access policy overview for owner, clinician, administration and AI
 - Editable per-dossier access exceptions with audit trail
+- Access exception status changes and expiry review
 - Work queues for missing intakes, open invoices and follow-ups
 - Guided task screen with owner, due date, dossier context and direct actions
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
@@ -44,7 +45,7 @@
 
 ## Next Product Slice
 
-- Add access exception status changes and expiry review.
+- Add security center for audit, exports and access review.
 
 ## Phase 4: Belgian Integrations
 

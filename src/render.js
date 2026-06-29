@@ -879,9 +879,13 @@ function clientsView(state) {
                 <article class="access-policy-row">
                   <div>
                     <strong>${escapeHtml(override.member)}</strong>
-                    <span>${escapeHtml(override.access)} / ${escapeHtml(override.reason)} / ${escapeHtml(override.createdBy || "PraktijkOS")}</span>
+                    <span>${escapeHtml(override.access)} / ${escapeHtml(override.reason)} / ${escapeHtml(override.createdBy || "PraktijkOS")}${override.reviewedAt ? ` / herzien ${escapeHtml(override.reviewedAt)}` : ""}</span>
                   </div>
-                  ${badge(override.status || "Actief", "success")}
+                  ${can(state, "practice") ? `
+                    <label class="compact-select"><span>Status</span><select data-action="access-override-status" data-override-id="${escapeHtml(override.id)}">
+                      ${["Actief", "Verlopen", "Ingetrokken"].map((status) => `<option ${override.status === status ? "selected" : ""}>${status}</option>`).join("")}
+                    </select></label>
+                  ` : badge(override.status || "Actief", override.status === "Actief" ? "success" : "warning")}
                 </article>
               `).join("") || `<p class="empty-state">Geen dossieruitzonderingen actief.</p>`}
             </div>

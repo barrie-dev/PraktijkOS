@@ -27,6 +27,7 @@ import {
   scheduleWaitlistEntry,
   sendInvoiceReminder,
   updateAppointment,
+  updateAccessOverride,
   updateDocument,
   updateInvoice,
   updateMessage,
@@ -398,6 +399,38 @@ export async function addAccessOverride(formData) {
     `${member.name}: ${override.access} voor ${client.name}.`
   ));
   return { ok: true, message: "Toegangsuitzondering lokaal opgeslagen." };
+}
+
+export async function changeAccessOverrideStatus(overrideId, status) {
+  const override = (state.accessOverrides || []).find((item) => item.id === overrideId);
+  if (!override || !status) {
+    return { ok: false, message: "Toegangsstatus kon niet worden bijgewerkt." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updateAccessOverride(overrideId, { status });
+      await refreshFromApi();
+      setState({ selectedClientId: override.clientId, view: "clients" });
+      return { ok: true, message: "Toegangsstatus bijgewerkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  commit(pushAudit(
+    {
+      ...state,
+      accessOverrides: (state.accessOverrides || []).map((item) =>
+        item.id === overrideId ? { ...item, status, reviewedAt: nowLabel(), reviewedBy: state.currentUser?.name || "PraktijkOS" } : item
+      ),
+      selectedClientId: override.clientId,
+      view: "clients"
+    },
+    "Dossiertoegang herzien",
+    `${override.member}: ${status} voor ${override.client}.`
+  ));
+  return { ok: true, message: "Toegangsstatus lokaal bijgewerkt." };
 }
 
 function downloadJson(filename, payload) {

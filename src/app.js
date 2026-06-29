@@ -13,6 +13,7 @@ import {
   approveCurrentDraft,
   bootstrapState,
   changeAppointmentStatus,
+  changeAccessOverrideStatus,
   changeDocumentStatus,
   changeInvoiceChannel,
   changeMessageStatus,
@@ -321,6 +322,10 @@ function handleChange(event) {
 
   if (target.dataset.action === "document-status") {
     changeDocumentStatus(target.dataset.documentId, target.value).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "access-override-status") {
+    changeAccessOverrideStatus(target.dataset.overrideId, target.value).then((result) => showToast(result.message));
   }
 
   if (target.dataset.action === "portal-invite-status") {

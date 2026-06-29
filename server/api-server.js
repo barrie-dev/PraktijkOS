@@ -1075,6 +1075,36 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/access-overrides\/[^/]+$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const overrideId = url.pathname.split("/")[3];
+    const payload = await readJson(request);
+    const override = (store.accessOverrides || []).find((item) => item.id === overrideId);
+    if (!override) {
+      sendJson(response, 404, { error: "Access override not found" });
+      return;
+    }
+
+    const updatedOverride = {
+      ...override,
+      status: payload.status || override.status,
+      reviewedAt: timestampLabel(),
+      reviewedBy: user.name
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        accessOverrides: (store.accessOverrides || []).map((item) => item.id === overrideId ? updatedOverride : item)
+      },
+      "Dossiertoegang herzien",
+      `${updatedOverride.member}: ${updatedOverride.status} voor ${updatedOverride.client}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedOverride);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/clients") {
     if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);
