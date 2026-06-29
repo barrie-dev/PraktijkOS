@@ -26,6 +26,7 @@
 - Approved AI notes can be stored directly in the client dossier
 - Practice-specific knowledge base for AI responses
 - AI model registry and model usage labels
+- AI model benchmarking and drift monitoring
 - Voice-to-note exploration with strict consent controls
 - Knowledge base review automation
 
@@ -54,7 +55,7 @@
 
 ## Next Product Slice
 
-- Add AI model governance and evaluation history.
+- Add voice-to-note quality review and transcript provenance.
 
 ## Phase 4: Belgian Integrations
 

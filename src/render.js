@@ -1688,6 +1688,7 @@ function securityView(state) {
 }
 
 function settingsView(state) {
+  const modelEvaluations = state.aiModelEvaluations || [];
   return `
     <section class="settings-grid">
       <form class="panel" data-form="practice">
@@ -1754,7 +1755,7 @@ function settingsView(state) {
             <article class="security-row">
               <div>
                 <strong>${escapeHtml(model.name)} / ${escapeHtml(model.promptVersion)}</strong>
-                <span>${escapeHtml(model.provider)} / ${escapeHtml(model.useCase)} / standaard voor ${(model.defaultFor || []).join(", ") || "geen workflow"}</span>
+                <span>${escapeHtml(model.provider)} / ${escapeHtml(model.useCase)} / standaard voor ${(model.defaultFor || []).join(", ") || "geen workflow"} / ${modelEvaluations.filter((evaluation) => evaluation.modelId === model.id).length} evaluaties</span>
               </div>
               <div class="status-stack">
                 ${badge(model.status, model.status === "Actief" ? "success" : "warning")}
@@ -1762,6 +1763,34 @@ function settingsView(state) {
               </div>
             </article>
           `).join("") || `<p class="empty-state">Nog geen modelprofielen.</p>`}
+        </div>
+      </div>
+
+      <form class="panel wide" data-form="ai-model-evaluation">
+        <div class="panel-header"><div><h2>Modelevaluatie</h2><p>Registreer reviewresultaten voor modelgovernance.</p></div></div>
+        <div class="form-grid">
+          <label class="field"><span>Model</span><select name="modelId">
+            ${(state.aiModels || []).map((model) => `<option value="${escapeHtml(model.id)}">${escapeHtml(model.name)} / ${escapeHtml(model.promptVersion)}</option>`).join("")}
+          </select></label>
+          <label class="field"><span>Score</span><select name="score"><option>Goedgekeurd</option><option>Review nodig</option><option>Niet gebruiken</option></select></label>
+        </div>
+        <label class="field"><span>Status</span><input name="status" value="Review geregistreerd"></label>
+        <label class="field"><span>Notities</span><textarea name="notes" rows="4" placeholder="Wat is getest, welke risico's blijven open en voor welke workflows mag dit model gebruikt worden?" required></textarea></label>
+        <button class="primary-action" type="submit">Evaluatie registreren</button>
+      </form>
+
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Evaluatiegeschiedenis</h2><p>${modelEvaluations.length} modelreviews vastgelegd.</p></div></div>
+        <div class="security-list">
+          ${modelEvaluations.slice(0, 8).map((evaluation) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(evaluation.modelName)} / ${escapeHtml(evaluation.score)}</strong>
+                <span>${escapeHtml(evaluation.status)} / ${escapeHtml(evaluation.notes)} / ${escapeHtml(evaluation.reviewedAt)} / ${escapeHtml(evaluation.reviewedBy)}</span>
+              </div>
+              ${badge(evaluation.score, evaluation.score === "Goedgekeurd" ? "success" : "warning")}
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen modelevaluaties.</p>`}
         </div>
       </div>
 

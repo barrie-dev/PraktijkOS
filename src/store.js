@@ -4,6 +4,7 @@ import {
   completeDayCloseCheck,
   completeTask as completeTaskRequest,
   createAccessOverride,
+  createAiModelEvaluation,
   createAppointment,
   createClient,
   createDocument,
@@ -42,7 +43,7 @@ import {
   updateRetentionPolicy
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModels, appointments, clients, dayClose, invoices, knowledgeBase, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, invoices, knowledgeBase, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -145,6 +146,7 @@ const initialState = {
   retentionPolicies,
   knowledgeBase,
   aiModels,
+  aiModelEvaluations,
   voiceConsents,
   appointments,
   clients,
@@ -675,6 +677,46 @@ export async function changeKnowledgeItemStatus(itemId, status) {
     `${updatedItem.title}: versie ${updatedItem.version}, status ${updatedItem.status}.`
   ));
   return { ok: true, message: "Kennisregel lokaal bijgewerkt." };
+}
+
+export async function addAiModelEvaluation(formData) {
+  const payload = formPayload(formData);
+  const model = (state.aiModels || []).find((item) => item.id === payload.modelId);
+  if (!model || !payload.score || !payload.notes) {
+    return { ok: false, message: "Model, score en notities zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createAiModelEvaluation(model.id, payload);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Modelevaluatie geregistreerd." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const evaluation = {
+    id: uid("eval"),
+    modelId: model.id,
+    modelName: model.name,
+    score: payload.score,
+    status: payload.status || "Review geregistreerd",
+    reviewedAt: nowLabel(),
+    reviewedBy: state.currentUser?.name || "PraktijkOS",
+    notes: payload.notes
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      aiModelEvaluations: [evaluation, ...(state.aiModelEvaluations || [])].slice(0, 100),
+      view: "settings"
+    },
+    "AI modelevaluatie geregistreerd",
+    `${model.name}: ${evaluation.score}.`
+  ));
+  return { ok: true, message: "Modelevaluatie lokaal geregistreerd." };
 }
 
 export async function completeRetentionReview(policyId) {

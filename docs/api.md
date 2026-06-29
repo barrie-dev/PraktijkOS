@@ -39,6 +39,7 @@ npm run verify
 - `POST /api/ai/generate`
 - `POST /api/ai/drafts`
 - `POST /api/ai/drafts/:id/approve` optionally stores approved note drafts in a client dossier with `{ clientId, storeAsNote: true }`
+- `POST /api/ai-models/:id/evaluations`
 - AI draft responses include model registry metadata: `modelId`, `modelName`, `promptVersion` and `riskLevel`.
 - `POST /api/billing/proposals`
 - `POST /api/billing/export`

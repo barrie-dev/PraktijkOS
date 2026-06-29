@@ -5,6 +5,7 @@ import {
   addDocument,
   addIntake,
   addInvoice,
+  addAiModelEvaluation,
   addKnowledgeItem,
   addMessage,
   addNote,
@@ -397,6 +398,8 @@ async function handleSubmit(event) {
     result = await addTeamMember(formData);
   } else if (form.dataset.form === "knowledge-base") {
     result = await addKnowledgeItem(formData);
+  } else if (form.dataset.form === "ai-model-evaluation") {
+    result = await addAiModelEvaluation(formData);
   } else if (form.dataset.form === "voice-consent") {
     result = await addVoiceConsent(formData);
   } else if (form.dataset.form === "voice-note") {

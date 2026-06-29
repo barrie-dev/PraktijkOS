@@ -219,6 +219,29 @@ export const aiModels = [
   }
 ];
 
+export const aiModelEvaluations = [
+  {
+    id: "eval-001",
+    modelId: "model-admin-safe",
+    modelName: "PraktijkOS Admin Safe",
+    score: "Goedgekeurd",
+    status: "Actief voor administratie",
+    reviewedAt: "Vandaag 08:45",
+    reviewedBy: "Praktijkhouder",
+    notes: "Geschikt voor intake- en facturatieconcepten met verplichte review."
+  },
+  {
+    id: "eval-002",
+    modelId: "model-care-review",
+    modelName: "PraktijkOS Care Review",
+    score: "Review nodig",
+    status: "Alleen gebruiken met zorgverlenercontrole",
+    reviewedAt: "Vandaag 08:50",
+    reviewedBy: "Praktijkhouder",
+    notes: "Output moet klinisch gecontroleerd worden voor opslag."
+  }
+];
+
 export const voiceConsents = [
   {
     id: "voice-001",

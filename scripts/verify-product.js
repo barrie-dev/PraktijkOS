@@ -101,6 +101,7 @@ async function verify() {
     assert(state.retentionPolicies.length > 0, "Seed retention policies should be available.");
     assert(state.knowledgeBase.length > 0, "Seed knowledge base should be available.");
     assert(state.aiModels.length > 0, "Seed AI model registry should be available.");
+    assert(state.aiModelEvaluations.length > 0, "Seed AI model evaluations should be available.");
     assert(state.voiceConsents.length > 0, "Seed voice consent controls should be available.");
     assert(
       state.retentionPolicies.some((policy) => policy.category === "Dossier" && policy.status === "Actief"),
@@ -403,6 +404,17 @@ async function verify() {
     });
     assert(updatedKnowledgeItem.version === 2, "Knowledge base update should increment version.");
     assert(updatedKnowledgeItem.history.length === 1, "Knowledge base update should keep version history.");
+
+    const modelEvaluation = await request("/api/ai-models/model-care-review/evaluations", {
+      method: "POST",
+      body: JSON.stringify({
+        score: "Goedgekeurd",
+        status: "Verificatie afgerond",
+        notes: "Modelmetadata en reviewlabels gecontroleerd."
+      })
+    });
+    assert(modelEvaluation.modelId === "model-care-review", "Model evaluation should link to the model.");
+    assert(modelEvaluation.score === "Goedgekeurd", "Model evaluation should store score.");
 
     const draft = await request("/api/ai/generate", {
       method: "POST",

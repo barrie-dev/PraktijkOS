@@ -1591,6 +1591,40 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/ai-models\/[^/]+\/evaluations$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const modelId = url.pathname.split("/")[3];
+    const model = (store.aiModels || []).find((item) => item.id === modelId);
+    const payload = await readJson(request);
+    if (!model || !payload.score || !payload.notes) {
+      sendJson(response, 422, { error: "model, score and notes are required" });
+      return;
+    }
+
+    const evaluation = {
+      id: uid("eval"),
+      modelId: model.id,
+      modelName: model.name,
+      score: payload.score,
+      status: payload.status || "Review geregistreerd",
+      reviewedAt: timestampLabel(),
+      reviewedBy: user.name,
+      notes: payload.notes
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        aiModelEvaluations: [evaluation, ...(store.aiModelEvaluations || [])].slice(0, 100)
+      },
+      "AI modelevaluatie geregistreerd",
+      `${model.name}: ${evaluation.score}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, evaluation);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/ai/generate") {
     if (!requirePermission(response, user, "ai")) return;
     const payload = await readJson(request);
