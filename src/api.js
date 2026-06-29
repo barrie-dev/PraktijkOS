@@ -94,6 +94,13 @@ export async function reviewIntegrationReadiness(itemId, payload = {}) {
   });
 }
 
+export async function collectIsoEvidencePack(packId, payload = {}) {
+  return request(`/api/iso-evidence/${packId}/collect`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

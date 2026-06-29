@@ -24,6 +24,7 @@ const collections = [
   "peppolPreparations",
   "paymentRequests",
   "integrationReadiness",
+  "isoEvidencePacks",
   "waitlist",
   "workQueue",
   "dayClose",
@@ -180,6 +181,7 @@ function seedIfEmpty() {
   seedCollectionIfEmpty("peppolPreparations");
   seedCollectionIfEmpty("paymentRequests");
   seedCollectionIfEmpty("integrationReadiness");
+  seedCollectionIfEmpty("isoEvidencePacks");
   seedRelationalTables();
   seedInvoicesTable();
 

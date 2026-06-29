@@ -1594,6 +1594,8 @@ function securityView(state) {
   const retentionReviews = retentionPolicies.filter((policy) => policy.status !== "Actief");
   const integrationReadiness = state.integrationReadiness || [];
   const openIntegrationReviews = integrationReadiness.filter((item) => item.status !== "Review afgerond");
+  const isoEvidencePacks = state.isoEvidencePacks || [];
+  const openIsoEvidence = isoEvidencePacks.filter((pack) => pack.status !== "Bewijs verzameld");
   const cleanupQueue = retentionCleanupQueue(state);
   const selectedAuditFilter = state.auditFilter || "all";
   const selectedAuditRows = filteredAuditLog(state, selectedAuditFilter);
@@ -1627,6 +1629,12 @@ function securityView(state) {
       detail: `${item.name}: ${item.nextStep}`,
       action: "security",
       severity: item.priority === "Hoog" ? "warning" : "info"
+    })),
+    ...openIsoEvidence.slice(0, 2).map((pack) => ({
+      label: "ISO bewijsmap",
+      detail: `${pack.label}: ${pack.summary}`,
+      action: "security",
+      severity: "warning"
     }))
   ];
 
@@ -1636,6 +1644,7 @@ function securityView(state) {
       <article class="metric"><span>Portaaltoegang</span><strong>${activeInvites.length}</strong><small>actieve clientlinks</small></article>
       <article class="metric"><span>Exports</span><strong>${exportEvents.length}</strong><small>dossier of boekhouding</small></article>
       <article class="metric"><span>Integraties</span><strong>${openIntegrationReviews.length}</strong><small>readiness reviews open</small></article>
+      <article class="metric"><span>ISO bewijs</span><strong>${openIsoEvidence.length}</strong><small>evidence packs open</small></article>
     </section>
     <section class="content-grid">
       <div class="panel wide">
@@ -1670,6 +1679,28 @@ function securityView(state) {
               </div>
             </article>
           `).join("") || `<p class="empty-state">Nog geen integratie-readiness items.</p>`}
+        </div>
+      </div>
+      <div class="panel wide" data-section="iso-evidence">
+        <div class="panel-header"><div><h2>ISO 27001 bewijsmap</h2><p>Verzamel auditmateriaal uit rollen, AI-governance, retentie en exportlogs.</p></div></div>
+        <div class="security-list">
+          ${isoEvidencePacks.map((pack) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(pack.label)} / ${escapeHtml(pack.domain)}</strong>
+                <span>${escapeHtml(pack.summary)} Eigenaar: ${escapeHtml(pack.owner || "Praktijkhouder")} / deadline ${escapeHtml(pack.dueAt || "Nog te plannen")}</span>
+                <span>Bronnen: ${(pack.sources || []).map((source) => escapeHtml(source)).join(" / ")}</span>
+                <span>Bewijs: ${(pack.evidence || []).map((item) => `${escapeHtml(item.label)} (${escapeHtml(item.status)})`).join(" / ")}</span>
+                <span>Gaps: ${(pack.gaps || []).map((gap) => escapeHtml(gap)).join(" / ") || "Geen open gaps"}</span>
+                ${pack.snapshot ? `<span>Snapshot: ${escapeHtml(pack.snapshot.counts.auditEvents)} audit-events / ${escapeHtml(pack.snapshot.counts.retentionPolicies)} retentiebeleid / ${escapeHtml(pack.snapshot.counts.aiModels)} AI-modellen</span>` : ""}
+              </div>
+              <div class="status-stack">
+                ${badge(pack.status || "Open", pack.status === "Bewijs verzameld" ? "success" : "warning")}
+                ${pack.collectedAt ? `<span class="muted-small">Verzameld ${escapeHtml(pack.collectedAt)} door ${escapeHtml(pack.collectedBy || "PraktijkOS")}</span>` : ""}
+                ${can(state, "practice") && pack.status !== "Bewijs verzameld" ? `<button class="primary-action" data-action="collect-iso-evidence" data-pack-id="${escapeHtml(pack.id)}" type="button">Bewijs verzamelen</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen ISO evidence packs.</p>`}
         </div>
       </div>
       <div class="panel wide">

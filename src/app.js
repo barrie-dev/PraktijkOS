@@ -24,6 +24,7 @@ import {
   changePortalInviteStatus,
   changeRetentionPolicyStatus,
   closeModal,
+  collectIsoEvidence,
   completeDayClose,
   completeIntegrationReview,
   completeKnowledgeReview,
@@ -298,6 +299,12 @@ async function handleClick(event) {
 
   if (action === "complete-integration-review") {
     const result = await completeIntegrationReview(target.dataset.integrationId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "collect-iso-evidence") {
+    const result = await collectIsoEvidence(target.dataset.packId);
     showToast(result.message);
     return;
   }

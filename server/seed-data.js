@@ -272,6 +272,56 @@ const seedData = {
       risks: ["Te brede toestemming is juridisch zwak", "Team moet status makkelijk kunnen zien"]
     }
   ],
+  isoEvidencePacks: [
+    {
+      id: "iso-access",
+      domain: "A.5 / A.8 Toegangsbeheer",
+      label: "Dossiertoegang en rollen",
+      status: "Open",
+      owner: "Praktijkhouder",
+      dueAt: "Deze maand",
+      summary: "Bewijs dat rollen, uitzonderingen en reviews beheerst worden.",
+      sources: ["Rollenmatrix", "Access review", "Auditlog"],
+      evidence: [
+        { label: "Actieve rollen en toegangsrechten", status: "Open" },
+        { label: "Tijdelijke dossieruitzonderingen", status: "Open" },
+        { label: "Reviewmoment en verantwoordelijke", status: "Open" }
+      ],
+      gaps: ["Formele periodieke access review moet gepland blijven"]
+    },
+    {
+      id: "iso-ai",
+      domain: "A.5 Beleid en leveranciers",
+      label: "AI governance",
+      status: "Open",
+      owner: "Praktijkhouder",
+      dueAt: "Deze maand",
+      summary: "Bewijs dat AI-output conceptueel blijft, modellen gereviewd worden en kennisregels versiebeheer hebben.",
+      sources: ["AI model registry", "Kennisbank", "AI auditlog"],
+      evidence: [
+        { label: "Modelprofielen met risicolabel", status: "Open" },
+        { label: "Modelevaluaties en reviewnotities", status: "Open" },
+        { label: "Goedgekeurde AI-output met auditspoor", status: "Open" }
+      ],
+      gaps: ["Leveranciersbeoordeling en DPIA moeten apart aangevuld worden"]
+    },
+    {
+      id: "iso-retention",
+      domain: "A.5 / A.8 Informatielevenscyclus",
+      label: "Retentie en exports",
+      status: "Open",
+      owner: "Administratie",
+      dueAt: "Volgende reviewronde",
+      summary: "Bewijs dat bewaartermijnen, exports en cleanupacties traceerbaar zijn.",
+      sources: ["Retentiebeleid", "Cleanup queue", "Exportlog"],
+      evidence: [
+        { label: "Actieve retentiebeleidsregels", status: "Open" },
+        { label: "Auditexport met filter", status: "Open" },
+        { label: "Cleanupacties en reviews", status: "Open" }
+      ],
+      gaps: ["Definitieve bewaartermijnen per discipline juridisch bevestigen"]
+    }
+  ],
   appointments: [
     {
       id: "apt-001",

@@ -238,6 +238,25 @@ function buildAuditExport(store, user, filter = "all") {
   };
 }
 
+function buildIsoEvidenceSnapshot(store, pack) {
+  return {
+    generatedAt: new Date().toISOString(),
+    practice: store.practice?.name || "Praktijk",
+    domain: pack.domain,
+    sources: pack.sources || [],
+    counts: {
+      teamMembers: store.team?.length || 0,
+      activeAccessOverrides: (store.accessOverrides || []).filter((item) => item.status === "Actief").length,
+      auditEvents: store.auditLog?.length || 0,
+      retentionPolicies: store.retentionPolicies?.length || 0,
+      aiModels: store.aiModels?.length || 0,
+      modelEvaluations: store.aiModelEvaluations?.length || 0,
+      knowledgeRules: store.knowledgeBase?.length || 0,
+      exports: (store.auditLog || []).filter((item) => `${item.event} ${item.detail}`.toLowerCase().includes("export")).length
+    }
+  };
+}
+
 function activeKnowledge(store) {
   return (store.knowledgeBase || []).filter((item) => item.status === "Actief");
 }
@@ -1407,6 +1426,40 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 200, updatedItem);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/iso-evidence\/[^/]+\/collect$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const packId = url.pathname.split("/")[3];
+    const pack = (store.isoEvidencePacks || []).find((item) => item.id === packId);
+    if (!pack) {
+      sendJson(response, 404, { error: "ISO evidence pack not found" });
+      return;
+    }
+
+    const updatedPack = {
+      ...pack,
+      status: "Bewijs verzameld",
+      collectedAt: timestampLabel(),
+      collectedBy: user.name,
+      evidence: (pack.evidence || []).map((item) => ({
+        ...item,
+        status: item.status === "Open" ? "Verzameld" : item.status
+      })),
+      snapshot: buildIsoEvidenceSnapshot(store, pack)
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        isoEvidencePacks: (store.isoEvidencePacks || []).map((item) => item.id === packId ? updatedPack : item)
+      },
+      "ISO bewijs verzameld",
+      `${updatedPack.label}: ${updatedPack.sources.join(", ")}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedPack);
     return;
   }
 

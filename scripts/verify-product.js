@@ -463,6 +463,16 @@ async function verify() {
     assert(reviewedIntegration.status === "Review afgerond", "Integration readiness review should update status.");
     assert(reviewedIntegration.controls.every((control) => control.status !== "Open"), "Integration controls should be checked after review.");
 
+    const isoEvidencePack = readinessState.isoEvidencePacks.find((item) => item.id === "iso-ai");
+    assert(isoEvidencePack, "ISO evidence pack should exist.");
+    const collectedEvidence = await request(`/api/iso-evidence/${isoEvidencePack.id}/collect`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(collectedEvidence.status === "Bewijs verzameld", "ISO evidence pack should be collectible.");
+    assert(collectedEvidence.snapshot.counts.aiModels >= 1, "ISO evidence snapshot should include AI model counts.");
+    assert(collectedEvidence.evidence.every((item) => item.status !== "Open"), "ISO evidence items should be marked collected.");
+
     const modelEvaluation = await request("/api/ai-models/model-care-review/evaluations", {
       method: "POST",
       body: JSON.stringify({

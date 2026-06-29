@@ -3,6 +3,7 @@ import {
   approveDraft,
   completeDayCloseCheck,
   completeTask as completeTaskRequest,
+  collectIsoEvidencePack,
   createAccessOverride,
   createAiModelEvaluation,
   createAppointment,
@@ -48,7 +49,7 @@ import {
   updateRetentionPolicy
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -158,6 +159,7 @@ const initialState = {
   peppolPreparations,
   paymentRequests,
   integrationReadiness,
+  isoEvidencePacks,
   appointments,
   clients,
   invoices,
@@ -862,6 +864,66 @@ export async function completeIntegrationReview(itemId) {
     `${updatedItem.name}: ${updatedItem.nextStep}.`
   ));
   return { ok: true, message: `${updatedItem.name} lokaal gereviewd.` };
+}
+
+export async function collectIsoEvidence(packId) {
+  const pack = (state.isoEvidencePacks || []).find((item) => item.id === packId);
+  if (!pack) {
+    return { ok: false, message: "ISO bewijsmap kon niet worden verzameld." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const collected = await collectIsoEvidencePack(packId);
+      await refreshFromApi();
+      setState({ view: "security" });
+      return { ok: true, message: `${collected.label} bewijs verzameld.` };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedPack = {
+    ...pack,
+    status: "Bewijs verzameld",
+    collectedAt: nowLabel(),
+    collectedBy: state.currentUser?.name || "PraktijkOS",
+    evidence: (pack.evidence || []).map((item) => ({
+      ...item,
+      status: item.status === "Open" ? "Verzameld" : item.status
+    })),
+    snapshot: buildIsoEvidenceSnapshot(state, pack)
+  };
+
+  commit(pushAudit(
+    {
+      ...state,
+      isoEvidencePacks: (state.isoEvidencePacks || []).map((item) => item.id === packId ? updatedPack : item),
+      view: "security"
+    },
+    "ISO bewijs verzameld",
+    `${updatedPack.label}: ${updatedPack.sources.join(", ")}.`
+  ));
+  return { ok: true, message: `${updatedPack.label} lokaal verzameld.` };
+}
+
+function buildIsoEvidenceSnapshot(sourceState, pack) {
+  return {
+    generatedAt: new Date().toISOString(),
+    practice: sourceState.practice?.name || "Praktijk",
+    domain: pack.domain,
+    sources: pack.sources || [],
+    counts: {
+      teamMembers: sourceState.team?.length || 0,
+      activeAccessOverrides: (sourceState.accessOverrides || []).filter((item) => item.status === "Actief").length,
+      auditEvents: sourceState.auditLog?.length || 0,
+      retentionPolicies: sourceState.retentionPolicies?.length || 0,
+      aiModels: sourceState.aiModels?.length || 0,
+      modelEvaluations: sourceState.aiModelEvaluations?.length || 0,
+      knowledgeRules: sourceState.knowledgeBase?.length || 0,
+      exports: (sourceState.auditLog || []).filter((item) => `${item.event} ${item.detail}`.toLowerCase().includes("export")).length
+    }
+  };
 }
 
 function downloadJson(filename, payload) {
