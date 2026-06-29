@@ -1740,12 +1740,13 @@ function settingsView(state) {
             <article class="security-row">
               <div>
                 <strong>${escapeHtml(item.title)} / v${escapeHtml(item.version || 1)}</strong>
-                <span>${escapeHtml(item.category)} / ${escapeHtml(item.content)} / review ${escapeHtml(item.reviewDue || "Volgend kwartaal")} / ${(item.history || []).length} vorige versies</span>
+                <span>${escapeHtml(item.category)} / ${escapeHtml(item.content)} / review ${escapeHtml(item.reviewDue || "Volgend kwartaal")} / volgende ${escapeHtml(item.nextReviewDue || "nog niet gepland")} / ${(item.history || []).length} vorige versies</span>
               </div>
               <div class="status-stack">
                 <label class="compact-select"><span>Status</span><select data-action="knowledge-status" data-knowledge-id="${escapeHtml(item.id)}">
                   ${["Actief", "Concept", "Gearchiveerd"].map((status) => `<option ${item.status === status ? "selected" : ""}>${status}</option>`).join("")}
                 </select></label>
+                <button class="ghost-action" data-action="complete-knowledge-review" data-knowledge-id="${escapeHtml(item.id)}" type="button">Review klaar</button>
                 ${badge(item.status || "Actief", item.status === "Actief" ? "success" : "warning")}
               </div>
             </article>

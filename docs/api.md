@@ -49,6 +49,7 @@ npm run verify
 - `POST /api/day-close/:id/complete`
 - `POST /api/knowledge-base`
 - `PATCH /api/knowledge-base/:id`
+- `POST /api/knowledge-base/:id/review`
 - `POST /api/import/preview`
 - `POST /api/import/:id/apply`
 - `POST /api/import/:id/rollback`

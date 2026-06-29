@@ -144,6 +144,13 @@ export async function updateKnowledgeBaseItem(itemId, payload) {
   });
 }
 
+export async function reviewKnowledgeBaseItem(itemId) {
+  return request(`/api/knowledge-base/${itemId}/review`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function createAiModelEvaluation(modelId, payload) {
   return request(`/api/ai-models/${modelId}/evaluations`, {
     method: "POST",

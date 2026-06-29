@@ -112,6 +112,14 @@ function nextRetentionReviewLabel(reviewCadence = "") {
   return "Volgende reviewronde";
 }
 
+function nextKnowledgeReviewLabel(reviewDue = "") {
+  const due = reviewDue.toLowerCase();
+  if (due.includes("maand")) return "Volgende maand";
+  if (due.includes("kwartaal")) return "Volgend kwartaal";
+  if (due.includes("jaar")) return "Volgend jaar";
+  return "Volgende reviewronde";
+}
+
 function appointmentSignal(status) {
   if (["No-show risico", "Geannuleerd"].includes(status)) return "danger";
   if (["Intake ontbreekt", "Opvolging nodig"].includes(status)) return "warning";
@@ -1597,6 +1605,36 @@ async function handleApi(request, response) {
       },
       "Kennisbankitem herzien",
       `${updatedItem.title}: versie ${updatedItem.version}, status ${updatedItem.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedItem);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/knowledge-base\/[^/]+\/review$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const itemId = url.pathname.split("/")[3];
+    const item = (store.knowledgeBase || []).find((entry) => entry.id === itemId);
+    if (!item) {
+      sendJson(response, 404, { error: "Knowledge base item not found" });
+      return;
+    }
+
+    const updatedItem = {
+      ...item,
+      status: item.status === "Gearchiveerd" ? "Gearchiveerd" : "Actief",
+      reviewedAt: timestampLabel(),
+      reviewedBy: user.name,
+      nextReviewDue: nextKnowledgeReviewLabel(item.reviewDue || "")
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        knowledgeBase: (store.knowledgeBase || []).map((entry) => entry.id === itemId ? updatedItem : entry)
+      },
+      "Kennisbankreview afgerond",
+      `${updatedItem.title}: volgende review ${updatedItem.nextReviewDue}.`,
       user.name
     );
     writeStore(nextStore);

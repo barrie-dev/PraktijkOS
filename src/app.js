@@ -25,6 +25,7 @@ import {
   changeRetentionPolicyStatus,
   closeModal,
   completeDayClose,
+  completeKnowledgeReview,
   completeRetentionReview,
   completeTask,
   completeOnboarding,
@@ -269,6 +270,12 @@ async function handleClick(event) {
 
   if (action === "complete-retention-review") {
     const result = await completeRetentionReview(target.dataset.policyId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "complete-knowledge-review") {
+    const result = await completeKnowledgeReview(target.dataset.knowledgeId);
     showToast(result.message);
     return;
   }

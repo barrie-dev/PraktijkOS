@@ -57,7 +57,7 @@
 
 ## Next Product Slice
 
-- Add knowledge base review automation.
+- Add Peppol-ready invoice delivery preparation.
 
 ## Phase 4: Belgian Integrations
 

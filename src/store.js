@@ -28,6 +28,7 @@ import {
   login,
   logout,
   previewImport,
+  reviewKnowledgeBaseItem,
   reviewRetentionPolicy,
   rollbackImport,
   scheduleWaitlistEntry,
@@ -204,6 +205,14 @@ function nextRetentionReviewLabel(reviewCadence = "") {
   if (cadence.includes("maand")) return "Volgende maand";
   if (cadence.includes("jaar")) return "Volgend jaar";
   if (cadence.includes("traject")) return "Bij trajectafsluiting";
+  return "Volgende reviewronde";
+}
+
+function nextKnowledgeReviewLabel(reviewDue = "") {
+  const due = reviewDue.toLowerCase();
+  if (due.includes("maand")) return "Volgende maand";
+  if (due.includes("kwartaal")) return "Volgend kwartaal";
+  if (due.includes("jaar")) return "Volgend jaar";
   return "Volgende reviewronde";
 }
 
@@ -691,6 +700,42 @@ export async function changeKnowledgeItemStatus(itemId, status) {
     `${updatedItem.title}: versie ${updatedItem.version}, status ${updatedItem.status}.`
   ));
   return { ok: true, message: "Kennisregel lokaal bijgewerkt." };
+}
+
+export async function completeKnowledgeReview(itemId) {
+  const item = (state.knowledgeBase || []).find((entry) => entry.id === itemId);
+  if (!item) {
+    return { ok: false, message: "Kennisbankreview kon niet worden afgerond." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await reviewKnowledgeBaseItem(itemId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Kennisbankreview afgerond." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedItem = {
+    ...item,
+    status: item.status === "Gearchiveerd" ? "Gearchiveerd" : "Actief",
+    reviewedAt: nowLabel(),
+    reviewedBy: state.currentUser?.name || "PraktijkOS",
+    nextReviewDue: nextKnowledgeReviewLabel(item.reviewDue || "")
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      knowledgeBase: (state.knowledgeBase || []).map((entry) => entry.id === itemId ? updatedItem : entry),
+      view: "settings"
+    },
+    "Kennisbankreview afgerond",
+    `${updatedItem.title}: volgende review ${updatedItem.nextReviewDue}.`
+  ));
+  return { ok: true, message: "Kennisbankreview lokaal afgerond." };
 }
 
 export async function addAiModelEvaluation(formData) {

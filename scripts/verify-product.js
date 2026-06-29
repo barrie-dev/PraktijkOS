@@ -412,6 +412,12 @@ async function verify() {
     });
     assert(updatedKnowledgeItem.version === 2, "Knowledge base update should increment version.");
     assert(updatedKnowledgeItem.history.length === 1, "Knowledge base update should keep version history.");
+    const reviewedKnowledgeItem = await request(`/api/knowledge-base/${knowledgeItem.id}/review`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(reviewedKnowledgeItem.reviewedAt, "Knowledge review should set reviewed metadata.");
+    assert(reviewedKnowledgeItem.nextReviewDue, "Knowledge review should set next review label.");
 
     const modelEvaluation = await request("/api/ai-models/model-care-review/evaluations", {
       method: "POST",
