@@ -1374,6 +1374,42 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/integration-readiness\/[^/]+\/review$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const itemId = url.pathname.split("/")[3];
+    const item = (store.integrationReadiness || []).find((entry) => entry.id === itemId);
+    if (!item) {
+      sendJson(response, 404, { error: "Integration readiness item not found" });
+      return;
+    }
+
+    const payload = await readJson(request);
+    const updatedItem = {
+      ...item,
+      status: payload.status || "Review afgerond",
+      reviewedAt: timestampLabel(),
+      reviewedBy: user.name,
+      decision: payload.decision || item.decision,
+      nextStep: payload.nextStep || item.nextStep,
+      controls: (item.controls || []).map((control) => ({
+        ...control,
+        status: control.status === "Open" ? "Gecheckt" : control.status
+      }))
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        integrationReadiness: (store.integrationReadiness || []).map((entry) => entry.id === itemId ? updatedItem : entry)
+      },
+      "Integratiereview afgerond",
+      `${updatedItem.name}: ${updatedItem.nextStep}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedItem);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/clients") {
     if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);

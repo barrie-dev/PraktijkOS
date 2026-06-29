@@ -1592,6 +1592,8 @@ function securityView(state) {
   const importRuns = state.importRuns || [];
   const retentionPolicies = state.retentionPolicies || [];
   const retentionReviews = retentionPolicies.filter((policy) => policy.status !== "Actief");
+  const integrationReadiness = state.integrationReadiness || [];
+  const openIntegrationReviews = integrationReadiness.filter((item) => item.status !== "Review afgerond");
   const cleanupQueue = retentionCleanupQueue(state);
   const selectedAuditFilter = state.auditFilter || "all";
   const selectedAuditRows = filteredAuditLog(state, selectedAuditFilter);
@@ -1619,6 +1621,12 @@ function securityView(state) {
       detail: `${policy.label}: ${policy.status}. Eigenaar: ${policy.owner || "Praktijkhouder"}`,
       action: "security",
       severity: "warning"
+    })),
+    ...openIntegrationReviews.slice(0, 2).map((item) => ({
+      label: "Integratie readiness",
+      detail: `${item.name}: ${item.nextStep}`,
+      action: "security",
+      severity: item.priority === "Hoog" ? "warning" : "info"
     }))
   ];
 
@@ -1627,7 +1635,7 @@ function securityView(state) {
       <article class="metric"><span>Actieve uitzonderingen</span><strong>${activeOverrides.length}</strong><small>dossiertoegang te reviewen</small></article>
       <article class="metric"><span>Portaaltoegang</span><strong>${activeInvites.length}</strong><small>actieve clientlinks</small></article>
       <article class="metric"><span>Exports</span><strong>${exportEvents.length}</strong><small>dossier of boekhouding</small></article>
-      <article class="metric"><span>Cleanup</span><strong>${cleanupQueue.length}</strong><small>${retentionReviews.length} retentiereviews open</small></article>
+      <article class="metric"><span>Integraties</span><strong>${openIntegrationReviews.length}</strong><small>readiness reviews open</small></article>
     </section>
     <section class="content-grid">
       <div class="panel wide">
@@ -1639,6 +1647,29 @@ function securityView(state) {
               <button class="ghost-action" data-action="navigate" data-view="${escapeHtml(alert.action)}" type="button">Open</button>
             </article>
           `).join("") || `<p class="empty-state">Geen security alerts open.</p>`}
+        </div>
+      </div>
+      <div class="panel wide" data-section="integration-readiness">
+        <div class="panel-header"><div><h2>Belgische integraties</h2><p>Beslisruimte voor Itsme/eID, eHealth en consent voordat development start.</p></div></div>
+        <div class="security-list">
+          ${integrationReadiness.map((item) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(item.name)} / ${escapeHtml(item.category)}</strong>
+                <span>${escapeHtml(item.value)} Doelgroep: ${escapeHtml(item.targetSegment || "Nog te bepalen")}</span>
+                <span>${escapeHtml(item.decision || "")}</span>
+                <span>Volgende stap: ${escapeHtml(item.nextStep || "Nog te bepalen")}</span>
+                <span>Controles: ${(item.controls || []).map((control) => `${escapeHtml(control.label)} (${escapeHtml(control.status)})`).join(" / ")}</span>
+                <span>Risico's: ${(item.risks || []).map((risk) => escapeHtml(risk)).join(" / ") || "Geen open risico's"}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(item.status || "Analyse", item.status === "Review afgerond" ? "success" : "warning")}
+                ${badge(item.priority || "Medium", item.priority === "Hoog" ? "warning" : "success")}
+                ${item.reviewedAt ? `<span class="muted-small">Review ${escapeHtml(item.reviewedAt)} door ${escapeHtml(item.reviewedBy || "PraktijkOS")}</span>` : ""}
+                ${can(state, "practice") && item.status !== "Review afgerond" ? `<button class="primary-action" data-action="complete-integration-review" data-integration-id="${escapeHtml(item.id)}" type="button">Review klaar</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen integratie-readiness items.</p>`}
         </div>
       </div>
       <div class="panel wide">

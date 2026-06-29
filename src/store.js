@@ -31,6 +31,7 @@ import {
   previewImport,
   preparePeppolInvoice,
   preparePaymentRequest,
+  reviewIntegrationReadiness,
   reviewKnowledgeBaseItem,
   reviewRetentionPolicy,
   rollbackImport,
@@ -47,7 +48,7 @@ import {
   updateRetentionPolicy
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, invoices, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -156,6 +157,7 @@ const initialState = {
   voiceConsents,
   peppolPreparations,
   paymentRequests,
+  integrationReadiness,
   appointments,
   clients,
   invoices,
@@ -820,6 +822,46 @@ export async function completeRetentionReview(policyId) {
     `${updatedPolicy.label}: volgende review ${updatedPolicy.nextReviewDue}.`
   ));
   return { ok: true, message: "Retentiereview lokaal afgerond." };
+}
+
+export async function completeIntegrationReview(itemId) {
+  const item = (state.integrationReadiness || []).find((entry) => entry.id === itemId);
+  if (!item) {
+    return { ok: false, message: "Integratiereview kon niet worden afgerond." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const reviewed = await reviewIntegrationReadiness(itemId);
+      await refreshFromApi();
+      setState({ view: "security" });
+      return { ok: true, message: `${reviewed.name} review geregistreerd.` };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedItem = {
+    ...item,
+    status: "Review afgerond",
+    reviewedAt: nowLabel(),
+    reviewedBy: state.currentUser?.name || "PraktijkOS",
+    controls: (item.controls || []).map((control) => ({
+      ...control,
+      status: control.status === "Open" ? "Gecheckt" : control.status
+    }))
+  };
+
+  commit(pushAudit(
+    {
+      ...state,
+      integrationReadiness: (state.integrationReadiness || []).map((entry) => entry.id === itemId ? updatedItem : entry),
+      view: "security"
+    },
+    "Integratiereview afgerond",
+    `${updatedItem.name}: ${updatedItem.nextStep}.`
+  ));
+  return { ok: true, message: `${updatedItem.name} lokaal gereviewd.` };
 }
 
 function downloadJson(filename, payload) {

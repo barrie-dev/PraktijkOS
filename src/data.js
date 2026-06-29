@@ -258,6 +258,69 @@ export const voiceConsents = [
 export const peppolPreparations = [];
 export const paymentRequests = [];
 
+export const integrationReadiness = [
+  {
+    id: "intg-itsme",
+    name: "Itsme / eID login",
+    category: "Identiteit",
+    status: "Analyse",
+    priority: "Hoog",
+    owner: "Praktijkhouder",
+    targetSegment: "Groepspraktijken met clientportaal",
+    value: "Sterke clientauthenticatie voor portaaltoegang en gevoelige documenten.",
+    decision: "Partnerselectie en technische discovery voorbereiden.",
+    nextStep: "Bevestig doelgroep, toestemmingsflow en vendorvereisten.",
+    reviewedAt: null,
+    reviewedBy: null,
+    controls: [
+      { label: "OIDC/SAML ondersteuning bij vendor", status: "Open" },
+      { label: "eIDAS en Belgische identiteitsdekking", status: "Open" },
+      { label: "Fallback voor minder digitale clienten", status: "Open" }
+    ],
+    risks: ["Vendor onboarding kan lang duren", "Portaalflow moet toegankelijk blijven"]
+  },
+  {
+    id: "intg-ehealth",
+    name: "eHealth / CoBRHA",
+    category: "Zorgnetwerk",
+    status: "Discovery",
+    priority: "Medium",
+    owner: "Praktijkhouder",
+    targetSegment: "Disciplines die eHealth-diensten nodig hebben",
+    value: "Controleer zorgverlenercontext, organisatiegegevens en mogelijke aansluiting op Belgische zorgdiensten.",
+    decision: "Niet standaard bouwen tot doelgroep en erkenningspad bevestigd zijn.",
+    nextStep: "Map discipline, erkenningsnummer en toegangsvereisten per praktijk.",
+    reviewedAt: null,
+    reviewedBy: null,
+    controls: [
+      { label: "CoBRHA organisatie-identificatie", status: "Open" },
+      { label: "Zorgverlenerrol en mandaten", status: "Open" },
+      { label: "Minimale dataset voor audit en logging", status: "Open" }
+    ],
+    risks: ["Niet elke praktijk heeft dezelfde eHealth-nood", "Regelgeving en aansluiting verschillen per discipline"]
+  },
+  {
+    id: "intg-consent",
+    name: "Digitale toestemming",
+    category: "Consent",
+    status: "Voorbereid",
+    priority: "Hoog",
+    owner: "Administratie",
+    targetSegment: "Alle praktijken met portaal, AI en documentdeling",
+    value: "Maak toestemmingen expliciet voor portaalgebruik, AI-concepten, transcriptie en delen.",
+    decision: "Bouwen als PraktijkOS-kernfunctie voor integraties live gaan.",
+    nextStep: "Koppel consentlabels aan portaal, voice-to-note en dossierexports.",
+    reviewedAt: null,
+    reviewedBy: null,
+    controls: [
+      { label: "Doel en bewaartermijn zichtbaar", status: "Open" },
+      { label: "Intrekken en herzien auditeerbaar", status: "Open" },
+      { label: "Consentstatus zichtbaar in dossier", status: "Open" }
+    ],
+    risks: ["Te brede toestemming is juridisch zwak", "Team moet status makkelijk kunnen zien"]
+  }
+];
+
 export const waitlist = [
   {
     id: "wait-001",

@@ -453,6 +453,16 @@ async function verify() {
     assert(reviewedKnowledgeItem.reviewedAt, "Knowledge review should set reviewed metadata.");
     assert(reviewedKnowledgeItem.nextReviewDue, "Knowledge review should set next review label.");
 
+    const readinessState = await request("/api/state");
+    const itsmeReadiness = readinessState.integrationReadiness.find((item) => item.id === "intg-itsme");
+    assert(itsmeReadiness, "Itsme/eID readiness item should exist.");
+    const reviewedIntegration = await request(`/api/integration-readiness/${itsmeReadiness.id}/review`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(reviewedIntegration.status === "Review afgerond", "Integration readiness review should update status.");
+    assert(reviewedIntegration.controls.every((control) => control.status !== "Open"), "Integration controls should be checked after review.");
+
     const modelEvaluation = await request("/api/ai-models/model-care-review/evaluations", {
       method: "POST",
       body: JSON.stringify({

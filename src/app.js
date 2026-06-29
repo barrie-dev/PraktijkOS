@@ -25,6 +25,7 @@ import {
   changeRetentionPolicyStatus,
   closeModal,
   completeDayClose,
+  completeIntegrationReview,
   completeKnowledgeReview,
   completeRetentionReview,
   completeTask,
@@ -291,6 +292,12 @@ async function handleClick(event) {
 
   if (action === "complete-retention-review") {
     const result = await completeRetentionReview(target.dataset.policyId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "complete-integration-review") {
+    const result = await completeIntegrationReview(target.dataset.integrationId);
     showToast(result.message);
     return;
   }

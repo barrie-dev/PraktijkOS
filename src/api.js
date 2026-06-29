@@ -87,6 +87,13 @@ export async function reviewRetentionPolicy(policyId) {
   });
 }
 
+export async function reviewIntegrationReadiness(itemId, payload = {}) {
+  return request(`/api/integration-readiness/${itemId}/review`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

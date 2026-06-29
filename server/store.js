@@ -23,6 +23,7 @@ const collections = [
   "voiceConsents",
   "peppolPreparations",
   "paymentRequests",
+  "integrationReadiness",
   "waitlist",
   "workQueue",
   "dayClose",
@@ -178,6 +179,7 @@ function seedIfEmpty() {
   seedCollectionIfEmpty("voiceConsents");
   seedCollectionIfEmpty("peppolPreparations");
   seedCollectionIfEmpty("paymentRequests");
+  seedCollectionIfEmpty("integrationReadiness");
   seedRelationalTables();
   seedInvoicesTable();
 

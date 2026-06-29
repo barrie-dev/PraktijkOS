@@ -57,7 +57,7 @@
 
 ## Next Product Slice
 
-- Add Itsme/eID and eHealth feasibility workspace.
+- Build ISO 27001 evidence pack workspace.
 
 ## Phase 4: Belgian Integrations
 
@@ -67,6 +67,7 @@
 - Peppol-ready invoice delivery
 - Accounting exports for common Belgian tools
 - Itsme/eID and eHealth feasibility analysis where the target segment requires it
+- Itsme/eID, eHealth and consent readiness workspace in the security center
 - ISO 27001 preparation and security center
 
 ## Phase 5: Defensibility
