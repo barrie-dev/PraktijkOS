@@ -31,6 +31,7 @@
 - Secretary dashboard lanes for planning, billing and communication
 - Role-specific home screens for practice owner, care provider and administration
 - Role-based access per dossier
+- Per-dossier access policy overview for owner, clinician, administration and AI
 - Work queues for missing intakes, open invoices and follow-ups
 - Guided task screen with owner, due date, dossier context and direct actions
 - Practice analytics: occupancy, no-shows, revenue and admin backlog
@@ -42,7 +43,7 @@
 
 ## Next Product Slice
 
-- Add per-dossier access policy overview.
+- Add editable per-dossier access exceptions.
 
 ## Phase 4: Belgian Integrations
 

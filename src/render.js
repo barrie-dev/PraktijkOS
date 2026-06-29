@@ -730,6 +730,40 @@ function waitingView(state) {
   `;
 }
 
+function accessPolicyRows(state, client) {
+  const team = state.team || [];
+  const owner = team.find((member) => member.role === "Praktijkhouder") || { name: "Praktijkhouder" };
+  const secretary = team.find((member) => member.role === "Administratie") || { name: "Secretariaat" };
+  const clinician = team.find((member) => member.name === client.clinician) || { name: client.clinician, role: "Zorgverlener" };
+
+  return [
+    {
+      actor: owner.name,
+      role: "Praktijkhouder",
+      access: "Volledig",
+      detail: "Dossier, planning, facturatie, team en export."
+    },
+    {
+      actor: clinician.name,
+      role: "Behandelaar",
+      access: "Zorginhoud",
+      detail: "Sessies, intakes, documenten en AI-review voor dit dossier."
+    },
+    {
+      actor: secretary.name,
+      role: "Administratie",
+      access: "Beperkt",
+      detail: "Planning en facturatie zonder zorginhoudelijke nota's."
+    },
+    {
+      actor: "AI Assistent",
+      role: "Copilot",
+      access: "Review nodig",
+      detail: state.practice?.aiPolicy || "Concepten vereisen professionele review."
+    }
+  ];
+}
+
 function clientsView(state) {
   const filter = state.clientFilter.toLowerCase();
   const clients = state.clients.filter((client) =>
@@ -765,6 +799,7 @@ function clientsView(state) {
     { label: "Communicatie", done: clientMessages.length > 0 },
     { label: "Facturatie", done: clientInvoices.length > 0 }
   ];
+  const accessRows = accessPolicyRows(state, selected);
 
   return `
     <section class="toolbar">
@@ -818,6 +853,24 @@ function clientsView(state) {
             <div class="readiness-list">
               ${dossierReadiness.map((item) => `
                 <span class="${item.done ? "ready" : ""}">${item.done ? "✓" : "·"} ${escapeHtml(item.label)}</span>
+              `).join("")}
+            </div>
+          </section>
+
+          <section class="dossier-section wide">
+            <div class="section-row">
+              <h3>Toegangsbeleid</h3>
+              <span>${escapeHtml(state.currentUser?.role || "Rol")}</span>
+            </div>
+            <div class="access-policy-list">
+              ${accessRows.map((row) => `
+                <article class="access-policy-row">
+                  <div>
+                    <strong>${escapeHtml(row.actor)}</strong>
+                    <span>${escapeHtml(row.role)} / ${escapeHtml(row.detail)}</span>
+                  </div>
+                  ${badge(row.access, row.access === "Volledig" ? "success" : row.access === "Review nodig" ? "warning" : "warning")}
+                </article>
               `).join("")}
             </div>
           </section>

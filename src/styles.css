@@ -1090,6 +1090,7 @@ textarea {
 
 .readiness-list,
 .dossier-actions,
+.access-policy-list,
 .mini-list {
   display: grid;
   gap: 8px;
@@ -1126,6 +1127,23 @@ textarea {
 .mini-list article div {
   display: grid;
   gap: 4px;
+}
+
+.access-policy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.access-policy-row span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
 }
 
 .mini-list span {
