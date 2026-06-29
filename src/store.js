@@ -23,6 +23,7 @@ import {
   exportAccountingPackage,
   exportBillingPackage,
   exportClient,
+  exportIsoEvidencePack,
   fetchApiState,
   fetchSession,
   generateAiDraft,
@@ -82,6 +83,7 @@ const initialState = {
   selectedWaitlistSlot: null,
   auditFilter: "all",
   auditExport: null,
+  isoEvidenceExport: null,
   billingExport: null,
   accountingTool: "exact",
   accountingExport: null,
@@ -924,6 +926,83 @@ function buildIsoEvidenceSnapshot(sourceState, pack) {
       exports: (sourceState.auditLog || []).filter((item) => `${item.event} ${item.detail}`.toLowerCase().includes("export")).length
     }
   };
+}
+
+function buildLocalIsoEvidenceExport() {
+  const packs = state.isoEvidencePacks || [];
+  const rows = packs.flatMap((pack) => (pack.evidence || []).map((item) => ({
+    domain: pack.domain,
+    pack: pack.label,
+    status: pack.status,
+    owner: pack.owner,
+    evidence: item.label,
+    evidenceStatus: item.status,
+    collectedAt: pack.collectedAt || "",
+    gaps: (pack.gaps || []).join(" | ")
+  })));
+  const csv = [
+    ["domein", "bewijsmap", "status", "eigenaar", "bewijs", "bewijs_status", "verzameld_op", "gaps"].map(csvValue).join(";"),
+    ...rows.map((row) => [
+      row.domain,
+      row.pack,
+      row.status,
+      row.owner,
+      row.evidence,
+      row.evidenceStatus,
+      row.collectedAt,
+      row.gaps
+    ].map(csvValue).join(";"))
+  ].join("\n");
+
+  return {
+    id: uid("iso-export"),
+    exportedAt: new Date().toISOString(),
+    exportedBy: state.currentUser,
+    practice: {
+      name: state.practice.name,
+      language: state.practice.language
+    },
+    summary: {
+      packCount: packs.length,
+      collectedCount: packs.filter((pack) => pack.status === "Bewijs verzameld").length,
+      openGapCount: packs.reduce((total, pack) => total + (pack.gaps || []).length, 0),
+      evidenceRows: rows.length
+    },
+    files: {
+      csvFilename: "praktijkos-iso-evidence.csv",
+      jsonFilename: "praktijkos-iso-evidence.json",
+      csv
+    },
+    packs
+  };
+}
+
+function downloadIsoEvidenceExport(payload) {
+  downloadJson(payload.files.jsonFilename, payload);
+  downloadText(payload.files.csvFilename, payload.files.csv, "text/csv");
+}
+
+export async function createIsoEvidenceExport() {
+  if (state.apiStatus === "connected") {
+    try {
+      const payload = await exportIsoEvidencePack();
+      downloadIsoEvidenceExport(payload);
+      await refreshFromApi();
+      setState({ isoEvidenceExport: payload, view: "security" });
+      return { ok: true, message: `${payload.summary.evidenceRows} bewijsregels geexporteerd.` };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const payload = buildLocalIsoEvidenceExport();
+  downloadIsoEvidenceExport(payload);
+  commit(pushAudit(
+    { ...state, isoEvidenceExport: payload, view: "security" },
+    "ISO evidence export gemaakt",
+    `${payload.summary.packCount} bewijsdomeinen lokaal geexporteerd.`
+  ));
+  return { ok: true, message: "Lokale ISO evidence export aangemaakt." };
 }
 
 function downloadJson(filename, payload) {

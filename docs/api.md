@@ -33,6 +33,7 @@ npm run verify
 - `POST /api/retention-policies/:id/review`
 - `POST /api/integration-readiness/:id/review`
 - `POST /api/iso-evidence/:id/collect`
+- `POST /api/iso-evidence/export`
 - `GET /api/clients/:id/export`
 - `POST /api/appointments`
 - `PATCH /api/appointments/:id`

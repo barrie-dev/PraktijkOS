@@ -1596,6 +1596,7 @@ function securityView(state) {
   const openIntegrationReviews = integrationReadiness.filter((item) => item.status !== "Review afgerond");
   const isoEvidencePacks = state.isoEvidencePacks || [];
   const openIsoEvidence = isoEvidencePacks.filter((pack) => pack.status !== "Bewijs verzameld");
+  const isoEvidenceExport = state.isoEvidenceExport;
   const cleanupQueue = retentionCleanupQueue(state);
   const selectedAuditFilter = state.auditFilter || "all";
   const selectedAuditRows = filteredAuditLog(state, selectedAuditFilter);
@@ -1682,7 +1683,11 @@ function securityView(state) {
         </div>
       </div>
       <div class="panel wide" data-section="iso-evidence">
-        <div class="panel-header"><div><h2>ISO 27001 bewijsmap</h2><p>Verzamel auditmateriaal uit rollen, AI-governance, retentie en exportlogs.</p></div></div>
+        <div class="panel-header">
+          <div><h2>ISO 27001 bewijsmap</h2><p>Verzamel auditmateriaal uit rollen, AI-governance, retentie en exportlogs.</p></div>
+          <button class="primary-action" data-action="export-iso-evidence" type="button">Evidence export</button>
+        </div>
+        ${isoEvidenceExport ? `<p class="handoff-note">${escapeHtml(isoEvidenceExport.summary.evidenceRows)} bewijsregels klaar in ${escapeHtml(isoEvidenceExport.files.csvFilename)}.</p>` : `<p class="handoff-note">Maak een export wanneer een auditor, DPO of adviseur bewijs wil nakijken.</p>`}
         <div class="security-list">
           ${isoEvidencePacks.map((pack) => `
             <article class="security-row">

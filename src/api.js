@@ -101,6 +101,13 @@ export async function collectIsoEvidencePack(packId, payload = {}) {
   });
 }
 
+export async function exportIsoEvidencePack(payload = {}) {
+  return request("/api/iso-evidence/export", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

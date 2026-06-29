@@ -473,6 +473,13 @@ async function verify() {
     assert(collectedEvidence.snapshot.counts.aiModels >= 1, "ISO evidence snapshot should include AI model counts.");
     assert(collectedEvidence.evidence.every((item) => item.status !== "Open"), "ISO evidence items should be marked collected.");
 
+    const evidenceExport = await request("/api/iso-evidence/export", {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(evidenceExport.summary.packCount >= 1, "ISO evidence export should summarize packs.");
+    assert(evidenceExport.files.csv.includes("bewijsmap"), "ISO evidence export should include CSV headers.");
+
     const modelEvaluation = await request("/api/ai-models/model-care-review/evaluations", {
       method: "POST",
       body: JSON.stringify({

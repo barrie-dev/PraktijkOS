@@ -257,6 +257,55 @@ function buildIsoEvidenceSnapshot(store, pack) {
   };
 }
 
+function buildIsoEvidenceExport(store, user) {
+  const packs = store.isoEvidencePacks || [];
+  const rows = packs.flatMap((pack) => (pack.evidence || []).map((item) => ({
+    domain: pack.domain,
+    pack: pack.label,
+    status: pack.status,
+    owner: pack.owner,
+    evidence: item.label,
+    evidenceStatus: item.status,
+    collectedAt: pack.collectedAt || "",
+    gaps: (pack.gaps || []).join(" | ")
+  })));
+  const csv = [
+    ["domein", "bewijsmap", "status", "eigenaar", "bewijs", "bewijs_status", "verzameld_op", "gaps"].map(csvValue).join(";"),
+    ...rows.map((row) => [
+      row.domain,
+      row.pack,
+      row.status,
+      row.owner,
+      row.evidence,
+      row.evidenceStatus,
+      row.collectedAt,
+      row.gaps
+    ].map(csvValue).join(";"))
+  ].join("\n");
+
+  return {
+    id: uid("iso-export"),
+    exportedAt: new Date().toISOString(),
+    exportedBy: { id: user.id, name: user.name, role: user.role },
+    practice: {
+      name: store.practice.name,
+      language: store.practice.language
+    },
+    summary: {
+      packCount: packs.length,
+      collectedCount: packs.filter((pack) => pack.status === "Bewijs verzameld").length,
+      openGapCount: packs.reduce((total, pack) => total + (pack.gaps || []).length, 0),
+      evidenceRows: rows.length
+    },
+    files: {
+      csvFilename: "praktijkos-iso-evidence.csv",
+      jsonFilename: "praktijkos-iso-evidence.json",
+      csv
+    },
+    packs
+  };
+}
+
 function activeKnowledge(store) {
   return (store.knowledgeBase || []).filter((item) => item.status === "Actief");
 }
@@ -1460,6 +1509,20 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 200, updatedPack);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/iso-evidence/export") {
+    if (!requirePermission(response, user, "practice")) return;
+    const evidenceExport = buildIsoEvidenceExport(store, user);
+    const nextStore = appendAudit(
+      store,
+      "ISO evidence export gemaakt",
+      `${evidenceExport.summary.packCount} bewijsdomeinen en ${evidenceExport.summary.evidenceRows} bewijsregels geexporteerd.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, evidenceExport);
     return;
   }
 

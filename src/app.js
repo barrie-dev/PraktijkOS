@@ -34,6 +34,7 @@ import {
   createAccountingExport,
   createAuditExport,
   createBillingExport,
+  createIsoEvidenceExport,
   createVoiceNoteDraft,
   createInvoiceProposals,
   downloadClientDossier,
@@ -269,6 +270,12 @@ async function handleClick(event) {
 
   if (action === "export-audit") {
     const result = await createAuditExport(getState().auditFilter || "all");
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "export-iso-evidence") {
+    const result = await createIsoEvidenceExport();
     showToast(result.message);
     return;
   }

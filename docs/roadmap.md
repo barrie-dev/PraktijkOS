@@ -57,7 +57,7 @@
 
 ## Next Product Slice
 
-- Add advanced audit evidence pack export.
+- Add evidence pack attachments and reviewer notes.
 
 ## Phase 4: Belgian Integrations
 
@@ -70,6 +70,7 @@
 - Itsme/eID, eHealth and consent readiness workspace in the security center
 - ISO 27001 preparation and security center
 - ISO 27001 evidence pack workspace with source snapshots
+- Advanced audit evidence pack export
 
 ## Phase 5: Defensibility
 
