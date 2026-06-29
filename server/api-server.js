@@ -230,6 +230,10 @@ function buildAuditExport(store, user, filter = "all") {
   };
 }
 
+function activeKnowledge(store) {
+  return (store.knowledgeBase || []).filter((item) => item.status === "Actief");
+}
+
 function buildBillingExport(store, user, options = {}) {
   const exportedAt = new Date().toISOString();
   const lines = store.invoices.map((invoice) => {
@@ -1412,6 +1416,35 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/knowledge-base") {
+    if (!requirePermission(response, user, "practice")) return;
+    const payload = await readJson(request);
+    if (!payload.title || !payload.content) {
+      sendJson(response, 422, { error: "title and content are required" });
+      return;
+    }
+
+    const item = {
+      id: uid("kb"),
+      category: payload.category || "Praktijk",
+      title: payload.title,
+      content: payload.content,
+      status: payload.status || "Actief",
+      owner: payload.owner || user.role,
+      createdAt: timestampLabel(),
+      createdBy: user.name
+    };
+    const nextStore = appendAudit(
+      { ...store, knowledgeBase: [item, ...(store.knowledgeBase || [])] },
+      "Kennisbankitem toegevoegd",
+      `${item.category}: ${item.title}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, item);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/ai/generate") {
     if (!requirePermission(response, user, "ai")) return;
     const payload = await readJson(request);
@@ -1420,12 +1453,14 @@ async function handleApi(request, response) {
       return;
     }
 
-    const output = generateDraft({ workflow: payload.workflow, input: payload.source || "" });
+    const knowledge = activeKnowledge(store);
+    const output = generateDraft({ workflow: payload.workflow, input: payload.source || "", knowledge });
     const draft = {
       id: uid("draft"),
       workflow: payload.workflow,
       source: payload.source || "",
       output,
+      knowledgeIds: knowledge.map((item) => item.id),
       status: "Concept",
       createdAt: timestampLabel(),
       approvedAt: null

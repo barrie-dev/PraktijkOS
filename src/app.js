@@ -5,6 +5,7 @@ import {
   addDocument,
   addIntake,
   addInvoice,
+  addKnowledgeItem,
   addMessage,
   addNote,
   addPortalInvite,
@@ -379,6 +380,8 @@ async function handleSubmit(event) {
     result = await savePracticeSettings(formData);
   } else if (form.dataset.form === "team") {
     result = await addTeamMember(formData);
+  } else if (form.dataset.form === "knowledge-base") {
+    result = await addKnowledgeItem(formData);
   } else if (form.dataset.form === "intake") {
     result = await addIntake(formData);
   } else if (form.dataset.form === "invoice") {

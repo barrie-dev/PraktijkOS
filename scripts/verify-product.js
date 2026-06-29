@@ -99,6 +99,7 @@ async function verify() {
     assert(state.waitlist.length > 0, "Seed waitlist should be available.");
     assert(state.dayClose.length > 0, "Seed day close checklist should be available.");
     assert(state.retentionPolicies.length > 0, "Seed retention policies should be available.");
+    assert(state.knowledgeBase.length > 0, "Seed knowledge base should be available.");
     assert(
       state.retentionPolicies.some((policy) => policy.category === "Dossier" && policy.status === "Actief"),
       "Dossier retention policy should be active."
@@ -359,11 +360,23 @@ async function verify() {
     });
     assert(restoredPortal.client.name === client.name, "Reactivated portal invite should restore public access.");
 
+    const knowledgeItem = await request("/api/knowledge-base", {
+      method: "POST",
+      body: JSON.stringify({
+        category: "AI",
+        title: "Verificatie kennisregel",
+        content: "Gebruik korte, duidelijke taal in concepten.",
+        status: "Actief"
+      })
+    });
+    assert(knowledgeItem.title === "Verificatie kennisregel", "Knowledge base item should be created.");
+
     const draft = await request("/api/ai/generate", {
       method: "POST",
       body: JSON.stringify({ workflow: "note", source: "Client ervaart stress en zoekt opvolging." })
     });
     assert(draft.output.includes("Sessienota concept"), "AI workflow should generate a note draft.");
+    assert(draft.output.includes("Praktijkkennis toegepast"), "AI workflow should include practice knowledge context.");
 
     const approved = await request(`/api/ai/drafts/${draft.id}/approve`, {
       method: "POST",

@@ -43,6 +43,7 @@ npm run verify
 - `POST /api/invoices/:id/reminder`
 - `POST /api/tasks/:id/complete`
 - `POST /api/day-close/:id/complete`
+- `POST /api/knowledge-base`
 - `POST /api/import/preview`
 - `POST /api/import/:id/apply`
 - `POST /api/import/:id/rollback`

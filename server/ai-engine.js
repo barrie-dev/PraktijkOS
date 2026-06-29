@@ -5,10 +5,18 @@ const workflowLabels = {
   billing: "Facturatiecheck maken"
 };
 
-function generateDraft({ workflow, input }) {
+function generateDraft({ workflow, input, knowledge = [] }) {
   const source = String(input || "").trim() || "Geen broninformatie opgegeven.";
   const auditDate = new Date().toLocaleDateString("nl-BE");
+  const knowledgeSection = knowledge.length
+    ? [
+      "",
+      "Praktijkkennis toegepast:",
+      ...knowledge.slice(0, 5).map((item) => `- ${item.title || item.category}: ${item.content}`)
+    ].join("\n")
+    : "";
   const footer = [
+    knowledgeSection,
     "",
     "Controlepunten:",
     "- Verifieer inhoud met het clientendossier.",

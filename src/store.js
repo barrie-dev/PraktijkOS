@@ -14,6 +14,7 @@ import {
   createPortalInvite,
   createTeamMember,
   createDraft,
+  createKnowledgeBaseItem,
   exportAuditLog,
   exportBillingPackage,
   exportClient,
@@ -38,7 +39,7 @@ import {
   updateRetentionPolicy
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { appointments, clients, dayClose, invoices, retentionPolicies, waitlist, workQueue } from "./data.js";
+import { appointments, clients, dayClose, invoices, knowledgeBase, retentionPolicies, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -137,6 +138,7 @@ const initialState = {
   ],
   accessOverrides: [],
   retentionPolicies,
+  knowledgeBase,
   appointments,
   clients,
   invoices,
@@ -484,6 +486,46 @@ export async function changeRetentionPolicyStatus(policyId, status) {
   return { ok: true, message: "Retentiebeleid lokaal bijgewerkt." };
 }
 
+export async function addKnowledgeItem(formData) {
+  const payload = formPayload(formData);
+  if (!payload.title || !payload.content) {
+    return { ok: false, message: "Titel en inhoud zijn verplicht." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createKnowledgeBaseItem(payload);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Kennisregel toegevoegd." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const item = {
+    id: uid("kb"),
+    category: payload.category || "Praktijk",
+    title: payload.title,
+    content: payload.content,
+    status: payload.status || "Actief",
+    owner: payload.owner || state.currentUser?.role || "Praktijkhouder",
+    createdAt: nowLabel(),
+    createdBy: state.currentUser?.name || "PraktijkOS"
+  };
+
+  commit(pushAudit(
+    {
+      ...state,
+      knowledgeBase: [item, ...(state.knowledgeBase || [])],
+      view: "settings"
+    },
+    "Kennisbankitem toegevoegd",
+    `${item.category}: ${item.title}.`
+  ));
+  return { ok: true, message: "Kennisregel lokaal toegevoegd." };
+}
+
 export async function completeRetentionReview(policyId) {
   const policy = (state.retentionPolicies || []).find((item) => item.id === policyId);
   if (!policy) {
@@ -582,6 +624,10 @@ function buildLocalAuditExport(filter = "all") {
     },
     rows
   };
+}
+
+function activeKnowledgeItems() {
+  return (state.knowledgeBase || []).filter((item) => item.status === "Actief");
 }
 
 function downloadAuditExport(payload) {
@@ -907,7 +953,7 @@ export async function changeAppointmentStatus(appointmentId, status) {
   return { ok: true, message: "Afspraakstatus lokaal bijgewerkt." };
 }
 
-export async function recordDraft({ workflow, source, output }) {
+export async function recordDraft({ workflow, source, output, knowledgeIds = [] }) {
   if (state.apiStatus === "connected") {
     try {
       const draft = await createDraft({ workflow, source, output });
@@ -924,6 +970,7 @@ export async function recordDraft({ workflow, source, output }) {
     workflow,
     source,
     output,
+    knowledgeIds,
     status: "Concept",
     createdAt: nowLabel(),
     approvedAt: null
@@ -945,6 +992,7 @@ export async function recordDraft({ workflow, source, output }) {
 
 export async function runAiWorkflow(source) {
   const workflow = state.aiWorkflow;
+  const knowledge = activeKnowledgeItems();
 
   if (state.apiStatus === "connected") {
     try {
@@ -957,8 +1005,8 @@ export async function runAiWorkflow(source) {
     }
   }
 
-  const output = generateDraft({ workflow, input: source });
-  await recordDraft({ workflow, source, output });
+  const output = generateDraft({ workflow, input: source, knowledge });
+  await recordDraft({ workflow, source, output, knowledgeIds: knowledge.map((item) => item.id) });
   return { ok: true, message: "AI concept lokaal gegenereerd. Review blijft verplicht." };
 }
 

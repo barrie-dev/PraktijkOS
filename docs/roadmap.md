@@ -24,6 +24,7 @@
 - Human approval workflow
 - Audit trail for generated, edited and approved content
 - Approved AI notes can be stored directly in the client dossier
+- Practice-specific knowledge base for AI responses
 
 ## Phase 3: Group Practice Operations
 
@@ -50,7 +51,7 @@
 
 ## Next Product Slice
 
-- Add practice knowledge base for AI responses.
+- Add AI model registry and model usage labels.
 
 ## Phase 4: Belgian Integrations
 
@@ -65,5 +66,5 @@
 - AI model registry
 - Data retention policies
 - Advanced audit evidence packs
-- Practice-specific knowledge base
+- Knowledge base governance and versioning
 - Voice-to-note exploration with strict consent controls

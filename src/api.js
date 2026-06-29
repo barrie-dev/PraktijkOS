@@ -116,6 +116,13 @@ export async function generateAiDraft(payload) {
   });
 }
 
+export async function createKnowledgeBaseItem(payload) {
+  return request("/api/knowledge-base", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function approveDraft(draftId, payload = {}) {
   return request(`/api/ai/drafts/${draftId}/approve`, {
     method: "POST",

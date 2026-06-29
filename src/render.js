@@ -1313,6 +1313,7 @@ function billingView(state) {
 }
 
 function aiView(state) {
+  const activeKnowledge = (state.knowledgeBase || []).filter((item) => item.status === "Actief");
   return `
     <section class="ai-layout">
       <div class="panel">
@@ -1329,6 +1330,14 @@ function aiView(state) {
         </label>
         <label class="field"><span>Broncontext</span><textarea data-action="ai-input" rows="9">${escapeHtml(state.aiSource || "Client meldt stressklachten, slaapproblemen en piekeren rond werk. Eerste gesprek, vraag naar kortdurende begeleiding. Wil graag afspraken op dinsdagavond.")}</textarea></label>
         <div class="ai-actions"><button class="primary-action" data-action="run-ai" type="button">Genereer concept</button><button class="ghost-action" data-action="clear-ai" type="button">Wis</button></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div><h2>Praktijkkennis</h2><p>${activeKnowledge.length} actieve regels worden meegenomen.</p></div></div>
+        <div class="mini-list">
+          ${activeKnowledge.slice(0, 5).map((item) => `
+            <article><div><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.category)} / ${escapeHtml(item.content)}</span></div>${badge(item.status, "success")}</article>
+          `).join("") || `<p class="empty-state">Nog geen actieve kennisregels.</p>`}
+        </div>
       </div>
       <div class="panel ai-output-panel">
         <div class="panel-header"><div><h2>Concept</h2><p>Controleer, pas aan en keur goed voor opslag.</p></div><span class="draft-badge">Concept</span></div>
@@ -1668,6 +1677,29 @@ function settingsView(state) {
         </div>
         <button class="primary-action" type="submit">Teamlid toevoegen</button>
       </form>
+
+      <form class="panel wide" data-form="knowledge-base">
+        <div class="panel-header"><div><h2>Praktijkkennis</h2><p>Regels die de AI-assistent als context gebruikt.</p></div></div>
+        <div class="form-grid">
+          <label class="field"><span>Categorie</span><select name="category"><option>Communicatie</option><option>Planning</option><option>AI</option><option>Facturatie</option><option>Praktijk</option></select></label>
+          <label class="field"><span>Titel</span><input name="title" placeholder="Bijv. Tariefbeleid of verwijsbriefstijl" required></label>
+        </div>
+        <label class="field"><span>Inhoud</span><textarea name="content" rows="4" placeholder="Beschrijf de praktijkregel die de assistent moet volgen." required></textarea></label>
+        <div class="form-grid">
+          <label class="field"><span>Status</span><select name="status"><option>Actief</option><option>Concept</option></select></label>
+          <label class="field"><span>Eigenaar</span><input name="owner" value="Praktijkhouder"></label>
+        </div>
+        <button class="primary-action" type="submit">Kennisregel toevoegen</button>
+      </form>
+
+      <div class="panel wide">
+        <div class="panel-header"><div><h2>Kennisbank</h2><p>${(state.knowledgeBase || []).length} regels beschikbaar voor AI-context.</p></div></div>
+        <div class="mini-list">
+          ${(state.knowledgeBase || []).map((item) => `
+            <article><div><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.category)} / ${escapeHtml(item.content)} / eigenaar ${escapeHtml(item.owner || "Praktijkhouder")}</span></div>${badge(item.status || "Actief", item.status === "Actief" ? "success" : "warning")}</article>
+          `).join("") || `<p class="empty-state">Nog geen kennisregels.</p>`}
+        </div>
+      </div>
 
       <div class="panel wide">
         <div class="panel-header"><div><h2>Actieve rollen</h2><p>Huidige toegangen in de praktijk.</p></div></div>

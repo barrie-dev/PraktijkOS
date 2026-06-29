@@ -150,6 +150,33 @@ export const retentionPolicies = [
   }
 ];
 
+export const knowledgeBase = [
+  {
+    id: "kb-001",
+    category: "Communicatie",
+    title: "Inhoudelijke info via clientportaal",
+    content: "Gebruik het clientportaal voor zorginhoudelijke informatie. E-mail en sms blijven beperkt tot praktische afspraken.",
+    status: "Actief",
+    owner: "Praktijkhouder"
+  },
+  {
+    id: "kb-002",
+    category: "Planning",
+    title: "Annulatiebeleid",
+    content: "Vermeld bij no-show risico altijd dat annuleren minstens 24 uur vooraf moet gebeuren, tenzij overmacht.",
+    status: "Actief",
+    owner: "Administratie"
+  },
+  {
+    id: "kb-003",
+    category: "AI",
+    title: "Professionele review verplicht",
+    content: "AI-output is altijd concept. Een zorgverlener controleert inhoud, toon en dossiercontext voor opslag of verzending.",
+    status: "Actief",
+    owner: "Praktijkhouder"
+  }
+];
+
 export const waitlist = [
   {
     id: "wait-001",
