@@ -140,6 +140,17 @@ async function verify() {
     assert(usageAlertState.saasUsageAlerts.some((alert) => alert.id === "billing"), "SaaS usage alerts should include billing alerts.");
     assert(usageAlertState.saasUsageLedger.some((entry) => entry.category === "AI credits"), "SaaS usage ledger should include AI credit events.");
     assert(usageAlertState.saasUsageLedger.some((entry) => entry.category === "Billing"), "SaaS usage ledger should include billing events.");
+    assert(usageAlertState.saasPlanChanges.some((change) => change.status === "Aangevraagd"), "SaaS plan changes should include requested changes.");
+    const requestedPlanChange = await request("/api/saas-plan-changes", {
+      method: "POST",
+      body: JSON.stringify({
+        requestedPlan: "Enterprise",
+        effectiveAt: "01/09/2026",
+        reason: "Meer locaties en onboarding support nodig."
+      })
+    });
+    assert(requestedPlanChange.requestedPlan === "Enterprise", "SaaS plan change should store requested plan.");
+    assert(requestedPlanChange.status === "Aangevraagd", "SaaS plan change should be queued.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
     const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {

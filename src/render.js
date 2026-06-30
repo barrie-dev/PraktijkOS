@@ -1893,6 +1893,7 @@ function settingsView(state) {
   const saasInvoices = state.saasInvoices || [];
   const openSaasInvoices = saasInvoices.filter((invoice) => invoice.status !== "Betaald");
   const saasUsageLedger = state.saasUsageLedger || [];
+  const saasPlanChanges = state.saasPlanChanges || [];
   return `
     <section class="settings-grid">
       <form class="panel wide" data-form="saas-account">
@@ -1945,6 +1946,30 @@ function settingsView(state) {
           `).join("") || `<p class="empty-state">Nog geen usage events voor deze tenant.</p>`}
         </div>
       </div>
+
+      <form class="panel wide" data-form="saas-plan-change" data-section="saas-plan-change">
+        <div class="panel-header"><div><h2>Planwijziging</h2><p>Vraag een upgrade, downgrade of contractaanpassing aan voor deze tenant.</p></div>${badge(saasPlanChanges.length ? `${saasPlanChanges.length} aanvragen` : "Geen aanvragen", saasPlanChanges.length ? "warning" : "success")}</div>
+        <div class="form-grid">
+          <label class="field"><span>Gewenst plan</span><select name="requestedPlan">${["Starter", "Pro", "Scale", "Enterprise"].map((plan) => `<option ${plan === "Scale" ? "selected" : ""}>${plan}</option>`).join("")}</select></label>
+          <label class="field"><span>Ingang vanaf</span><input name="effectiveAt" value="${escapeHtml(saasAccount.renewalDate || "01/08/2026")}" required></label>
+        </div>
+        <label class="field"><span>Reden</span><textarea name="reason" rows="3" required>Meer seats, clienten of AI credits nodig voor de praktijkgroei.</textarea></label>
+        <button class="primary-action" type="submit">Planwijziging aanvragen</button>
+        <div class="security-list">
+          ${saasPlanChanges.map((change) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(change.currentPlan)} naar ${escapeHtml(change.requestedPlan)}</strong>
+                <span>${escapeHtml(change.effectiveAt)} / aangevraagd door ${escapeHtml(change.requestedBy || "PraktijkOS")} op ${escapeHtml(change.requestedAt || "vandaag")}</span>
+                <span>${escapeHtml(change.reason)}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(change.status || "Aangevraagd", change.status === "Goedgekeurd" ? "success" : "warning")}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen planwijzigingen aangevraagd.</p>`}
+        </div>
+      </form>
 
       <div class="panel wide" data-section="saas-billing">
         <div class="panel-header"><div><h2>SaaS billing</h2><p>Abonnementfacturen voor deze tenant en betaalstatus.</p></div>${badge(openSaasInvoices.length ? `${openSaasInvoices.length} open` : "Betaald", openSaasInvoices.length ? "warning" : "success")}</div>

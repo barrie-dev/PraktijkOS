@@ -1099,6 +1099,40 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/saas-plan-changes") {
+    if (!requirePermission(response, user, "practice")) return;
+    const payload = await readJson(request);
+    if (!payload.requestedPlan || !payload.effectiveAt || !payload.reason) {
+      sendJson(response, 422, { error: "requestedPlan, effectiveAt and reason are required" });
+      return;
+    }
+
+    const account = store.practice?.saasAccount || {};
+    const change = {
+      id: uid("plan-change"),
+      tenantId: account.tenantId || payload.tenantId || "tenant",
+      currentPlan: account.plan || payload.currentPlan || "Pro",
+      requestedPlan: payload.requestedPlan,
+      effectiveAt: payload.effectiveAt,
+      reason: payload.reason,
+      status: "Aangevraagd",
+      requestedAt: timestampLabel(),
+      requestedBy: user.name
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasPlanChanges: [change, ...(store.saasPlanChanges || [])].slice(0, 20)
+      },
+      "SaaS planwijziging aangevraagd",
+      `${change.currentPlan} naar ${change.requestedPlan} vanaf ${change.effectiveAt}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, change);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/team") {
     if (!requirePermission(response, user, "team")) return;
     const payload = await readJson(request);

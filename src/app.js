@@ -53,6 +53,7 @@ import {
   remindSaasInvoice,
   remindInvoice,
   resetDemoState,
+  requestSaasPlanChange,
   rollbackPreparedImport,
   runAiWorkflow,
   scheduleFromWaitlist,
@@ -473,6 +474,8 @@ async function handleSubmit(event) {
     result = await savePracticeSettings(formData);
   } else if (form.dataset.form === "saas-account") {
     result = await saveSaasAccountSettings(formData);
+  } else if (form.dataset.form === "saas-plan-change") {
+    result = await requestSaasPlanChange(formData);
   } else if (form.dataset.form === "team") {
     result = await addTeamMember(formData);
   } else if (form.dataset.form === "knowledge-base") {

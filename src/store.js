@@ -16,6 +16,7 @@ import {
   createMessage,
   createNote,
   createPortalInvite,
+  createSaasPlanChange,
   createVoiceConsent,
   createVoiceNote,
   createTeamMember,
@@ -55,7 +56,7 @@ import {
   updateSaasInvoice
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasInvoices, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasInvoices, saasPlanChanges, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -177,6 +178,7 @@ const initialState = {
   aiModels,
   aiModelEvaluations,
   saasInvoices,
+  saasPlanChanges,
   saasUsageLedger,
   voiceConsents,
   peppolPreparations,
@@ -2257,6 +2259,51 @@ export async function saveSaasAccountSettings(formData) {
     `${saasAccount.tenantId}: ${saasAccount.plan}, ${saasAccount.billingStatus}.`
   ));
   return { ok: true, message: "SaaS account lokaal opgeslagen." };
+}
+
+export async function requestSaasPlanChange(formData) {
+  const payload = formPayload(formData);
+  if (!payload.requestedPlan || !payload.effectiveAt || !payload.reason) {
+    return { ok: false, message: "Vul plan, startdatum en reden in." };
+  }
+
+  const account = state.practice.saasAccount || {};
+  const request = {
+    tenantId: account.tenantId || "tenant",
+    currentPlan: account.plan || "Pro",
+    requestedPlan: payload.requestedPlan,
+    effectiveAt: payload.effectiveAt,
+    reason: payload.reason
+  };
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createSaasPlanChange(request);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Planwijziging aangevraagd." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const change = {
+    id: uid("plan-change"),
+    ...request,
+    status: "Aangevraagd",
+    requestedAt: nowLabel(),
+    requestedBy: state.currentUser?.name || "PraktijkOS"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasPlanChanges: [change, ...(state.saasPlanChanges || [])].slice(0, 20),
+      view: "settings"
+    },
+    "SaaS planwijziging aangevraagd",
+    `${change.currentPlan} naar ${change.requestedPlan} vanaf ${change.effectiveAt}.`
+  ));
+  return { ok: true, message: "Planwijziging lokaal aangevraagd." };
 }
 
 export async function markSaasInvoicePaid(invoiceId) {

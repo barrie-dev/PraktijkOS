@@ -455,6 +455,20 @@ export const saasUsageLedger = [
   }
 ];
 
+export const saasPlanChanges = [
+  {
+    id: "plan-change-001",
+    tenantId: "tenant-de-linde",
+    currentPlan: "Pro",
+    requestedPlan: "Scale",
+    effectiveAt: "01/08/2026",
+    reason: "Meer teamleden en extra AI credits voorzien na zomeruitbreiding.",
+    status: "Aangevraagd",
+    requestedAt: "30/06/2026",
+    requestedBy: "Praktijkhouder"
+  }
+];
+
 export const waitlist = [
   {
     id: "wait-001",

@@ -8,6 +8,7 @@
 - Tenant billing payment handoff
 - Tenant billing receipts and dunning
 - Tenant self-service usage ledger
+- Tenant plan change workflow
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -63,7 +64,7 @@
 
 ## Next Product Slice
 
-- Add tenant plan change workflow.
+- Add tenant onboarding and feature checklist.
 
 ## Phase 4: Belgian Integrations
 
