@@ -12,6 +12,7 @@
 - Tenant onboarding and feature checklist
 - Tenant feature entitlement controls
 - Tenant admin activity feed
+- Tenant health score and risk indicators
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -67,7 +68,7 @@
 
 ## Next Product Slice
 
-- Add tenant health score and risk indicators.
+- Add tenant support and escalation queue.
 
 ## Phase 4: Belgian Integrations
 

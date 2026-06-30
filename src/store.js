@@ -94,6 +94,7 @@ const initialState = {
   auditExport: null,
   isoEvidenceExport: null,
   saasUsageAlerts: [],
+  saasHealth: null,
   billingExport: null,
   accountingTool: "exact",
   accountingExport: null,

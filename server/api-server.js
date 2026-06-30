@@ -213,6 +213,67 @@ function buildSaasUsageAlerts(store) {
   return alerts;
 }
 
+function buildSaasHealth(store) {
+  const usageAlerts = buildSaasUsageAlerts(store);
+  const openInvoices = (store.saasInvoices || []).filter((invoice) => invoice.status !== "Betaald").length;
+  const openOnboarding = (store.saasOnboardingChecklist || []).filter((item) => item.status !== "Klaar").length;
+  const pausedFeatures = (store.saasFeatureEntitlements || []).filter((item) => item.status !== "Actief").length;
+  const unreadActivity = (store.saasAdminActivity || []).filter((item) => item.status !== "Gelezen").length;
+  const score = Math.max(
+    0,
+    100
+      - usageAlerts.length * 8
+      - openInvoices * 12
+      - openOnboarding * 6
+      - pausedFeatures * 8
+      - unreadActivity * 4
+  );
+
+  const indicators = [
+    {
+      id: "billing",
+      label: "Billing",
+      status: openInvoices ? "Opvolgen" : "Gezond",
+      detail: openInvoices ? `${openInvoices} open tenantfactuur.` : "Alle tenantfacturen zijn betaald.",
+      severity: openInvoices ? "warning" : "success"
+    },
+    {
+      id: "usage",
+      label: "Usage",
+      status: usageAlerts.length ? "Risico" : "Gezond",
+      detail: usageAlerts.length ? `${usageAlerts.length} usage alert(s).` : "Gebruik blijft binnen limieten.",
+      severity: usageAlerts.some((alert) => alert.severity === "danger") ? "danger" : usageAlerts.length ? "warning" : "success"
+    },
+    {
+      id: "onboarding",
+      label: "Onboarding",
+      status: openOnboarding ? "Open" : "Klaar",
+      detail: openOnboarding ? `${openOnboarding} onboardingstap(pen) open.` : "Tenantactivatie is klaar.",
+      severity: openOnboarding ? "warning" : "success"
+    },
+    {
+      id: "features",
+      label: "Features",
+      status: pausedFeatures ? "Beperkt" : "Actief",
+      detail: pausedFeatures ? `${pausedFeatures} feature entitlement(s) gepauzeerd.` : "Alle feature entitlements zijn actief.",
+      severity: pausedFeatures ? "warning" : "success"
+    },
+    {
+      id: "activity",
+      label: "Activity",
+      status: unreadActivity ? "Nieuw" : "Rustig",
+      detail: unreadActivity ? `${unreadActivity} nieuwe activiteit(en).` : "Geen nieuwe tenantactiviteit.",
+      severity: unreadActivity ? "warning" : "success"
+    }
+  ];
+
+  return {
+    score,
+    status: score >= 85 ? "Gezond" : score >= 65 ? "Opvolgen" : "Risico",
+    indicators
+  };
+}
+
 function buildClientExport(store, clientId, user) {
   const client = store.clients.find((item) => item.id === clientId);
   if (!client) return null;
@@ -1021,6 +1082,7 @@ async function handleApi(request, response) {
       auditEvents: store.auditLog.length,
       saasUsageAlerts: buildSaasUsageAlerts(store),
       saasUsageLedger: (store.saasUsageLedger || []).slice(0, 5),
+      saasHealth: buildSaasHealth(store),
       analytics
     });
     return;
@@ -1032,7 +1094,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/state") {
-    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store) });
+    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store), saasHealth: buildSaasHealth(store) });
     return;
   }
 

@@ -1880,10 +1880,38 @@ function localSaasUsageAlerts(state) {
   return alerts;
 }
 
+function localSaasHealth(state, saasUsageAlerts) {
+  const openInvoices = (state.saasInvoices || []).filter((invoice) => invoice.status !== "Betaald").length;
+  const openOnboarding = (state.saasOnboardingChecklist || []).filter((item) => item.status !== "Klaar").length;
+  const pausedFeatures = (state.saasFeatureEntitlements || []).filter((item) => item.status !== "Actief").length;
+  const unreadActivity = (state.saasAdminActivity || []).filter((item) => item.status !== "Gelezen").length;
+  const score = Math.max(
+    0,
+    100
+      - (saasUsageAlerts || []).length * 8
+      - openInvoices * 12
+      - openOnboarding * 6
+      - pausedFeatures * 8
+      - unreadActivity * 4
+  );
+  return {
+    score,
+    status: score >= 85 ? "Gezond" : score >= 65 ? "Opvolgen" : "Risico",
+    indicators: [
+      { label: "Billing", status: openInvoices ? "Opvolgen" : "Gezond", detail: openInvoices ? `${openInvoices} open tenantfactuur.` : "Alle tenantfacturen zijn betaald.", severity: openInvoices ? "warning" : "success" },
+      { label: "Usage", status: (saasUsageAlerts || []).length ? "Risico" : "Gezond", detail: (saasUsageAlerts || []).length ? `${saasUsageAlerts.length} usage alert(s).` : "Gebruik blijft binnen limieten.", severity: (saasUsageAlerts || []).some((alert) => alert.severity === "danger") ? "danger" : (saasUsageAlerts || []).length ? "warning" : "success" },
+      { label: "Onboarding", status: openOnboarding ? "Open" : "Klaar", detail: openOnboarding ? `${openOnboarding} onboardingstap(pen) open.` : "Tenantactivatie is klaar.", severity: openOnboarding ? "warning" : "success" },
+      { label: "Features", status: pausedFeatures ? "Beperkt" : "Actief", detail: pausedFeatures ? `${pausedFeatures} feature entitlement(s) gepauzeerd.` : "Alle feature entitlements zijn actief.", severity: pausedFeatures ? "warning" : "success" },
+      { label: "Activity", status: unreadActivity ? "Nieuw" : "Rustig", detail: unreadActivity ? `${unreadActivity} nieuwe activiteit(en).` : "Geen nieuwe tenantactiviteit.", severity: unreadActivity ? "warning" : "success" }
+    ]
+  };
+}
+
 function settingsView(state) {
   const modelEvaluations = state.aiModelEvaluations || [];
   const saasAccount = state.practice.saasAccount || {};
   const saasUsageAlerts = state.saasUsageAlerts?.length ? state.saasUsageAlerts : localSaasUsageAlerts(state);
+  const saasHealth = state.saasHealth || localSaasHealth(state, saasUsageAlerts);
   const seatsUsed = state.team.length;
   const seatsIncluded = Number(saasAccount.seatsIncluded || seatsUsed || 1);
   const clientCount = state.clients.length;
@@ -1933,6 +1961,20 @@ function settingsView(state) {
         <label class="field"><span>Volgende verlenging</span><input name="renewalDate" value="${escapeHtml(saasAccount.renewalDate || "")}" placeholder="31/07/2026"></label>
         <button class="primary-action" type="submit">SaaS account opslaan</button>
       </form>
+
+      <div class="panel wide" data-section="saas-health">
+        <div class="panel-header"><div><h2>Tenant health</h2><p>Samenvatting van billing, usage, onboarding, features en accountactiviteit.</p></div>${badge(`${saasHealth.score}/100`, saasHealth.status === "Gezond" ? "success" : saasHealth.status === "Risico" ? "danger" : "warning")}</div>
+        <div class="metric-grid compact-metrics">
+          <article class="metric"><span>Status</span><strong>${escapeHtml(saasHealth.status)}</strong><small>tenant health score</small></article>
+          ${(saasHealth.indicators || []).map((indicator) => `
+            <article class="metric">
+              <span>${escapeHtml(indicator.label)}</span>
+              <strong>${escapeHtml(indicator.status)}</strong>
+              <small>${escapeHtml(indicator.detail)}</small>
+            </article>
+          `).join("")}
+        </div>
+      </div>
 
       <div class="panel wide" data-section="saas-onboarding">
         <div class="panel-header"><div><h2>Onboarding checklist</h2><p>Activatiestappen voor tenant, team, billing en AI-governance.</p></div>${badge(`${completedSaasOnboarding}/${saasOnboardingChecklist.length} klaar`, completedSaasOnboarding === saasOnboardingChecklist.length ? "success" : "warning")}</div>

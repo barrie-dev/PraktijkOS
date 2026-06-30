@@ -168,6 +168,9 @@ async function verify() {
     assert(activatedEntitlement.status === "Actief", "SaaS entitlement should be activatable.");
     assert(activatedEntitlement.updatedAt, "Updated SaaS entitlement should include update metadata.");
     assert(usageAlertState.saasAdminActivity.some((item) => item.status === "Nieuw"), "SaaS admin activity should include unread items.");
+    assert(usageAlertState.saasHealth.score < 100, "SaaS health should reflect tenant risks.");
+    assert(usageAlertState.saasHealth.indicators.some((indicator) => indicator.id === "billing"), "SaaS health should include billing indicators.");
+    assert(usageAlertState.saasHealth.indicators.some((indicator) => indicator.id === "features"), "SaaS health should include feature indicators.");
     const unreadActivity = usageAlertState.saasAdminActivity.find((item) => item.status === "Nieuw");
     const acknowledgedActivity = await request(`/api/saas-activity/${unreadActivity.id}/acknowledge`, {
       method: "POST",
