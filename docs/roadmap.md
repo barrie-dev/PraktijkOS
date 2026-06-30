@@ -14,6 +14,7 @@
 - Tenant admin activity feed
 - Tenant health score and risk indicators
 - Tenant support and escalation queue
+- Tenant renewal and cancellation workflow
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -69,7 +70,7 @@
 
 ## Next Product Slice
 
-- Add tenant renewal and cancellation workflow.
+- Add tenant contract document center.
 
 ## Phase 4: Belgian Integrations
 

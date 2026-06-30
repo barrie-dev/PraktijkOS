@@ -1318,6 +1318,43 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/saas-lifecycle-requests") {
+    if (!requirePermission(response, user, "practice")) return;
+    const payload = await readJson(request);
+    if (!payload.requestType || !payload.effectiveAt || !payload.reason) {
+      sendJson(response, 422, { error: "requestType, effectiveAt and reason are required" });
+      return;
+    }
+
+    const account = store.practice?.saasAccount || {};
+    const requestItem = {
+      id: uid("lifecycle"),
+      tenantId: account.tenantId || "tenant",
+      requestType: payload.requestType,
+      currentPlan: account.plan || payload.currentPlan || "Pro",
+      requestedPlan: payload.requestedPlan || (payload.requestType === "Opzegging" ? "Geen" : account.plan || "Pro"),
+      effectiveAt: payload.effectiveAt,
+      reason: payload.reason,
+      status: "In review",
+      requestedAt: timestampLabel(),
+      requestedBy: user.name,
+      reviewedAt: null,
+      reviewedBy: null
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasLifecycleRequests: [requestItem, ...(store.saasLifecycleRequests || [])].slice(0, 20)
+      },
+      "SaaS lifecycle-aanvraag aangemaakt",
+      `${requestItem.requestType} vanaf ${requestItem.effectiveAt}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, requestItem);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/team") {
     if (!requirePermission(response, user, "team")) return;
     const payload = await readJson(request);

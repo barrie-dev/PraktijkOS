@@ -192,6 +192,18 @@ async function verify() {
     });
     assert(closedSupportTicket.status === "Gesloten", "SaaS support ticket should be closable.");
     assert(closedSupportTicket.closedAt, "Closed SaaS support ticket should include close metadata.");
+    assert(usageAlertState.saasLifecycleRequests.some((item) => item.requestType === "Verlenging"), "SaaS lifecycle requests should include renewal requests.");
+    const cancellationRequest = await request("/api/saas-lifecycle-requests", {
+      method: "POST",
+      body: JSON.stringify({
+        requestType: "Opzegging",
+        requestedPlan: "Geen",
+        effectiveAt: "31/12/2026",
+        reason: "Verify maakt een opzegaanvraag aan."
+      })
+    });
+    assert(cancellationRequest.requestType === "Opzegging", "SaaS lifecycle endpoint should create cancellation requests.");
+    assert(cancellationRequest.status === "In review", "SaaS lifecycle request should enter review.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
     const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {

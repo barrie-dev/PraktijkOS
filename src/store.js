@@ -19,6 +19,7 @@ import {
   createNote,
   createPortalInvite,
   createSaasPlanChange,
+  createSaasLifecycleRequest,
   createVoiceConsent,
   createVoiceNote,
   createTeamMember,
@@ -60,7 +61,7 @@ import {
   updateSaasSupportTicket
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasFeatureEntitlements, saasInvoices, saasOnboardingChecklist, saasPlanChanges, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasFeatureEntitlements, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -185,6 +186,7 @@ const initialState = {
   saasAdminActivity,
   saasFeatureEntitlements,
   saasInvoices,
+  saasLifecycleRequests,
   saasOnboardingChecklist,
   saasPlanChanges,
   saasSupportQueue,
@@ -2313,6 +2315,54 @@ export async function requestSaasPlanChange(formData) {
     `${change.currentPlan} naar ${change.requestedPlan} vanaf ${change.effectiveAt}.`
   ));
   return { ok: true, message: "Planwijziging lokaal aangevraagd." };
+}
+
+export async function requestSaasLifecycleChange(formData) {
+  const payload = formPayload(formData);
+  if (!payload.requestType || !payload.effectiveAt || !payload.reason) {
+    return { ok: false, message: "Vul type, datum en reden in." };
+  }
+
+  const account = state.practice.saasAccount || {};
+  const requestItem = {
+    tenantId: account.tenantId || "tenant",
+    requestType: payload.requestType,
+    currentPlan: account.plan || "Pro",
+    requestedPlan: payload.requestedPlan || (payload.requestType === "Opzegging" ? "Geen" : account.plan || "Pro"),
+    effectiveAt: payload.effectiveAt,
+    reason: payload.reason
+  };
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createSaasLifecycleRequest(requestItem);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Lifecycle-aanvraag aangemaakt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const lifecycleRequest = {
+    id: uid("lifecycle"),
+    ...requestItem,
+    status: "In review",
+    requestedAt: nowLabel(),
+    requestedBy: state.currentUser?.name || "PraktijkOS",
+    reviewedAt: null,
+    reviewedBy: null
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasLifecycleRequests: [lifecycleRequest, ...(state.saasLifecycleRequests || [])].slice(0, 20),
+      view: "settings"
+    },
+    "SaaS lifecycle-aanvraag aangemaakt",
+    `${lifecycleRequest.requestType} vanaf ${lifecycleRequest.effectiveAt}.`
+  ));
+  return { ok: true, message: "Lifecycle-aanvraag lokaal aangemaakt." };
 }
 
 export async function completeSaasOnboardingItem(itemId) {

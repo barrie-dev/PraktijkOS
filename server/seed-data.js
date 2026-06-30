@@ -607,6 +607,36 @@ const seedData = {
       closedAt: "28/06/2026"
     }
   ],
+  saasLifecycleRequests: [
+    {
+      id: "lifecycle-001",
+      tenantId: "tenant-de-linde",
+      requestType: "Verlenging",
+      currentPlan: "Pro",
+      requestedPlan: "Scale",
+      effectiveAt: "01/08/2026",
+      reason: "Zomeruitbreiding met meer teamleden en integraties.",
+      status: "In review",
+      requestedAt: "30/06/2026",
+      requestedBy: "Praktijkhouder",
+      reviewedAt: null,
+      reviewedBy: null
+    },
+    {
+      id: "lifecycle-002",
+      tenantId: "tenant-de-linde",
+      requestType: "Opzegging",
+      currentPlan: "Pro",
+      requestedPlan: "Geen",
+      effectiveAt: "31/12/2026",
+      reason: "Voorbeeldscenario voor eindejaarsbeslissing.",
+      status: "Concept",
+      requestedAt: "30/06/2026",
+      requestedBy: "Administratie",
+      reviewedAt: null,
+      reviewedBy: null
+    }
+  ],
   appointments: [
     {
       id: "apt-001",

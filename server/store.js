@@ -32,6 +32,7 @@ const collections = [
   "saasFeatureEntitlements",
   "saasAdminActivity",
   "saasSupportQueue",
+  "saasLifecycleRequests",
   "waitlist",
   "workQueue",
   "dayClose",
@@ -196,6 +197,7 @@ function seedIfEmpty() {
   seedCollectionIfEmpty("saasFeatureEntitlements");
   seedCollectionIfEmpty("saasAdminActivity");
   seedCollectionIfEmpty("saasSupportQueue");
+  seedCollectionIfEmpty("saasLifecycleRequests");
   seedRelationalTables();
   seedInvoicesTable();
 

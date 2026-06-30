@@ -57,6 +57,7 @@ import {
   remindSaasInvoice,
   remindInvoice,
   resetDemoState,
+  requestSaasLifecycleChange,
   requestSaasPlanChange,
   rollbackPreparedImport,
   runAiWorkflow,
@@ -504,6 +505,8 @@ async function handleSubmit(event) {
     result = await saveSaasAccountSettings(formData);
   } else if (form.dataset.form === "saas-plan-change") {
     result = await requestSaasPlanChange(formData);
+  } else if (form.dataset.form === "saas-lifecycle") {
+    result = await requestSaasLifecycleChange(formData);
   } else if (form.dataset.form === "team") {
     result = await addTeamMember(formData);
   } else if (form.dataset.form === "knowledge-base") {

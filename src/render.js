@@ -1926,6 +1926,7 @@ function settingsView(state) {
   const saasFeatureEntitlements = state.saasFeatureEntitlements || [];
   const saasAdminActivity = state.saasAdminActivity || [];
   const saasSupportQueue = state.saasSupportQueue || [];
+  const saasLifecycleRequests = state.saasLifecycleRequests || [];
   const completedSaasOnboarding = saasOnboardingChecklist.filter((item) => item.status === "Klaar").length;
   const unreadSaasActivity = saasAdminActivity.filter((item) => item.status !== "Gelezen").length;
   const openSupportTickets = saasSupportQueue.filter((ticket) => ticket.status !== "Gesloten");
@@ -2074,6 +2075,31 @@ function settingsView(state) {
           `).join("") || `<p class="empty-state">Nog geen usage events voor deze tenant.</p>`}
         </div>
       </div>
+
+      <form class="panel wide" data-form="saas-lifecycle" data-section="saas-lifecycle">
+        <div class="panel-header"><div><h2>Renewal & cancellation</h2><p>Vraag verlenging, opzegging of contractwijziging aan met opvolgstatus.</p></div>${badge(saasLifecycleRequests.length ? `${saasLifecycleRequests.length} aanvragen` : "Geen aanvragen", saasLifecycleRequests.some((item) => item.status === "In review") ? "warning" : "success")}</div>
+        <div class="form-grid">
+          <label class="field"><span>Type aanvraag</span><select name="requestType"><option>Verlenging</option><option>Opzegging</option></select></label>
+          <label class="field"><span>Gewenst plan</span><select name="requestedPlan">${["Starter", "Pro", "Scale", "Enterprise", "Geen"].map((plan) => `<option ${plan === "Scale" ? "selected" : ""}>${plan}</option>`).join("")}</select></label>
+          <label class="field"><span>Ingang vanaf</span><input name="effectiveAt" value="${escapeHtml(saasAccount.renewalDate || "01/08/2026")}" required></label>
+        </div>
+        <label class="field"><span>Reden</span><textarea name="reason" rows="3" required>Contractbeslissing voorbereiden voor de volgende abonnementsperiode.</textarea></label>
+        <button class="primary-action" type="submit">Aanvraag indienen</button>
+        <div class="security-list">
+          ${saasLifecycleRequests.map((item) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(item.requestType)} / ${escapeHtml(item.currentPlan)} naar ${escapeHtml(item.requestedPlan)}</strong>
+                <span>${escapeHtml(item.effectiveAt)} / aangevraagd ${escapeHtml(item.requestedAt || "vandaag")} door ${escapeHtml(item.requestedBy || "PraktijkOS")}</span>
+                <span>${escapeHtml(item.reason)}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(item.status || "In review", item.status === "Goedgekeurd" ? "success" : item.status === "Concept" ? "warning" : "warning")}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen lifecycle-aanvragen.</p>`}
+        </div>
+      </form>
 
       <form class="panel wide" data-form="saas-plan-change" data-section="saas-plan-change">
         <div class="panel-header"><div><h2>Planwijziging</h2><p>Vraag een upgrade, downgrade of contractaanpassing aan voor deze tenant.</p></div>${badge(saasPlanChanges.length ? `${saasPlanChanges.length} aanvragen` : "Geen aanvragen", saasPlanChanges.length ? "warning" : "success")}</div>
