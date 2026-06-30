@@ -9,6 +9,7 @@
 - Tenant billing receipts and dunning
 - Tenant self-service usage ledger
 - Tenant plan change workflow
+- Tenant onboarding and feature checklist
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -64,7 +65,7 @@
 
 ## Next Product Slice
 
-- Add tenant onboarding and feature checklist.
+- Add tenant feature entitlement controls.
 
 ## Phase 4: Belgian Integrations
 

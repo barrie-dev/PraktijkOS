@@ -151,6 +151,14 @@ async function verify() {
     });
     assert(requestedPlanChange.requestedPlan === "Enterprise", "SaaS plan change should store requested plan.");
     assert(requestedPlanChange.status === "Aangevraagd", "SaaS plan change should be queued.");
+    assert(usageAlertState.saasOnboardingChecklist.some((item) => item.status === "Open"), "SaaS onboarding checklist should include open items.");
+    const openOnboardingItem = usageAlertState.saasOnboardingChecklist.find((item) => item.status === "Open");
+    const completedOnboardingItem = await request(`/api/saas-onboarding/${openOnboardingItem.id}/complete`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(completedOnboardingItem.status === "Klaar", "SaaS onboarding item should be completable.");
+    assert(completedOnboardingItem.completedAt, "Completed SaaS onboarding item should include completion metadata.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
     const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {

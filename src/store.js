@@ -2,6 +2,7 @@ import {
   applyImport,
   approveDraft,
   completeDayCloseCheck,
+  completeSaasOnboardingCheck,
   completeTask as completeTaskRequest,
   collectIsoEvidencePack,
   createAccessOverride,
@@ -56,7 +57,7 @@ import {
   updateSaasInvoice
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasInvoices, saasPlanChanges, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasInvoices, saasOnboardingChecklist, saasPlanChanges, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -178,6 +179,7 @@ const initialState = {
   aiModels,
   aiModelEvaluations,
   saasInvoices,
+  saasOnboardingChecklist,
   saasPlanChanges,
   saasUsageLedger,
   voiceConsents,
@@ -2304,6 +2306,41 @@ export async function requestSaasPlanChange(formData) {
     `${change.currentPlan} naar ${change.requestedPlan} vanaf ${change.effectiveAt}.`
   ));
   return { ok: true, message: "Planwijziging lokaal aangevraagd." };
+}
+
+export async function completeSaasOnboardingItem(itemId) {
+  const item = (state.saasOnboardingChecklist || []).find((check) => check.id === itemId);
+  if (!item) {
+    return { ok: false, message: "Onboardingstap niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await completeSaasOnboardingCheck(itemId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Onboardingstap afgerond." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedItem = {
+    ...item,
+    status: "Klaar",
+    completedAt: nowLabel(),
+    completedBy: state.currentUser?.name || "PraktijkOS"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasOnboardingChecklist: (state.saasOnboardingChecklist || []).map((check) => check.id === itemId ? updatedItem : check),
+      view: "settings"
+    },
+    "SaaS onboardingstap afgerond",
+    `${updatedItem.label} lokaal afgerond.`
+  ));
+  return { ok: true, message: "Onboardingstap lokaal afgerond." };
 }
 
 export async function markSaasInvoicePaid(invoiceId) {

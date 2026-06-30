@@ -469,6 +469,45 @@ export const saasPlanChanges = [
   }
 ];
 
+export const saasOnboardingChecklist = [
+  {
+    id: "saas-onboard-001",
+    label: "Teamleden en rollen nagekeken",
+    owner: "Praktijkhouder",
+    status: "Klaar",
+    dueAt: "30/06/2026",
+    completedAt: "30/06/2026",
+    completedBy: "Praktijkhouder"
+  },
+  {
+    id: "saas-onboard-002",
+    label: "Billing en betaalmethode bevestigd",
+    owner: "Administratie",
+    status: "Open",
+    dueAt: "03/07/2026",
+    completedAt: null,
+    completedBy: null
+  },
+  {
+    id: "saas-onboard-003",
+    label: "AI policy en modelgovernance gevalideerd",
+    owner: "Praktijkhouder",
+    status: "Open",
+    dueAt: "05/07/2026",
+    completedAt: null,
+    completedBy: null
+  },
+  {
+    id: "saas-onboard-004",
+    label: "Clientportaal testuitnodiging verstuurd",
+    owner: "Onthaal",
+    status: "Open",
+    dueAt: "05/07/2026",
+    completedAt: null,
+    completedBy: null
+  }
+];
+
 export const waitlist = [
   {
     id: "wait-001",

@@ -37,6 +37,7 @@ npm run verify
 - `POST /api/iso-evidence/:id/notes`
 - `POST /api/iso-evidence/:id/attachments`
 - `POST /api/saas-plan-changes`
+- `POST /api/saas-onboarding/:id/complete`
 - `PATCH /api/saas-invoices/:id`
 - `POST /api/saas-invoices/:id/payment-handoff`
 - `POST /api/saas-invoices/:id/dunning`

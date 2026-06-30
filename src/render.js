@@ -1894,6 +1894,8 @@ function settingsView(state) {
   const openSaasInvoices = saasInvoices.filter((invoice) => invoice.status !== "Betaald");
   const saasUsageLedger = state.saasUsageLedger || [];
   const saasPlanChanges = state.saasPlanChanges || [];
+  const saasOnboardingChecklist = state.saasOnboardingChecklist || [];
+  const completedSaasOnboarding = saasOnboardingChecklist.filter((item) => item.status === "Klaar").length;
   return `
     <section class="settings-grid">
       <form class="panel wide" data-form="saas-account">
@@ -1928,6 +1930,24 @@ function settingsView(state) {
         <label class="field"><span>Volgende verlenging</span><input name="renewalDate" value="${escapeHtml(saasAccount.renewalDate || "")}" placeholder="31/07/2026"></label>
         <button class="primary-action" type="submit">SaaS account opslaan</button>
       </form>
+
+      <div class="panel wide" data-section="saas-onboarding">
+        <div class="panel-header"><div><h2>Onboarding checklist</h2><p>Activatiestappen voor tenant, team, billing en AI-governance.</p></div>${badge(`${completedSaasOnboarding}/${saasOnboardingChecklist.length} klaar`, completedSaasOnboarding === saasOnboardingChecklist.length ? "success" : "warning")}</div>
+        <div class="security-list">
+          ${saasOnboardingChecklist.map((item) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(item.label)}</strong>
+                <span>${escapeHtml(item.owner)} / deadline ${escapeHtml(item.dueAt || "niet gepland")}${item.completedAt ? ` / afgerond ${escapeHtml(item.completedAt)} door ${escapeHtml(item.completedBy || "PraktijkOS")}` : ""}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(item.status || "Open", item.status === "Klaar" ? "success" : "warning")}
+                ${item.status !== "Klaar" ? `<button class="ghost-action" data-action="complete-saas-onboarding" data-item-id="${escapeHtml(item.id)}" type="button">Afronden</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen onboardingstappen voor deze tenant.</p>`}
+        </div>
+      </div>
 
       <div class="panel wide" data-section="saas-usage-ledger">
         <div class="panel-header"><div><h2>Usage ledger</h2><p>Transparante tenant-events die abonnement, limieten en AI-verbruik verklaren.</p></div>${badge(`${saasUsageLedger.length} events`, "success")}</div>

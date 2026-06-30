@@ -1133,6 +1133,35 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-onboarding\/[^/]+\/complete$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const itemId = url.pathname.split("/")[3];
+    const item = (store.saasOnboardingChecklist || []).find((check) => check.id === itemId);
+    if (!item) {
+      sendJson(response, 404, { error: "SaaS onboarding item not found" });
+      return;
+    }
+
+    const updatedItem = {
+      ...item,
+      status: "Klaar",
+      completedAt: timestampLabel(),
+      completedBy: user.name
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasOnboardingChecklist: (store.saasOnboardingChecklist || []).map((check) => check.id === itemId ? updatedItem : check)
+      },
+      "SaaS onboardingstap afgerond",
+      `${updatedItem.label} door ${user.name}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedItem);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/team") {
     if (!requirePermission(response, user, "team")) return;
     const payload = await readJson(request);

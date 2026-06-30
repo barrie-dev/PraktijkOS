@@ -150,6 +150,13 @@ export async function createSaasPlanChange(payload = {}) {
   });
 }
 
+export async function completeSaasOnboardingCheck(itemId) {
+  return request(`/api/saas-onboarding/${itemId}/complete`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

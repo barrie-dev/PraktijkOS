@@ -31,6 +31,7 @@ import {
   completeIntegrationReview,
   completeKnowledgeReview,
   completeRetentionReview,
+  completeSaasOnboardingItem,
   completeTask,
   completeOnboarding,
   createAccountingExport,
@@ -319,6 +320,12 @@ async function handleClick(event) {
 
   if (action === "complete-task") {
     const result = await completeTask(target.dataset.taskId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "complete-saas-onboarding") {
+    const result = await completeSaasOnboardingItem(target.dataset.itemId);
     showToast(result.message);
     return;
   }
