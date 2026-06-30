@@ -171,6 +171,13 @@ export async function acknowledgeSaasAdminActivity(activityId) {
   });
 }
 
+export async function updateSaasSupportTicket(ticketId, payload = {}) {
+  return request(`/api/saas-support/${ticketId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

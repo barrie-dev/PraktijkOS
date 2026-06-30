@@ -56,10 +56,11 @@ import {
   updatePractice,
   updateRetentionPolicy,
   updateSaasFeatureEntitlement,
-  updateSaasInvoice
+  updateSaasInvoice,
+  updateSaasSupportTicket
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasFeatureEntitlements, saasInvoices, saasOnboardingChecklist, saasPlanChanges, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasFeatureEntitlements, saasInvoices, saasOnboardingChecklist, saasPlanChanges, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -186,6 +187,7 @@ const initialState = {
   saasInvoices,
   saasOnboardingChecklist,
   saasPlanChanges,
+  saasSupportQueue,
   saasUsageLedger,
   voiceConsents,
   peppolPreparations,
@@ -2421,6 +2423,47 @@ export async function acknowledgeSaasActivity(activityId) {
     `${updatedActivity.category}: ${updatedActivity.title}.`
   ));
   return { ok: true, message: "SaaS activiteit lokaal gelezen." };
+}
+
+export async function changeSaasSupportTicket(ticketId, status) {
+  const ticket = (state.saasSupportQueue || []).find((item) => item.id === ticketId);
+  if (!ticket) {
+    return { ok: false, message: "Supportticket niet gevonden." };
+  }
+
+  const payload = {
+    status,
+    owner: status === "Geescaleerd" ? "Customer success" : ticket.owner,
+    resolution: status === "Gesloten" ? "Afgerond via PraktijkOS support." : ticket.resolution
+  };
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updateSaasSupportTicket(ticketId, payload);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: status === "Gesloten" ? "Supportticket gesloten." : "Supportticket geescaleerd." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedTicket = {
+    ...ticket,
+    ...payload,
+    escalatedAt: status === "Geescaleerd" ? nowLabel() : ticket.escalatedAt,
+    closedAt: status === "Gesloten" ? nowLabel() : ticket.closedAt
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasSupportQueue: (state.saasSupportQueue || []).map((item) => item.id === ticketId ? updatedTicket : item),
+      view: "settings"
+    },
+    "SaaS supportticket bijgewerkt",
+    `${updatedTicket.title}: ${updatedTicket.status}.`
+  ));
+  return { ok: true, message: status === "Gesloten" ? "Supportticket lokaal gesloten." : "Supportticket lokaal geescaleerd." };
 }
 
 export async function markSaasInvoicePaid(invoiceId) {

@@ -13,6 +13,7 @@
 - Tenant feature entitlement controls
 - Tenant admin activity feed
 - Tenant health score and risk indicators
+- Tenant support and escalation queue
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -68,7 +69,7 @@
 
 ## Next Product Slice
 
-- Add tenant support and escalation queue.
+- Add tenant renewal and cancellation workflow.
 
 ## Phase 4: Belgian Integrations
 

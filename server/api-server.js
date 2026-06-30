@@ -1285,6 +1285,39 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/saas-support\/[^/]+$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const ticketId = url.pathname.split("/")[3];
+    const ticket = (store.saasSupportQueue || []).find((item) => item.id === ticketId);
+    const payload = await readJson(request);
+    if (!ticket) {
+      sendJson(response, 404, { error: "SaaS support ticket not found" });
+      return;
+    }
+
+    const status = payload.status || ticket.status;
+    const updatedTicket = {
+      ...ticket,
+      status,
+      owner: payload.owner || (status === "Geescaleerd" ? "Customer success" : ticket.owner),
+      escalatedAt: status === "Geescaleerd" ? timestampLabel() : ticket.escalatedAt,
+      closedAt: status === "Gesloten" ? timestampLabel() : ticket.closedAt,
+      resolution: payload.resolution || ticket.resolution || (status === "Gesloten" ? "Afgerond via PraktijkOS support." : "")
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasSupportQueue: (store.saasSupportQueue || []).map((item) => item.id === ticketId ? updatedTicket : item)
+      },
+      "SaaS supportticket bijgewerkt",
+      `${updatedTicket.title}: ${updatedTicket.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedTicket);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/team") {
     if (!requirePermission(response, user, "team")) return;
     const payload = await readJson(request);

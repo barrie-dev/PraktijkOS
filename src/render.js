@@ -1925,8 +1925,10 @@ function settingsView(state) {
   const saasOnboardingChecklist = state.saasOnboardingChecklist || [];
   const saasFeatureEntitlements = state.saasFeatureEntitlements || [];
   const saasAdminActivity = state.saasAdminActivity || [];
+  const saasSupportQueue = state.saasSupportQueue || [];
   const completedSaasOnboarding = saasOnboardingChecklist.filter((item) => item.status === "Klaar").length;
   const unreadSaasActivity = saasAdminActivity.filter((item) => item.status !== "Gelezen").length;
+  const openSupportTickets = saasSupportQueue.filter((ticket) => ticket.status !== "Gesloten");
   return `
     <section class="settings-grid">
       <form class="panel wide" data-form="saas-account">
@@ -1991,6 +1993,27 @@ function settingsView(state) {
               </div>
             </article>
           `).join("") || `<p class="empty-state">Geen onboardingstappen voor deze tenant.</p>`}
+        </div>
+      </div>
+
+      <div class="panel wide" data-section="saas-support">
+        <div class="panel-header"><div><h2>Support queue</h2><p>Tenantvragen met prioriteit, SLA, eigenaar en escalatiestatus.</p></div>${badge(openSupportTickets.length ? `${openSupportTickets.length} open` : "Alles gesloten", openSupportTickets.length ? "warning" : "success")}</div>
+        <div class="security-list">
+          ${saasSupportQueue.map((ticket) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(ticket.category)} / ${escapeHtml(ticket.title)}</strong>
+                <span>${escapeHtml(ticket.priority)} / eigenaar ${escapeHtml(ticket.owner)} / SLA ${escapeHtml(ticket.slaDueAt || "niet gepland")}${ticket.escalatedAt ? ` / geescaleerd ${escapeHtml(ticket.escalatedAt)}` : ""}${ticket.closedAt ? ` / gesloten ${escapeHtml(ticket.closedAt)}` : ""}</span>
+                <span>${escapeHtml(ticket.detail)}</span>
+                ${ticket.resolution ? `<span>Resolutie: ${escapeHtml(ticket.resolution)}</span>` : ""}
+              </div>
+              <div class="status-stack">
+                ${badge(ticket.status, ticket.status === "Gesloten" ? "success" : ticket.status === "Geescaleerd" ? "danger" : "warning")}
+                ${ticket.status === "Open" ? `<button class="ghost-action" data-action="change-saas-support" data-ticket-id="${escapeHtml(ticket.id)}" data-status="Geescaleerd" type="button">Escaleren</button>` : ""}
+                ${ticket.status !== "Gesloten" ? `<button class="primary-action" data-action="change-saas-support" data-ticket-id="${escapeHtml(ticket.id)}" data-status="Gesloten" type="button">Sluiten</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen supporttickets voor deze tenant.</p>`}
         </div>
       </div>
 

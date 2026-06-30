@@ -606,6 +606,51 @@ export const saasAdminActivity = [
   }
 ];
 
+export const saasSupportQueue = [
+  {
+    id: "support-001",
+    tenantId: "tenant-de-linde",
+    title: "Betaalmethode voor abonnement bevestigen",
+    category: "Billing",
+    priority: "Hoog",
+    status: "Open",
+    owner: "PraktijkOS support",
+    slaDueAt: "03/07/2026",
+    createdAt: "01/07/2026",
+    detail: "Administratie wil Bancontact als standaard betaalmethode bevestigen.",
+    escalatedAt: null,
+    closedAt: null
+  },
+  {
+    id: "support-002",
+    tenantId: "tenant-de-linde",
+    title: "Scale-entitlement voor Belgische integraties",
+    category: "Features",
+    priority: "Normaal",
+    status: "Geescaleerd",
+    owner: "Customer success",
+    slaDueAt: "05/07/2026",
+    createdAt: "30/06/2026",
+    detail: "Planwijziging naar Scale moet gekoppeld worden aan integratie-entitlements.",
+    escalatedAt: "30/06/2026",
+    closedAt: null
+  },
+  {
+    id: "support-003",
+    tenantId: "tenant-de-linde",
+    title: "Onboardingcall ingepland",
+    category: "Onboarding",
+    priority: "Laag",
+    status: "Gesloten",
+    owner: "Customer success",
+    slaDueAt: "28/06/2026",
+    createdAt: "27/06/2026",
+    detail: "Kickoffcall met praktijkhouder werd bevestigd.",
+    escalatedAt: null,
+    closedAt: "28/06/2026"
+  }
+];
+
 export const waitlist = [
   {
     id: "wait-001",

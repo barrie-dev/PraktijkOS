@@ -22,6 +22,7 @@ import {
   changeAccessOverrideStatus,
   changeDocumentStatus,
   changeSaasFeatureEntitlement,
+  changeSaasSupportTicket,
   changeInvoiceChannel,
   changeKnowledgeItemStatus,
   changeMessageStatus,
@@ -340,6 +341,12 @@ async function handleClick(event) {
 
   if (action === "acknowledge-saas-activity") {
     const result = await acknowledgeSaasActivity(target.dataset.activityId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "change-saas-support") {
+    const result = await changeSaasSupportTicket(target.dataset.ticketId, target.dataset.status);
     showToast(result.message);
     return;
   }

@@ -178,6 +178,20 @@ async function verify() {
     });
     assert(acknowledgedActivity.status === "Gelezen", "SaaS admin activity should be acknowledgeable.");
     assert(acknowledgedActivity.acknowledgedAt, "Acknowledged SaaS activity should include read metadata.");
+    assert(usageAlertState.saasSupportQueue.some((ticket) => ticket.status === "Open"), "SaaS support queue should include open tickets.");
+    const openSupportTicket = usageAlertState.saasSupportQueue.find((ticket) => ticket.status === "Open");
+    const escalatedSupportTicket = await request(`/api/saas-support/${openSupportTicket.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Geescaleerd" })
+    });
+    assert(escalatedSupportTicket.status === "Geescaleerd", "SaaS support ticket should be escalatable.");
+    assert(escalatedSupportTicket.escalatedAt, "Escalated SaaS support ticket should include escalation metadata.");
+    const closedSupportTicket = await request(`/api/saas-support/${openSupportTicket.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Gesloten" })
+    });
+    assert(closedSupportTicket.status === "Gesloten", "SaaS support ticket should be closable.");
+    assert(closedSupportTicket.closedAt, "Closed SaaS support ticket should include close metadata.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
     const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {
