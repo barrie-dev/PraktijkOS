@@ -49,10 +49,11 @@ import {
   updateMessage,
   updatePortalInvite,
   updatePractice,
-  updateRetentionPolicy
+  updateRetentionPolicy,
+  updateSaasInvoice
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasInvoices, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -173,6 +174,7 @@ const initialState = {
   knowledgeBase,
   aiModels,
   aiModelEvaluations,
+  saasInvoices,
   voiceConsents,
   peppolPreparations,
   paymentRequests,
@@ -2252,6 +2254,44 @@ export async function saveSaasAccountSettings(formData) {
     `${saasAccount.tenantId}: ${saasAccount.plan}, ${saasAccount.billingStatus}.`
   ));
   return { ok: true, message: "SaaS account lokaal opgeslagen." };
+}
+
+export async function markSaasInvoicePaid(invoiceId) {
+  const invoice = (state.saasInvoices || []).find((item) => item.id === invoiceId);
+  if (!invoice) {
+    return { ok: false, message: "SaaS factuur niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updateSaasInvoice(invoiceId, { status: "Betaald" });
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "SaaS factuur betaald." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedInvoice = {
+    ...invoice,
+    status: "Betaald",
+    paidAt: nowLabel()
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasInvoices: (state.saasInvoices || []).map((item) => item.id === invoiceId ? updatedInvoice : item),
+      view: "settings"
+    },
+    "SaaS factuur betaald",
+    `${invoice.period}: ${formatCurrencyForAudit(invoice.amount)}.`
+  ));
+  return { ok: true, message: "SaaS factuur lokaal betaald." };
+}
+
+function formatCurrencyForAudit(amount) {
+  return `EUR ${Number(amount || 0).toFixed(2)}`;
 }
 
 export async function completeOnboarding(formData) {

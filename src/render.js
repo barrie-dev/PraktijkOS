@@ -1890,6 +1890,8 @@ function settingsView(state) {
   const clientLimit = Number(saasAccount.clientLimit || clientCount || 1);
   const aiCreditsUsed = Number(saasAccount.aiCreditsUsed || 0);
   const aiCreditsIncluded = Number(saasAccount.aiCreditsIncluded || 1);
+  const saasInvoices = state.saasInvoices || [];
+  const openSaasInvoices = saasInvoices.filter((invoice) => invoice.status !== "Betaald");
   return `
     <section class="settings-grid">
       <form class="panel wide" data-form="saas-account">
@@ -1924,6 +1926,24 @@ function settingsView(state) {
         <label class="field"><span>Volgende verlenging</span><input name="renewalDate" value="${escapeHtml(saasAccount.renewalDate || "")}" placeholder="31/07/2026"></label>
         <button class="primary-action" type="submit">SaaS account opslaan</button>
       </form>
+
+      <div class="panel wide" data-section="saas-billing">
+        <div class="panel-header"><div><h2>SaaS billing</h2><p>Abonnementfacturen voor deze tenant en betaalstatus.</p></div>${badge(openSaasInvoices.length ? `${openSaasInvoices.length} open` : "Betaald", openSaasInvoices.length ? "warning" : "success")}</div>
+        <div class="security-list">
+          ${saasInvoices.map((invoice) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(invoice.period)} / ${escapeHtml(invoice.plan)} / ${formatEuro(invoice.amount)}</strong>
+                <span>Tenant ${escapeHtml(invoice.tenantId || saasAccount.tenantId || "tenant")} / uitgifte ${escapeHtml(invoice.issuedAt || "n.v.t.")} / vervalt ${escapeHtml(invoice.dueAt || "n.v.t.")}${invoice.paidAt ? ` / betaald ${escapeHtml(invoice.paidAt)}` : ""}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(invoice.status || "Open", invoice.status === "Betaald" ? "success" : "warning")}
+                ${invoice.status !== "Betaald" ? `<button class="primary-action" data-action="mark-saas-invoice-paid" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Markeer betaald</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen SaaS facturen.</p>`}
+        </div>
+      </div>
 
       <form class="panel" data-form="practice">
         <div class="panel-header"><div><h2>Praktijk</h2><p>Basisconfiguratie voor de groepspraktijk.</p></div></div>

@@ -138,6 +138,14 @@ async function verify() {
     const usageAlertState = await request("/api/state");
     assert(usageAlertState.saasUsageAlerts.some((alert) => alert.id === "seats"), "SaaS usage alerts should include seat limit alerts.");
     assert(usageAlertState.saasUsageAlerts.some((alert) => alert.id === "billing"), "SaaS usage alerts should include billing alerts.");
+    assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
+    const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
+    const paidSaasInvoice = await request(`/api/saas-invoices/${openSaasInvoice.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Betaald" })
+    });
+    assert(paidSaasInvoice.status === "Betaald", "SaaS invoice should be markable as paid.");
+    assert(paidSaasInvoice.paidAt, "Paid SaaS invoice should include paid date.");
 
     const completedTask = await request("/api/tasks/q-001/complete", {
       method: "POST",

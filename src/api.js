@@ -122,6 +122,13 @@ export async function createIsoEvidenceAttachment(packId, payload = {}) {
   });
 }
 
+export async function updateSaasInvoice(invoiceId, payload = {}) {
+  return request(`/api/saas-invoices/${invoiceId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

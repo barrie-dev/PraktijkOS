@@ -1664,6 +1664,35 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/saas-invoices\/[^/]+$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const invoiceId = url.pathname.split("/")[3];
+    const invoice = (store.saasInvoices || []).find((item) => item.id === invoiceId);
+    const payload = await readJson(request);
+    if (!invoice) {
+      sendJson(response, 404, { error: "SaaS invoice not found" });
+      return;
+    }
+
+    const updatedInvoice = {
+      ...invoice,
+      status: payload.status || invoice.status,
+      paidAt: (payload.status || invoice.status) === "Betaald" ? timestampLabel() : invoice.paidAt
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasInvoices: (store.saasInvoices || []).map((item) => item.id === invoiceId ? updatedInvoice : item)
+      },
+      "SaaS factuur bijgewerkt",
+      `${updatedInvoice.period}: ${updatedInvoice.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedInvoice);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/clients") {
     if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);

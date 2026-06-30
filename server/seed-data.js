@@ -335,6 +335,30 @@ const seedData = {
       gaps: ["Definitieve bewaartermijnen per discipline juridisch bevestigen"]
     }
   ],
+  saasInvoices: [
+    {
+      id: "saas-inv-001",
+      tenantId: "tenant-de-linde",
+      period: "Juli 2026",
+      plan: "Pro",
+      amount: 149,
+      dueAt: "31/07/2026",
+      status: "Open",
+      issuedAt: "01/07/2026",
+      paidAt: null
+    },
+    {
+      id: "saas-inv-002",
+      tenantId: "tenant-de-linde",
+      period: "Juni 2026",
+      plan: "Pro",
+      amount: 149,
+      dueAt: "30/06/2026",
+      status: "Betaald",
+      issuedAt: "01/06/2026",
+      paidAt: "15/06/2026"
+    }
+  ],
   appointments: [
     {
       id: "apt-001",
