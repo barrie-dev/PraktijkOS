@@ -1973,6 +1973,23 @@ function localSaasRiskPlaybooks(state) {
   });
 }
 
+function localSaasCohortSummary(state) {
+  const tenants = state.saasTenantCohorts || [];
+  const totalMrr = tenants.reduce((sum, tenant) => sum + Number(tenant.mrr || 0), 0);
+  const atRisk = tenants.filter((tenant) => Number(tenant.healthScore || 0) < 75 || !["Laag", "Geen"].includes(tenant.risk)).length;
+  const qbrOpen = tenants.filter((tenant) => tenant.qbrStatus !== "Gepland").length;
+  const expansion = tenants.filter((tenant) => ["Scale", "Enterprise"].includes(tenant.plan) || tenant.lifecycleStage === "Expansion").length;
+
+  return {
+    tenants: tenants.length,
+    totalMrr,
+    averageHealth: tenants.length ? Math.round(tenants.reduce((sum, tenant) => sum + Number(tenant.healthScore || 0), 0) / tenants.length) : 0,
+    atRisk,
+    qbrOpen,
+    expansion
+  };
+}
+
 function settingsView(state) {
   const modelEvaluations = state.aiModelEvaluations || [];
   const saasAccount = state.practice.saasAccount || {};
@@ -1980,6 +1997,8 @@ function settingsView(state) {
   const saasHealth = state.saasHealth || localSaasHealth(state, saasUsageAlerts);
   const saasSuccessMetrics = state.saasSuccessMetrics?.length ? state.saasSuccessMetrics : localSaasSuccessMetrics(state);
   const saasRiskPlaybooks = state.saasRiskPlaybooks?.length ? state.saasRiskPlaybooks : localSaasRiskPlaybooks(state);
+  const saasTenantCohorts = state.saasTenantCohorts || [];
+  const saasCohortSummary = state.saasCohortSummary || localSaasCohortSummary(state);
   const seatsUsed = state.team.length;
   const seatsIncluded = Number(saasAccount.seatsIncluded || seatsUsed || 1);
   const clientCount = state.clients.length;
@@ -2038,6 +2057,32 @@ function settingsView(state) {
         <label class="field"><span>Volgende verlenging</span><input name="renewalDate" value="${escapeHtml(saasAccount.renewalDate || "")}" placeholder="31/07/2026"></label>
         <button class="primary-action" type="submit">SaaS account opslaan</button>
       </form>
+
+      <div class="panel wide" data-section="saas-cohorts">
+        <div class="panel-header"><div><h2>Tenant cohort</h2><p>Portfolio-overzicht voor meerdere Belgische praktijken, plans, MRR en QBR-opvolging.</p></div>${badge(`${saasCohortSummary.tenants} tenants`, saasCohortSummary.atRisk ? "warning" : "success")}</div>
+        <div class="metric-grid compact-metrics">
+          <article class="metric"><span>MRR</span><strong>${formatEuro(saasCohortSummary.totalMrr || 0)}</strong><small>maandelijkse recurring revenue</small></article>
+          <article class="metric"><span>Health</span><strong>${escapeHtml(saasCohortSummary.averageHealth || 0)}/100</strong><small>gemiddelde tenantscore</small></article>
+          <article class="metric"><span>Risico</span><strong>${escapeHtml(saasCohortSummary.atRisk || 0)}</strong><small>tenant(s) onder opvolging</small></article>
+          <article class="metric"><span>QBR</span><strong>${escapeHtml(saasCohortSummary.qbrOpen || 0)}</strong><small>nog te plannen</small></article>
+          <article class="metric"><span>Expansion</span><strong>${escapeHtml(saasCohortSummary.expansion || 0)}</strong><small>Scale/Enterprise kansen</small></article>
+        </div>
+        <div class="security-list">
+          ${saasTenantCohorts.map((tenant) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(tenant.practiceName)} / ${escapeHtml(tenant.plan)} / ${formatEuro(tenant.mrr || 0)} MRR</strong>
+                <span>${escapeHtml(tenant.segment)} / ${escapeHtml(tenant.region)} / ${escapeHtml(tenant.lifecycleStage)} / owner ${escapeHtml(tenant.owner)}</span>
+                <span>Health ${escapeHtml(tenant.healthScore)}/100 / risico ${escapeHtml(tenant.risk)} / actief ${escapeHtml(tenant.lastActiveAt)}${tenant.qbrPlannedAt ? ` / QBR gepland ${escapeHtml(tenant.qbrPlannedAt)} door ${escapeHtml(tenant.qbrPlannedBy || "PraktijkOS")}` : ""}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(tenant.qbrStatus || "Te plannen", tenant.qbrStatus === "Gepland" ? "success" : Number(tenant.healthScore || 0) < 75 ? "danger" : "warning")}
+                ${tenant.qbrStatus !== "Gepland" ? `<button class="ghost-action" data-action="plan-tenant-qbr" data-cohort-id="${escapeHtml(tenant.id)}" type="button">QBR plannen</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen tenantcohort data.</p>`}
+        </div>
+      </div>
 
       <div class="panel wide" data-section="saas-health">
         <div class="panel-header"><div><h2>Tenant health</h2><p>Samenvatting van billing, usage, onboarding, features en accountactiviteit.</p></div>${badge(`${saasHealth.score}/100`, saasHealth.status === "Gezond" ? "success" : saasHealth.status === "Risico" ? "danger" : "warning")}</div>

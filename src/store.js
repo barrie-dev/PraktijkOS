@@ -42,6 +42,7 @@ import {
   preparePeppolInvoice,
   preparePaymentRequest,
   prepareSaasInvoicePayment,
+  planSaasTenantQbr,
   reviewIntegrationReadiness,
   reviewKnowledgeBaseItem,
   reviewRetentionPolicy,
@@ -65,7 +66,7 @@ import {
   updateSaasSupportTicket
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasImplementationMilestones, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasRiskPlaybooks, saasSuccessActions, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasImplementationMilestones, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasRiskPlaybooks, saasSuccessActions, saasSupportQueue, saasTenantCohorts, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -102,6 +103,7 @@ const initialState = {
   saasUsageAlerts: [],
   saasHealth: null,
   saasSuccessMetrics: [],
+  saasCohortSummary: null,
   billingExport: null,
   accountingTool: "exact",
   accountingExport: null,
@@ -199,6 +201,7 @@ const initialState = {
   saasRiskPlaybooks,
   saasSuccessActions,
   saasSupportQueue,
+  saasTenantCohorts,
   saasUsageLedger,
   voiceConsents,
   peppolPreparations,
@@ -2678,6 +2681,41 @@ export async function runTenantRiskPlaybook(playbookId) {
     `${updatedPlaybook.category}: ${updatedPlaybook.title}.`
   ));
   return { ok: true, message: "Risk playbook lokaal gestart." };
+}
+
+export async function planTenantCohortQbr(cohortId) {
+  const tenant = (state.saasTenantCohorts || []).find((item) => item.id === cohortId);
+  if (!tenant) {
+    return { ok: false, message: "Tenantcohort niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await planSaasTenantQbr(cohortId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Tenant QBR gepland." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedTenant = {
+    ...tenant,
+    qbrStatus: "Gepland",
+    qbrPlannedAt: nowLabel(),
+    qbrPlannedBy: state.currentUser?.name || "PraktijkOS"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasTenantCohorts: (state.saasTenantCohorts || []).map((item) => item.id === cohortId ? updatedTenant : item),
+      view: "settings"
+    },
+    "Tenant QBR gepland",
+    `${updatedTenant.practiceName} lokaal opgevolgd.`
+  ));
+  return { ok: true, message: "Tenant QBR lokaal gepland." };
 }
 
 export async function markSaasInvoicePaid(invoiceId) {

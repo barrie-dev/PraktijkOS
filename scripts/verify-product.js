@@ -231,6 +231,15 @@ async function verify() {
     });
     assert(playbookRun.playbook.lastRunAt, "Running a risk playbook should stamp execution metadata.");
     assert(playbookRun.action.status === "Open", "Running a risk playbook should create a customer success action.");
+    assert(usageAlertState.saasCohortSummary.tenants >= 3, "SaaS cohort overview should summarize multiple tenants.");
+    assert(usageAlertState.saasTenantCohorts.some((tenant) => tenant.qbrStatus === "Te plannen"), "SaaS cohort overview should include QBR follow-up.");
+    const qbrTenant = usageAlertState.saasTenantCohorts.find((tenant) => tenant.qbrStatus === "Te plannen");
+    const plannedQbr = await request(`/api/saas-tenant-cohorts/${qbrTenant.id}/qbr`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(plannedQbr.qbrStatus === "Gepland", "SaaS tenant cohort QBR should be plannable.");
+    assert(plannedQbr.qbrPlannedAt, "Planned tenant QBR should include metadata.");
     const openSuccessAction = usageAlertState.saasSuccessActions.find((item) => item.status === "Open");
     const completedSuccessAction = await request(`/api/saas-success-actions/${openSuccessAction.id}/complete`, {
       method: "POST",

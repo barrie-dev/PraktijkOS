@@ -213,6 +213,13 @@ export async function runSaasRiskPlaybook(playbookId) {
   });
 }
 
+export async function planSaasTenantQbr(cohortId) {
+  return request(`/api/saas-tenant-cohorts/${cohortId}/qbr`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

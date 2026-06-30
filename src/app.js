@@ -54,6 +54,7 @@ import {
   prepareInvoiceForPeppol,
   prepareInvoicePaymentRequest,
   prepareSaasPaymentHandoff,
+  planTenantCohortQbr,
   markInvoicePaid,
   markSaasInvoicePaid,
   remindSaasInvoice,
@@ -376,6 +377,12 @@ async function handleClick(event) {
 
   if (action === "run-saas-playbook") {
     const result = await runTenantRiskPlaybook(target.dataset.playbookId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "plan-tenant-qbr") {
+    const result = await planTenantCohortQbr(target.dataset.cohortId);
     showToast(result.message);
     return;
   }

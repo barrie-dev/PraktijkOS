@@ -19,6 +19,7 @@
 - Tenant implementation milestone tracker
 - Tenant success metrics dashboard
 - Tenant risk playbook automation
+- Tenant cohort overview for multiple practices
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -74,7 +75,7 @@
 
 ## Next Product Slice
 
-- Add tenant cohort overview for multiple practices.
+- Add tenant operator notifications.
 
 ## Phase 4: Belgian Integrations
 

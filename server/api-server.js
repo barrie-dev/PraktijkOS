@@ -384,6 +384,23 @@ function buildSaasRiskPlaybooks(store) {
   });
 }
 
+function buildSaasCohortSummary(store) {
+  const tenants = store.saasTenantCohorts || [];
+  const totalMrr = tenants.reduce((sum, tenant) => sum + Number(tenant.mrr || 0), 0);
+  const atRisk = tenants.filter((tenant) => Number(tenant.healthScore || 0) < 75 || !["Laag", "Geen"].includes(tenant.risk)).length;
+  const qbrOpen = tenants.filter((tenant) => tenant.qbrStatus !== "Gepland").length;
+  const expansion = tenants.filter((tenant) => ["Scale", "Enterprise"].includes(tenant.plan) || tenant.lifecycleStage === "Expansion").length;
+
+  return {
+    tenants: tenants.length,
+    totalMrr,
+    averageHealth: tenants.length ? Math.round(tenants.reduce((sum, tenant) => sum + Number(tenant.healthScore || 0), 0) / tenants.length) : 0,
+    atRisk,
+    qbrOpen,
+    expansion
+  };
+}
+
 function buildClientExport(store, clientId, user) {
   const client = store.clients.find((item) => item.id === clientId);
   if (!client) return null;
@@ -1195,6 +1212,7 @@ async function handleApi(request, response) {
       saasHealth: buildSaasHealth(store),
       saasSuccessMetrics: buildSaasSuccessMetrics(store),
       saasRiskPlaybooks: buildSaasRiskPlaybooks(store),
+      saasCohortSummary: buildSaasCohortSummary(store),
       analytics
     });
     return;
@@ -1206,7 +1224,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/state") {
-    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store), saasHealth: buildSaasHealth(store), saasSuccessMetrics: buildSaasSuccessMetrics(store), saasRiskPlaybooks: buildSaasRiskPlaybooks(store) });
+    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store), saasHealth: buildSaasHealth(store), saasSuccessMetrics: buildSaasSuccessMetrics(store), saasRiskPlaybooks: buildSaasRiskPlaybooks(store), saasCohortSummary: buildSaasCohortSummary(store) });
     return;
   }
 
@@ -1596,6 +1614,35 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 200, { playbook: updatedPlaybook, action: successAction });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-tenant-cohorts\/[^/]+\/qbr$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const cohortId = url.pathname.split("/")[3];
+    const tenant = (store.saasTenantCohorts || []).find((item) => item.id === cohortId);
+    if (!tenant) {
+      sendJson(response, 404, { error: "SaaS tenant cohort not found" });
+      return;
+    }
+
+    const updatedTenant = {
+      ...tenant,
+      qbrStatus: "Gepland",
+      qbrPlannedAt: timestampLabel(),
+      qbrPlannedBy: user.name
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasTenantCohorts: (store.saasTenantCohorts || []).map((item) => item.id === cohortId ? updatedTenant : item)
+      },
+      "Tenant QBR gepland",
+      `${updatedTenant.practiceName} (${updatedTenant.plan}) opgevolgd.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedTenant);
     return;
   }
 
