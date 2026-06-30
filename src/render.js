@@ -1892,6 +1892,7 @@ function settingsView(state) {
   const aiCreditsIncluded = Number(saasAccount.aiCreditsIncluded || 1);
   const saasInvoices = state.saasInvoices || [];
   const openSaasInvoices = saasInvoices.filter((invoice) => invoice.status !== "Betaald");
+  const saasUsageLedger = state.saasUsageLedger || [];
   return `
     <section class="settings-grid">
       <form class="panel wide" data-form="saas-account">
@@ -1926,6 +1927,24 @@ function settingsView(state) {
         <label class="field"><span>Volgende verlenging</span><input name="renewalDate" value="${escapeHtml(saasAccount.renewalDate || "")}" placeholder="31/07/2026"></label>
         <button class="primary-action" type="submit">SaaS account opslaan</button>
       </form>
+
+      <div class="panel wide" data-section="saas-usage-ledger">
+        <div class="panel-header"><div><h2>Usage ledger</h2><p>Transparante tenant-events die abonnement, limieten en AI-verbruik verklaren.</p></div>${badge(`${saasUsageLedger.length} events`, "success")}</div>
+        <div class="security-list">
+          ${saasUsageLedger.map((entry) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(entry.category)} / ${escapeHtml(entry.metric)}</strong>
+                <span>${escapeHtml(entry.period)} / ${escapeHtml(entry.recordedAt)} / ${escapeHtml(entry.used)} van ${escapeHtml(entry.limit)} gebruikt</span>
+                <span>${escapeHtml(entry.impact)}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(entry.status, entry.status === "Open" ? "warning" : "success")}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen usage events voor deze tenant.</p>`}
+        </div>
+      </div>
 
       <div class="panel wide" data-section="saas-billing">
         <div class="panel-header"><div><h2>SaaS billing</h2><p>Abonnementfacturen voor deze tenant en betaalstatus.</p></div>${badge(openSaasInvoices.length ? `${openSaasInvoices.length} open` : "Betaald", openSaasInvoices.length ? "warning" : "success")}</div>

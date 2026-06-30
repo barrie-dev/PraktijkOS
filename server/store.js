@@ -26,6 +26,7 @@ const collections = [
   "integrationReadiness",
   "isoEvidencePacks",
   "saasInvoices",
+  "saasUsageLedger",
   "waitlist",
   "workQueue",
   "dayClose",
@@ -184,6 +185,7 @@ function seedIfEmpty() {
   seedCollectionIfEmpty("integrationReadiness");
   seedCollectionIfEmpty("isoEvidencePacks");
   seedCollectionIfEmpty("saasInvoices");
+  seedCollectionIfEmpty("saasUsageLedger");
   seedRelationalTables();
   seedInvoicesTable();
 

@@ -366,6 +366,56 @@ const seedData = {
       }
     }
   ],
+  saasUsageLedger: [
+    {
+      id: "usage-001",
+      tenantId: "tenant-de-linde",
+      period: "Juli 2026",
+      category: "Seats",
+      metric: "Actieve teamleden",
+      used: 3,
+      limit: 8,
+      status: "Binnen limiet",
+      impact: "Geen upgrade nodig",
+      recordedAt: "30/06/2026"
+    },
+    {
+      id: "usage-002",
+      tenantId: "tenant-de-linde",
+      period: "Juli 2026",
+      category: "Clienten",
+      metric: "Actieve dossiers",
+      used: 6,
+      limit: 500,
+      status: "Binnen limiet",
+      impact: "Ruime marge",
+      recordedAt: "30/06/2026"
+    },
+    {
+      id: "usage-003",
+      tenantId: "tenant-de-linde",
+      period: "Juli 2026",
+      category: "AI credits",
+      metric: "Administratieve AI-acties",
+      used: 184,
+      limit: 2000,
+      status: "Binnen limiet",
+      impact: "Normaal verbruik",
+      recordedAt: "30/06/2026"
+    },
+    {
+      id: "usage-004",
+      tenantId: "tenant-de-linde",
+      period: "Juli 2026",
+      category: "Billing",
+      metric: "Abonnementfactuur",
+      used: 149,
+      limit: 149,
+      status: "Open",
+      impact: "Betaalopvolging zichtbaar in SaaS billing",
+      recordedAt: "01/07/2026"
+    }
+  ],
   appointments: [
     {
       id: "apt-001",

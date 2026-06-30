@@ -7,6 +7,7 @@
 - Tenant billing invoice portal
 - Tenant billing payment handoff
 - Tenant billing receipts and dunning
+- Tenant self-service usage ledger
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -62,7 +63,7 @@
 
 ## Next Product Slice
 
-- Add tenant self-service usage ledger.
+- Add tenant plan change workflow.
 
 ## Phase 4: Belgian Integrations
 

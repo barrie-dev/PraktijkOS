@@ -138,6 +138,8 @@ async function verify() {
     const usageAlertState = await request("/api/state");
     assert(usageAlertState.saasUsageAlerts.some((alert) => alert.id === "seats"), "SaaS usage alerts should include seat limit alerts.");
     assert(usageAlertState.saasUsageAlerts.some((alert) => alert.id === "billing"), "SaaS usage alerts should include billing alerts.");
+    assert(usageAlertState.saasUsageLedger.some((entry) => entry.category === "AI credits"), "SaaS usage ledger should include AI credit events.");
+    assert(usageAlertState.saasUsageLedger.some((entry) => entry.category === "Billing"), "SaaS usage ledger should include billing events.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
     const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {

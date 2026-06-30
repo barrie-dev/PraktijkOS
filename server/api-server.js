@@ -1020,6 +1020,7 @@ async function handleApi(request, response) {
       aiDrafts: store.aiDrafts.length,
       auditEvents: store.auditLog.length,
       saasUsageAlerts: buildSaasUsageAlerts(store),
+      saasUsageLedger: (store.saasUsageLedger || []).slice(0, 5),
       analytics
     });
     return;
