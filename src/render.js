@@ -1935,9 +1935,11 @@ function settingsView(state) {
               <div>
                 <strong>${escapeHtml(invoice.period)} / ${escapeHtml(invoice.plan)} / ${formatEuro(invoice.amount)}</strong>
                 <span>Tenant ${escapeHtml(invoice.tenantId || saasAccount.tenantId || "tenant")} / uitgifte ${escapeHtml(invoice.issuedAt || "n.v.t.")} / vervalt ${escapeHtml(invoice.dueAt || "n.v.t.")}${invoice.paidAt ? ` / betaald ${escapeHtml(invoice.paidAt)}` : ""}</span>
+                ${invoice.paymentHandoff ? `<span>Betaallink: ${escapeHtml(invoice.paymentHandoff.status)} / ${escapeHtml(invoice.paymentHandoff.reference)} / ${escapeHtml(invoice.paymentHandoff.channel)}</span>` : ""}
               </div>
               <div class="status-stack">
                 ${badge(invoice.status || "Open", invoice.status === "Betaald" ? "success" : "warning")}
+                ${invoice.status !== "Betaald" ? `<button class="ghost-action" data-action="prepare-saas-payment" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Betaallink</button>` : ""}
                 ${invoice.status !== "Betaald" ? `<button class="primary-action" data-action="mark-saas-invoice-paid" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Markeer betaald</button>` : ""}
               </div>
             </article>

@@ -35,6 +35,7 @@ import {
   previewImport,
   preparePeppolInvoice,
   preparePaymentRequest,
+  prepareSaasInvoicePayment,
   reviewIntegrationReadiness,
   reviewKnowledgeBaseItem,
   reviewRetentionPolicy,
@@ -2288,6 +2289,47 @@ export async function markSaasInvoicePaid(invoiceId) {
     `${invoice.period}: ${formatCurrencyForAudit(invoice.amount)}.`
   ));
   return { ok: true, message: "SaaS factuur lokaal betaald." };
+}
+
+export async function prepareSaasPaymentHandoff(invoiceId) {
+  const invoice = (state.saasInvoices || []).find((item) => item.id === invoiceId);
+  if (!invoice) {
+    return { ok: false, message: "SaaS factuur niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const updatedInvoice = await prepareSaasInvoicePayment(invoiceId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: updatedInvoice.paymentHandoff?.status === "Klaar om te delen" ? "SaaS betaallink klaar." : "SaaS betaallink niet nodig." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const handoff = {
+    status: invoice.status === "Betaald" ? "Niet nodig" : "Klaar om te delen",
+    channel: "SaaS checkout",
+    reference: `SAAS-${invoice.id.toUpperCase()}`,
+    preparedAt: nowLabel(),
+    preparedBy: state.currentUser?.name || "PraktijkOS",
+    checkoutUrl: `https://billing.praktijkos.local/pay/${invoice.id}`
+  };
+  const updatedInvoice = {
+    ...invoice,
+    paymentHandoff: handoff
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasInvoices: (state.saasInvoices || []).map((item) => item.id === invoiceId ? updatedInvoice : item),
+      view: "settings"
+    },
+    "SaaS betaallink voorbereid",
+    `${invoice.period}: ${handoff.status}.`
+  ));
+  return { ok: true, message: handoff.status === "Klaar om te delen" ? "SaaS betaallink lokaal klaar." : "SaaS betaallink lokaal niet nodig." };
 }
 
 function formatCurrencyForAudit(amount) {

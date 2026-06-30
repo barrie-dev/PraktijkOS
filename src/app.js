@@ -47,6 +47,7 @@ import {
   prepareImportPreview,
   prepareInvoiceForPeppol,
   prepareInvoicePaymentRequest,
+  prepareSaasPaymentHandoff,
   markInvoicePaid,
   markSaasInvoicePaid,
   remindInvoice,
@@ -292,6 +293,12 @@ async function handleClick(event) {
 
   if (action === "mark-saas-invoice-paid") {
     const result = await markSaasInvoicePaid(target.dataset.invoiceId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "prepare-saas-payment") {
+    const result = await prepareSaasPaymentHandoff(target.dataset.invoiceId);
     showToast(result.message);
     return;
   }

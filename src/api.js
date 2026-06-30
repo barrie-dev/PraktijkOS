@@ -129,6 +129,13 @@ export async function updateSaasInvoice(invoiceId, payload = {}) {
   });
 }
 
+export async function prepareSaasInvoicePayment(invoiceId) {
+  return request(`/api/saas-invoices/${invoiceId}/payment-handoff`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

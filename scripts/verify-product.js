@@ -140,6 +140,12 @@ async function verify() {
     assert(usageAlertState.saasUsageAlerts.some((alert) => alert.id === "billing"), "SaaS usage alerts should include billing alerts.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
+    const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(paymentHandoff.paymentHandoff.status === "Klaar om te delen", "SaaS invoice payment handoff should be preparable.");
+    assert(paymentHandoff.paymentHandoff.checkoutUrl.includes(openSaasInvoice.id), "SaaS payment handoff should include checkout URL.");
     const paidSaasInvoice = await request(`/api/saas-invoices/${openSaasInvoice.id}`, {
       method: "PATCH",
       body: JSON.stringify({ status: "Betaald" })

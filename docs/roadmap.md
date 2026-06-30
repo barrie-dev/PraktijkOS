@@ -5,6 +5,7 @@
 - SaaS tenant account, subscription plan and usage limits
 - Tenant-level usage alerts for seats, client limits, AI credits and billing status
 - Tenant billing invoice portal
+- Tenant billing payment handoff
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -60,7 +61,7 @@
 
 ## Next Product Slice
 
-- Add tenant billing payment handoff.
+- Add tenant billing receipts and dunning.
 
 ## Phase 4: Belgian Integrations
 

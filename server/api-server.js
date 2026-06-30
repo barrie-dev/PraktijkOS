@@ -1693,6 +1693,41 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-invoices\/[^/]+\/payment-handoff$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const invoiceId = url.pathname.split("/")[3];
+    const invoice = (store.saasInvoices || []).find((item) => item.id === invoiceId);
+    if (!invoice) {
+      sendJson(response, 404, { error: "SaaS invoice not found" });
+      return;
+    }
+
+    const handoff = {
+      status: invoice.status === "Betaald" ? "Niet nodig" : "Klaar om te delen",
+      channel: "SaaS checkout",
+      reference: `SAAS-${invoice.id.toUpperCase()}`,
+      preparedAt: timestampLabel(),
+      preparedBy: user.name,
+      checkoutUrl: `https://billing.praktijkos.local/pay/${invoice.id}`
+    };
+    const updatedInvoice = {
+      ...invoice,
+      paymentHandoff: handoff
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasInvoices: (store.saasInvoices || []).map((item) => item.id === invoiceId ? updatedInvoice : item)
+      },
+      "SaaS betaallink voorbereid",
+      `${invoice.period}: ${handoff.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedInvoice);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/clients") {
     if (!requirePermission(response, user, "care")) return;
     const payload = await readJson(request);
