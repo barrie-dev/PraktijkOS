@@ -50,6 +50,7 @@ Clients, appointments and invoices are stored in relational tables with foreign-
 ## Security Baseline
 
 - SaaS tenant context for practice account, plan, seats, client limits, AI credits and data region
+- Tenant usage alerts are derived by the API and mirrored in the SaaS account UI.
 - Role-based write access for practice, team, care, scheduling, billing, AI review and tasks
 - Per-dossier authorization
 - Audit logging

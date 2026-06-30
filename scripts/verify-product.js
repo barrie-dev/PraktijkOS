@@ -124,6 +124,20 @@ async function verify() {
     });
     assert(updatedSaasPractice.saasAccount.plan === "Scale", "SaaS plan should be editable.");
     assert(updatedSaasPractice.saasAccount.seatsIncluded === 12, "SaaS seat limit should be editable.");
+    await request("/api/practice", {
+      method: "PUT",
+      body: JSON.stringify({
+        ...updatedSaasPractice,
+        saasAccount: {
+          ...updatedSaasPractice.saasAccount,
+          seatsIncluded: 2,
+          billingStatus: "Betaalactie nodig"
+        }
+      })
+    });
+    const usageAlertState = await request("/api/state");
+    assert(usageAlertState.saasUsageAlerts.some((alert) => alert.id === "seats"), "SaaS usage alerts should include seat limit alerts.");
+    assert(usageAlertState.saasUsageAlerts.some((alert) => alert.id === "billing"), "SaaS usage alerts should include billing alerts.");
 
     const completedTask = await request("/api/tasks/q-001/complete", {
       method: "POST",

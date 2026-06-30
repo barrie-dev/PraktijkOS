@@ -155,6 +155,64 @@ function buildAnalytics(store) {
   };
 }
 
+function usageSeverity(used, limit) {
+  if (!limit) return null;
+  const ratio = used / limit;
+  if (ratio >= 1) return "danger";
+  if (ratio >= 0.8) return "warning";
+  return null;
+}
+
+function buildSaasUsageAlerts(store) {
+  const account = store.practice?.saasAccount || {};
+  const alerts = [];
+  const seatsUsed = store.team?.length || 0;
+  const seatsIncluded = Number(account.seatsIncluded || 0);
+  const clientCount = store.clients?.length || 0;
+  const clientLimit = Number(account.clientLimit || 0);
+  const aiCreditsUsed = Number(account.aiCreditsUsed || 0);
+  const aiCreditsIncluded = Number(account.aiCreditsIncluded || 0);
+
+  [
+    {
+      id: "seats",
+      label: "Seatlimiet",
+      used: seatsUsed,
+      limit: seatsIncluded,
+      detail: `${seatsUsed}/${seatsIncluded || "?"} seats gebruikt.`
+    },
+    {
+      id: "clients",
+      label: "Clientlimiet",
+      used: clientCount,
+      limit: clientLimit,
+      detail: `${clientCount}/${clientLimit || "?"} dossiers binnen deze tenant.`
+    },
+    {
+      id: "ai-credits",
+      label: "AI credits",
+      used: aiCreditsUsed,
+      limit: aiCreditsIncluded,
+      detail: `${aiCreditsUsed}/${aiCreditsIncluded || "?"} maandcredits gebruikt.`
+    }
+  ].forEach((item) => {
+    const severity = usageSeverity(item.used, item.limit);
+    if (severity) alerts.push({ ...item, severity });
+  });
+
+  const billingStatus = `${account.billingStatus || ""}`.toLowerCase();
+  if (billingStatus.includes("betaal") || billingStatus.includes("pauze")) {
+    alerts.push({
+      id: "billing",
+      label: "Billingstatus",
+      detail: account.billingStatus,
+      severity: billingStatus.includes("pauze") ? "danger" : "warning"
+    });
+  }
+
+  return alerts;
+}
+
 function buildClientExport(store, clientId, user) {
   const client = store.clients.find((item) => item.id === clientId);
   if (!client) return null;
@@ -961,6 +1019,7 @@ async function handleApi(request, response) {
       openInvoices: store.invoices.length,
       aiDrafts: store.aiDrafts.length,
       auditEvents: store.auditLog.length,
+      saasUsageAlerts: buildSaasUsageAlerts(store),
       analytics
     });
     return;
@@ -972,7 +1031,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/state") {
-    sendJson(response, 200, { ...store, analytics: buildAnalytics(store) });
+    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store) });
     return;
   }
 

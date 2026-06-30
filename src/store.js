@@ -86,6 +86,7 @@ const initialState = {
   auditFilter: "all",
   auditExport: null,
   isoEvidenceExport: null,
+  saasUsageAlerts: [],
   billingExport: null,
   accountingTool: "exact",
   accountingExport: null,

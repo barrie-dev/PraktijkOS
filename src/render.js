@@ -1831,9 +1831,59 @@ function securityView(state) {
   `;
 }
 
+function usageSeverity(used, limit) {
+  if (!limit) return null;
+  const ratio = used / limit;
+  if (ratio >= 1) return "danger";
+  if (ratio >= 0.8) return "warning";
+  return null;
+}
+
+function localSaasUsageAlerts(state) {
+  const account = state.practice?.saasAccount || {};
+  const candidates = [
+    {
+      id: "seats",
+      label: "Seatlimiet",
+      used: state.team?.length || 0,
+      limit: Number(account.seatsIncluded || 0),
+      detail: `${state.team?.length || 0}/${account.seatsIncluded || "?"} seats gebruikt.`
+    },
+    {
+      id: "clients",
+      label: "Clientlimiet",
+      used: state.clients?.length || 0,
+      limit: Number(account.clientLimit || 0),
+      detail: `${state.clients?.length || 0}/${account.clientLimit || "?"} dossiers binnen deze tenant.`
+    },
+    {
+      id: "ai-credits",
+      label: "AI credits",
+      used: Number(account.aiCreditsUsed || 0),
+      limit: Number(account.aiCreditsIncluded || 0),
+      detail: `${account.aiCreditsUsed || 0}/${account.aiCreditsIncluded || "?"} maandcredits gebruikt.`
+    }
+  ];
+  const alerts = candidates
+    .map((item) => ({ ...item, severity: usageSeverity(item.used, item.limit) }))
+    .filter((item) => item.severity);
+
+  const billingStatus = `${account.billingStatus || ""}`.toLowerCase();
+  if (billingStatus.includes("betaal") || billingStatus.includes("pauze")) {
+    alerts.push({
+      id: "billing",
+      label: "Billingstatus",
+      detail: account.billingStatus,
+      severity: billingStatus.includes("pauze") ? "danger" : "warning"
+    });
+  }
+  return alerts;
+}
+
 function settingsView(state) {
   const modelEvaluations = state.aiModelEvaluations || [];
   const saasAccount = state.practice.saasAccount || {};
+  const saasUsageAlerts = state.saasUsageAlerts?.length ? state.saasUsageAlerts : localSaasUsageAlerts(state);
   const seatsUsed = state.team.length;
   const seatsIncluded = Number(saasAccount.seatsIncluded || seatsUsed || 1);
   const clientCount = state.clients.length;
@@ -1850,6 +1900,14 @@ function settingsView(state) {
           <article class="metric"><span>Seats</span><strong>${seatsUsed}/${seatsIncluded}</strong><small>teamleden binnen abonnement</small></article>
           <article class="metric"><span>Clienten</span><strong>${clientCount}/${clientLimit}</strong><small>dossiers binnen tenantlimiet</small></article>
           <article class="metric"><span>AI credits</span><strong>${aiCreditsUsed}/${aiCreditsIncluded}</strong><small>maandbudget voor AI-acties</small></article>
+        </div>
+        <div class="security-alerts">
+          ${saasUsageAlerts.map((alert) => `
+            <article class="security-alert ${escapeHtml(alert.severity)}">
+              <div><strong>${escapeHtml(alert.label)}</strong><span>${escapeHtml(alert.detail)}</span></div>
+              ${badge(alert.severity === "danger" ? "Actie nodig" : "Opvolgen", alert.severity)}
+            </article>
+          `).join("") || `<p class="empty-state">Geen tenant usage alerts.</p>`}
         </div>
         <div class="form-grid">
           <label class="field"><span>Tenant ID</span><input name="tenantId" value="${escapeHtml(saasAccount.tenantId || "tenant-de-linde")}" required></label>

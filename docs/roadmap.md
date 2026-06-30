@@ -3,6 +3,7 @@
 ## Phase 1: Practice Core
 
 - SaaS tenant account, subscription plan and usage limits
+- Tenant-level usage alerts for seats, client limits, AI credits and billing status
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -58,7 +59,7 @@
 
 ## Next Product Slice
 
-- Add tenant-level usage alerts.
+- Add tenant billing invoice portal.
 
 ## Phase 4: Belgian Integrations
 
