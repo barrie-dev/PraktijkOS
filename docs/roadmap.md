@@ -6,6 +6,7 @@
 - Tenant-level usage alerts for seats, client limits, AI credits and billing status
 - Tenant billing invoice portal
 - Tenant billing payment handoff
+- Tenant billing receipts and dunning
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -61,7 +62,7 @@
 
 ## Next Product Slice
 
-- Add tenant billing receipts and dunning.
+- Add tenant self-service usage ledger.
 
 ## Phase 4: Belgian Integrations
 

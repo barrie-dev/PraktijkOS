@@ -41,6 +41,7 @@ import {
   reviewRetentionPolicy,
   rollbackImport,
   scheduleWaitlistEntry,
+  sendSaasInvoiceDunning,
   sendInvoiceReminder,
   updateAppointment,
   updateAccessOverride,
@@ -2277,7 +2278,14 @@ export async function markSaasInvoicePaid(invoiceId) {
   const updatedInvoice = {
     ...invoice,
     status: "Betaald",
-    paidAt: nowLabel()
+    paidAt: nowLabel(),
+    receipt: {
+      status: "Beschikbaar",
+      reference: `RCPT-${invoice.id.toUpperCase()}`,
+      issuedAt: nowLabel(),
+      issuedBy: state.currentUser?.name || "PraktijkOS",
+      channel: "SaaS billing"
+    }
   };
   commit(pushAudit(
     {
@@ -2289,6 +2297,48 @@ export async function markSaasInvoicePaid(invoiceId) {
     `${invoice.period}: ${formatCurrencyForAudit(invoice.amount)}.`
   ));
   return { ok: true, message: "SaaS factuur lokaal betaald." };
+}
+
+export async function remindSaasInvoice(invoiceId) {
+  const invoice = (state.saasInvoices || []).find((item) => item.id === invoiceId);
+  if (!invoice) {
+    return { ok: false, message: "SaaS factuur niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      const updatedInvoice = await sendSaasInvoiceDunning(invoiceId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: updatedInvoice.dunningNotice?.status === "Klaargezet" ? "SaaS opvolging klaargezet." : "SaaS opvolging niet nodig." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const dunningNotice = {
+    status: invoice.status === "Betaald" ? "Niet nodig" : "Klaargezet",
+    sequence: (invoice.dunningNotice?.sequence || 0) + 1,
+    channel: "E-mail",
+    sentAt: nowLabel(),
+    sentBy: state.currentUser?.name || "PraktijkOS",
+    message: `${invoice.period} staat nog open voor ${invoice.tenantId || "tenant"}.`
+  };
+  const updatedInvoice = {
+    ...invoice,
+    status: invoice.status === "Betaald" ? invoice.status : "Opvolging",
+    dunningNotice
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasInvoices: (state.saasInvoices || []).map((item) => item.id === invoiceId ? updatedInvoice : item),
+      view: "settings"
+    },
+    "SaaS betalingsopvolging klaargezet",
+    `${invoice.period}: ${dunningNotice.status}.`
+  ));
+  return { ok: true, message: dunningNotice.status === "Klaargezet" ? "SaaS opvolging lokaal klaargezet." : "SaaS opvolging lokaal niet nodig." };
 }
 
 export async function prepareSaasPaymentHandoff(invoiceId) {

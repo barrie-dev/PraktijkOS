@@ -146,12 +146,19 @@ async function verify() {
     });
     assert(paymentHandoff.paymentHandoff.status === "Klaar om te delen", "SaaS invoice payment handoff should be preparable.");
     assert(paymentHandoff.paymentHandoff.checkoutUrl.includes(openSaasInvoice.id), "SaaS payment handoff should include checkout URL.");
+    const dunningNotice = await request(`/api/saas-invoices/${openSaasInvoice.id}/dunning`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(dunningNotice.status === "Opvolging", "SaaS invoice dunning should move open invoices to follow-up.");
+    assert(dunningNotice.dunningNotice.status === "Klaargezet", "SaaS invoice dunning should be queued.");
     const paidSaasInvoice = await request(`/api/saas-invoices/${openSaasInvoice.id}`, {
       method: "PATCH",
       body: JSON.stringify({ status: "Betaald" })
     });
     assert(paidSaasInvoice.status === "Betaald", "SaaS invoice should be markable as paid.");
     assert(paidSaasInvoice.paidAt, "Paid SaaS invoice should include paid date.");
+    assert(paidSaasInvoice.receipt.reference.includes(openSaasInvoice.id.toUpperCase()), "Paid SaaS invoice should include a receipt.");
 
     const completedTask = await request("/api/tasks/q-001/complete", {
       method: "POST",

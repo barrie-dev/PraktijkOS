@@ -393,7 +393,14 @@ export const saasInvoices = [
     dueAt: "30/06/2026",
     status: "Betaald",
     issuedAt: "01/06/2026",
-    paidAt: "15/06/2026"
+    paidAt: "15/06/2026",
+    receipt: {
+      status: "Beschikbaar",
+      reference: "RCPT-SAAS-INV-002",
+      issuedAt: "15/06/2026",
+      issuedBy: "PraktijkOS",
+      channel: "SaaS billing"
+    }
   }
 ];
 

@@ -50,6 +50,7 @@ import {
   prepareSaasPaymentHandoff,
   markInvoicePaid,
   markSaasInvoicePaid,
+  remindSaasInvoice,
   remindInvoice,
   resetDemoState,
   rollbackPreparedImport,
@@ -299,6 +300,12 @@ async function handleClick(event) {
 
   if (action === "prepare-saas-payment") {
     const result = await prepareSaasPaymentHandoff(target.dataset.invoiceId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "remind-saas-invoice") {
+    const result = await remindSaasInvoice(target.dataset.invoiceId);
     showToast(result.message);
     return;
   }

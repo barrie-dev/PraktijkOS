@@ -1677,7 +1677,16 @@ async function handleApi(request, response) {
     const updatedInvoice = {
       ...invoice,
       status: payload.status || invoice.status,
-      paidAt: (payload.status || invoice.status) === "Betaald" ? timestampLabel() : invoice.paidAt
+      paidAt: (payload.status || invoice.status) === "Betaald" ? timestampLabel() : invoice.paidAt,
+      receipt: (payload.status || invoice.status) === "Betaald"
+        ? {
+            status: "Beschikbaar",
+            reference: `RCPT-${invoice.id.toUpperCase()}`,
+            issuedAt: timestampLabel(),
+            issuedBy: user.name,
+            channel: "SaaS billing"
+          }
+        : invoice.receipt
     };
     const nextStore = appendAudit(
       {
@@ -1686,6 +1695,42 @@ async function handleApi(request, response) {
       },
       "SaaS factuur bijgewerkt",
       `${updatedInvoice.period}: ${updatedInvoice.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedInvoice);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-invoices\/[^/]+\/dunning$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const invoiceId = url.pathname.split("/")[3];
+    const invoice = (store.saasInvoices || []).find((item) => item.id === invoiceId);
+    if (!invoice) {
+      sendJson(response, 404, { error: "SaaS invoice not found" });
+      return;
+    }
+
+    const dunningNotice = {
+      status: invoice.status === "Betaald" ? "Niet nodig" : "Klaargezet",
+      sequence: (invoice.dunningNotice?.sequence || 0) + 1,
+      channel: "E-mail",
+      sentAt: timestampLabel(),
+      sentBy: user.name,
+      message: `${invoice.period} staat nog open voor ${invoice.tenantId || "tenant"}.`
+    };
+    const updatedInvoice = {
+      ...invoice,
+      status: invoice.status === "Betaald" ? invoice.status : "Opvolging",
+      dunningNotice
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasInvoices: (store.saasInvoices || []).map((item) => item.id === invoiceId ? updatedInvoice : item)
+      },
+      "SaaS betalingsopvolging klaargezet",
+      `${invoice.period}: ${dunningNotice.status}.`,
       user.name
     );
     writeStore(nextStore);

@@ -1936,10 +1936,13 @@ function settingsView(state) {
                 <strong>${escapeHtml(invoice.period)} / ${escapeHtml(invoice.plan)} / ${formatEuro(invoice.amount)}</strong>
                 <span>Tenant ${escapeHtml(invoice.tenantId || saasAccount.tenantId || "tenant")} / uitgifte ${escapeHtml(invoice.issuedAt || "n.v.t.")} / vervalt ${escapeHtml(invoice.dueAt || "n.v.t.")}${invoice.paidAt ? ` / betaald ${escapeHtml(invoice.paidAt)}` : ""}</span>
                 ${invoice.paymentHandoff ? `<span>Betaallink: ${escapeHtml(invoice.paymentHandoff.status)} / ${escapeHtml(invoice.paymentHandoff.reference)} / ${escapeHtml(invoice.paymentHandoff.channel)}</span>` : ""}
+                ${invoice.dunningNotice ? `<span>Opvolging: ${escapeHtml(invoice.dunningNotice.status)} / ronde ${escapeHtml(invoice.dunningNotice.sequence)} / ${escapeHtml(invoice.dunningNotice.channel)}</span>` : ""}
+                ${invoice.receipt ? `<span>Ontvangstbewijs: ${escapeHtml(invoice.receipt.status)} / ${escapeHtml(invoice.receipt.reference)} / ${escapeHtml(invoice.receipt.channel)}</span>` : ""}
               </div>
               <div class="status-stack">
                 ${badge(invoice.status || "Open", invoice.status === "Betaald" ? "success" : "warning")}
                 ${invoice.status !== "Betaald" ? `<button class="ghost-action" data-action="prepare-saas-payment" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Betaallink</button>` : ""}
+                ${invoice.status !== "Betaald" ? `<button class="ghost-action" data-action="remind-saas-invoice" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Herinner</button>` : ""}
                 ${invoice.status !== "Betaald" ? `<button class="primary-action" data-action="mark-saas-invoice-paid" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Markeer betaald</button>` : ""}
               </div>
             </article>

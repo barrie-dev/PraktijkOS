@@ -136,6 +136,13 @@ export async function prepareSaasInvoicePayment(invoiceId) {
   });
 }
 
+export async function sendSaasInvoiceDunning(invoiceId) {
+  return request(`/api/saas-invoices/${invoiceId}/dunning`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }
