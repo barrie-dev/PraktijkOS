@@ -682,6 +682,54 @@ export const saasLifecycleRequests = [
   }
 ];
 
+export const saasContractDocuments = [
+  {
+    id: "contract-001",
+    tenantId: "tenant-de-linde",
+    title: "Data Processing Agreement",
+    type: "DPA",
+    version: "2026.1",
+    status: "Gedeeld",
+    owner: "PraktijkOS legal",
+    effectiveAt: "01/07/2026",
+    renewalAt: "01/07/2027",
+    storageLocation: "PraktijkOS contract vault",
+    sharedAt: "30/06/2026",
+    sharedBy: "PraktijkOS",
+    notes: "Verwerkersovereenkomst voor EU-hosting en AI-verwerking."
+  },
+  {
+    id: "contract-002",
+    tenantId: "tenant-de-linde",
+    title: "Abonnementsvoorwaarden Pro",
+    type: "Voorwaarden",
+    version: "2026.1",
+    status: "Klaar om te delen",
+    owner: "Customer success",
+    effectiveAt: "01/07/2026",
+    renewalAt: "31/07/2026",
+    storageLocation: "PraktijkOS contract vault",
+    sharedAt: null,
+    sharedBy: null,
+    notes: "Voorwaarden voor Pro-plan met maandelijkse verlenging."
+  },
+  {
+    id: "contract-003",
+    tenantId: "tenant-de-linde",
+    title: "Orderformulier Scale upgrade",
+    type: "Orderformulier",
+    version: "Concept",
+    status: "Concept",
+    owner: "Customer success",
+    effectiveAt: "01/08/2026",
+    renewalAt: "01/08/2027",
+    storageLocation: "PraktijkOS contract vault",
+    sharedAt: null,
+    sharedBy: null,
+    notes: "Voorbereid op basis van planwijzigingsaanvraag."
+  }
+];
+
 export const waitlist = [
   {
     id: "wait-001",

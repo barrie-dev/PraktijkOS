@@ -66,6 +66,7 @@ import {
   saveSaasAccountSettings,
   selectMessageTemplate,
   setState,
+  shareSaasContract,
   subscribe
 } from "./store.js";
 import { renderApp } from "./render.js";
@@ -348,6 +349,12 @@ async function handleClick(event) {
 
   if (action === "change-saas-support") {
     const result = await changeSaasSupportTicket(target.dataset.ticketId, target.dataset.status);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "share-saas-contract") {
+    const result = await shareSaasContract(target.dataset.documentId);
     showToast(result.message);
     return;
   }

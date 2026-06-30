@@ -204,6 +204,14 @@ async function verify() {
     });
     assert(cancellationRequest.requestType === "Opzegging", "SaaS lifecycle endpoint should create cancellation requests.");
     assert(cancellationRequest.status === "In review", "SaaS lifecycle request should enter review.");
+    assert(usageAlertState.saasContractDocuments.some((document) => document.status === "Klaar om te delen"), "SaaS contract center should include shareable documents.");
+    const shareableContract = usageAlertState.saasContractDocuments.find((document) => document.status === "Klaar om te delen");
+    const sharedContract = await request(`/api/saas-contract-documents/${shareableContract.id}/share`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(sharedContract.status === "Gedeeld", "SaaS contract document should be shareable.");
+    assert(sharedContract.sharedAt, "Shared SaaS contract document should include share metadata.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
     const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {

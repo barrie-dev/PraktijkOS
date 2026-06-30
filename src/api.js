@@ -185,6 +185,13 @@ export async function createSaasLifecycleRequest(payload = {}) {
   });
 }
 
+export async function shareSaasContractDocument(documentId) {
+  return request(`/api/saas-contract-documents/${documentId}/share`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

@@ -15,6 +15,7 @@
 - Tenant health score and risk indicators
 - Tenant support and escalation queue
 - Tenant renewal and cancellation workflow
+- Tenant contract document center
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -70,7 +71,7 @@
 
 ## Next Product Slice
 
-- Add tenant contract document center.
+- Add tenant implementation milestone tracker.
 
 ## Phase 4: Belgian Integrations
 

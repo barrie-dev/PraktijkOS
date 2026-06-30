@@ -1355,6 +1355,35 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-contract-documents\/[^/]+\/share$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const documentId = url.pathname.split("/")[3];
+    const document = (store.saasContractDocuments || []).find((item) => item.id === documentId);
+    if (!document) {
+      sendJson(response, 404, { error: "SaaS contract document not found" });
+      return;
+    }
+
+    const updatedDocument = {
+      ...document,
+      status: "Gedeeld",
+      sharedAt: timestampLabel(),
+      sharedBy: user.name
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasContractDocuments: (store.saasContractDocuments || []).map((item) => item.id === documentId ? updatedDocument : item)
+      },
+      "SaaS contractdocument gedeeld",
+      `${updatedDocument.title} met ${updatedDocument.tenantId}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedDocument);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/team") {
     if (!requirePermission(response, user, "team")) return;
     const payload = await readJson(request);

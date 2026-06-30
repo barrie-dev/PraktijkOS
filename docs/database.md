@@ -24,7 +24,7 @@ The SQLite database, WAL and shared-memory files are ignored by git.
 - `clients`: relational client records.
 - `appointments`: relational appointments linked to clients with a foreign key.
 - `invoices`: relational billing records linked to clients and appointments where available.
-- `records`: collection-based records for team, work queue, intakes, notes, messages, portal invites, documents, AI drafts, integration readiness, ISO evidence packs, SaaS invoices, SaaS usage ledger, SaaS plan changes, SaaS onboarding checklist, SaaS feature entitlements, SaaS admin activity, SaaS support queue, SaaS lifecycle requests and audit log.
+- `records`: collection-based records for team, work queue, intakes, notes, messages, portal invites, documents, AI drafts, integration readiness, ISO evidence packs, SaaS invoices, SaaS usage ledger, SaaS plan changes, SaaS onboarding checklist, SaaS feature entitlements, SaaS admin activity, SaaS support queue, SaaS lifecycle requests, SaaS contract documents and audit log.
 
 This gives us durable database persistence now, with strict tables for the first high-value entities and flexible records for areas still moving quickly.
 

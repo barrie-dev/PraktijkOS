@@ -1925,6 +1925,7 @@ function settingsView(state) {
   const saasOnboardingChecklist = state.saasOnboardingChecklist || [];
   const saasFeatureEntitlements = state.saasFeatureEntitlements || [];
   const saasAdminActivity = state.saasAdminActivity || [];
+  const saasContractDocuments = state.saasContractDocuments || [];
   const saasSupportQueue = state.saasSupportQueue || [];
   const saasLifecycleRequests = state.saasLifecycleRequests || [];
   const completedSaasOnboarding = saasOnboardingChecklist.filter((item) => item.status === "Klaar").length;
@@ -1994,6 +1995,26 @@ function settingsView(state) {
               </div>
             </article>
           `).join("") || `<p class="empty-state">Geen onboardingstappen voor deze tenant.</p>`}
+        </div>
+      </div>
+
+      <div class="panel wide" data-section="saas-contracts">
+        <div class="panel-header"><div><h2>Contract documents</h2><p>Contracten, DPA's, orderformulieren en voorwaarden voor deze tenant.</p></div>${badge(`${saasContractDocuments.filter((item) => item.status === "Gedeeld").length}/${saasContractDocuments.length} gedeeld`, "success")}</div>
+        <div class="security-list">
+          ${saasContractDocuments.map((document) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(document.type)} / ${escapeHtml(document.title)}</strong>
+                <span>Versie ${escapeHtml(document.version)} / eigenaar ${escapeHtml(document.owner)} / geldig vanaf ${escapeHtml(document.effectiveAt || "n.v.t.")} / hernieuwing ${escapeHtml(document.renewalAt || "n.v.t.")}</span>
+                <span>${escapeHtml(document.storageLocation)}${document.sharedAt ? ` / gedeeld ${escapeHtml(document.sharedAt)} door ${escapeHtml(document.sharedBy || "PraktijkOS")}` : ""}</span>
+                <span>${escapeHtml(document.notes || "")}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(document.status, document.status === "Gedeeld" ? "success" : document.status === "Concept" ? "warning" : "warning")}
+                ${document.status !== "Gedeeld" ? `<button class="primary-action" data-action="share-saas-contract" data-document-id="${escapeHtml(document.id)}" type="button">Delen</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen contractdocumenten voor deze tenant.</p>`}
         </div>
       </div>
 

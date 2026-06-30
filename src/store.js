@@ -46,6 +46,7 @@ import {
   rollbackImport,
   scheduleWaitlistEntry,
   sendSaasInvoiceDunning,
+  shareSaasContractDocument,
   sendInvoiceReminder,
   updateAppointment,
   updateAccessOverride,
@@ -61,7 +62,7 @@ import {
   updateSaasSupportTicket
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasFeatureEntitlements, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -184,6 +185,7 @@ const initialState = {
   aiModels,
   aiModelEvaluations,
   saasAdminActivity,
+  saasContractDocuments,
   saasFeatureEntitlements,
   saasInvoices,
   saasLifecycleRequests,
@@ -2514,6 +2516,41 @@ export async function changeSaasSupportTicket(ticketId, status) {
     `${updatedTicket.title}: ${updatedTicket.status}.`
   ));
   return { ok: true, message: status === "Gesloten" ? "Supportticket lokaal gesloten." : "Supportticket lokaal geescaleerd." };
+}
+
+export async function shareSaasContract(documentId) {
+  const document = (state.saasContractDocuments || []).find((item) => item.id === documentId);
+  if (!document) {
+    return { ok: false, message: "Contractdocument niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await shareSaasContractDocument(documentId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Contractdocument gedeeld." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedDocument = {
+    ...document,
+    status: "Gedeeld",
+    sharedAt: nowLabel(),
+    sharedBy: state.currentUser?.name || "PraktijkOS"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasContractDocuments: (state.saasContractDocuments || []).map((item) => item.id === documentId ? updatedDocument : item),
+      view: "settings"
+    },
+    "SaaS contractdocument gedeeld",
+    `${updatedDocument.title} lokaal gedeeld.`
+  ));
+  return { ok: true, message: "Contractdocument lokaal gedeeld." };
 }
 
 export async function markSaasInvoicePaid(invoiceId) {
