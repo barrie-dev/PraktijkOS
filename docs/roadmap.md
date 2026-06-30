@@ -18,6 +18,7 @@
 - Tenant contract document center
 - Tenant implementation milestone tracker
 - Tenant success metrics dashboard
+- Tenant risk playbook automation
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -73,7 +74,7 @@
 
 ## Next Product Slice
 
-- Add tenant risk playbook automation.
+- Add tenant cohort overview for multiple practices.
 
 ## Phase 4: Belgian Integrations
 

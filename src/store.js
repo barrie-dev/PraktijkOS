@@ -46,6 +46,7 @@ import {
   reviewKnowledgeBaseItem,
   reviewRetentionPolicy,
   rollbackImport,
+  runSaasRiskPlaybook,
   scheduleWaitlistEntry,
   sendSaasInvoiceDunning,
   shareSaasContractDocument,
@@ -64,7 +65,7 @@ import {
   updateSaasSupportTicket
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasImplementationMilestones, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasSuccessActions, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasImplementationMilestones, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasRiskPlaybooks, saasSuccessActions, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -195,6 +196,7 @@ const initialState = {
   saasLifecycleRequests,
   saasOnboardingChecklist,
   saasPlanChanges,
+  saasRiskPlaybooks,
   saasSuccessActions,
   saasSupportQueue,
   saasUsageLedger,
@@ -2626,6 +2628,56 @@ export async function completeSaasSuccessActionItem(actionId) {
     `${updatedAction.category}: ${updatedAction.title}.`
   ));
   return { ok: true, message: "Customer success actie lokaal afgerond." };
+}
+
+export async function runTenantRiskPlaybook(playbookId) {
+  const playbook = (state.saasRiskPlaybooks || []).find((item) => item.id === playbookId);
+  if (!playbook) {
+    return { ok: false, message: "Risk playbook niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await runSaasRiskPlaybook(playbookId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Risk playbook gestart." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedPlaybook = {
+    ...playbook,
+    status: "Uitgevoerd",
+    lastRunAt: nowLabel(),
+    lastRunBy: state.currentUser?.name || "PraktijkOS",
+    runCount: Number(playbook.runCount || 0) + 1
+  };
+  const successAction = {
+    id: uid("success"),
+    tenantId: playbook.tenantId,
+    category: playbook.category,
+    title: playbook.actionTitle || playbook.recommendedAction,
+    owner: playbook.owner || "Customer success",
+    priority: playbook.severity === "danger" ? "Hoog" : "Normaal",
+    status: "Open",
+    dueAt: "Deze week",
+    detail: playbook.actionDetail || playbook.recommendedAction,
+    completedAt: null,
+    completedBy: null
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasRiskPlaybooks: (state.saasRiskPlaybooks || []).map((item) => item.id === playbookId ? updatedPlaybook : item),
+      saasSuccessActions: [successAction, ...(state.saasSuccessActions || [])].slice(0, 30),
+      view: "settings"
+    },
+    "Risk playbook uitgevoerd",
+    `${updatedPlaybook.category}: ${updatedPlaybook.title}.`
+  ));
+  return { ok: true, message: "Risk playbook lokaal gestart." };
 }
 
 export async function markSaasInvoicePaid(invoiceId) {

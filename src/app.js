@@ -62,6 +62,7 @@ import {
   requestSaasLifecycleChange,
   requestSaasPlanChange,
   rollbackPreparedImport,
+  runTenantRiskPlaybook,
   runAiWorkflow,
   scheduleFromWaitlist,
   savePracticeSettings,
@@ -369,6 +370,12 @@ async function handleClick(event) {
 
   if (action === "complete-saas-success") {
     const result = await completeSaasSuccessActionItem(target.dataset.actionId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "run-saas-playbook") {
+    const result = await runTenantRiskPlaybook(target.dataset.playbookId);
     showToast(result.message);
     return;
   }

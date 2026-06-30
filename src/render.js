@@ -1940,12 +1940,46 @@ function localSaasSuccessMetrics(state) {
   ];
 }
 
+function localSaasRiskPlaybooks(state) {
+  const account = state.practice.saasAccount || {};
+  const billingStatus = `${account.billingStatus || ""}`.toLowerCase();
+  const openInvoices = (state.saasInvoices || []).filter((invoice) => invoice.status !== "Betaald").length;
+  const activationItems = [
+    ...(state.saasOnboardingChecklist || []),
+    ...(state.saasImplementationMilestones || [])
+  ];
+  const openActivation = activationItems.filter((item) => item.status !== "Klaar").length;
+  const escalatedSupport = (state.saasSupportQueue || []).filter((ticket) => ticket.status === "Geescaleerd").length;
+  const aiAdoption = percentage(account.aiCreditsUsed || 0, account.aiCreditsIncluded || 0);
+  const activeById = {
+    "playbook-billing-risk": openInvoices > 0 || billingStatus.includes("betaal") || billingStatus.includes("pauze"),
+    "playbook-adoption-risk": openActivation > 0 || aiAdoption < 10 || aiAdoption > 80,
+    "playbook-support-escalation": escalatedSupport > 0
+  };
+  const detailById = {
+    "playbook-billing-risk": openInvoices ? `${openInvoices} open SaaS factuur/facturen of billingactie.` : "Geen open billingrisico.",
+    "playbook-adoption-risk": openActivation ? `${openActivation} open activatiestap(pen), AI-adoptie ${aiAdoption}%.` : `AI-adoptie ${aiAdoption}%.`,
+    "playbook-support-escalation": escalatedSupport ? `${escalatedSupport} supportescalatie(s) vragen opvolging.` : "Geen actieve supportescalatie."
+  };
+
+  return (state.saasRiskPlaybooks || []).map((playbook) => {
+    const active = Boolean(activeById[playbook.id]);
+    return {
+      ...playbook,
+      status: playbook.lastRunAt ? "Uitgevoerd" : active ? "Aanbevolen" : "Stand-by",
+      signal: playbook.lastRunAt ? "success" : active ? playbook.severity || "warning" : "success",
+      triggerDetail: detailById[playbook.id] || playbook.trigger
+    };
+  });
+}
+
 function settingsView(state) {
   const modelEvaluations = state.aiModelEvaluations || [];
   const saasAccount = state.practice.saasAccount || {};
   const saasUsageAlerts = state.saasUsageAlerts?.length ? state.saasUsageAlerts : localSaasUsageAlerts(state);
   const saasHealth = state.saasHealth || localSaasHealth(state, saasUsageAlerts);
   const saasSuccessMetrics = state.saasSuccessMetrics?.length ? state.saasSuccessMetrics : localSaasSuccessMetrics(state);
+  const saasRiskPlaybooks = state.saasRiskPlaybooks?.length ? state.saasRiskPlaybooks : localSaasRiskPlaybooks(state);
   const seatsUsed = state.team.length;
   const seatsIncluded = Number(saasAccount.seatsIncluded || seatsUsed || 1);
   const clientCount = state.clients.length;
@@ -1969,6 +2003,7 @@ function settingsView(state) {
   const openSupportTickets = saasSupportQueue.filter((ticket) => ticket.status !== "Gesloten");
   const completedImplementationMilestones = saasImplementationMilestones.filter((item) => item.status === "Klaar").length;
   const openSuccessActions = saasSuccessActions.filter((item) => item.status !== "Klaar");
+  const recommendedPlaybooks = saasRiskPlaybooks.filter((item) => item.status === "Aanbevolen");
   return `
     <section class="settings-grid">
       <form class="panel wide" data-form="saas-account">
@@ -2043,6 +2078,25 @@ function settingsView(state) {
               </div>
             </article>
           `).join("") || `<p class="empty-state">Geen customer success acties voor deze tenant.</p>`}
+        </div>
+      </div>
+
+      <div class="panel wide" data-section="saas-risk-playbooks">
+        <div class="panel-header"><div><h2>Risk playbooks</h2><p>Automatische opvolgscenario's voor billing, adoptie en supportescalaties.</p></div>${badge(recommendedPlaybooks.length ? `${recommendedPlaybooks.length} aanbevolen` : "Geen risico", recommendedPlaybooks.length ? "warning" : "success")}</div>
+        <div class="security-list">
+          ${saasRiskPlaybooks.map((playbook) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(playbook.category)} / ${escapeHtml(playbook.title)}</strong>
+                <span>${escapeHtml(playbook.triggerDetail || playbook.trigger)} / eigenaar ${escapeHtml(playbook.owner)}${playbook.lastRunAt ? ` / gestart ${escapeHtml(playbook.lastRunAt)} door ${escapeHtml(playbook.lastRunBy || "PraktijkOS")}` : ""}</span>
+                <span>${escapeHtml(playbook.recommendedAction)}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(playbook.status || "Stand-by", playbook.signal || (playbook.status === "Aanbevolen" ? "warning" : "success"))}
+                <button class="primary-action" data-action="run-saas-playbook" data-playbook-id="${escapeHtml(playbook.id)}" type="button">Start playbook</button>
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen risk playbooks voor deze tenant.</p>`}
         </div>
       </div>
 

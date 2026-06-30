@@ -206,6 +206,13 @@ export async function completeSaasSuccessAction(actionId) {
   });
 }
 
+export async function runSaasRiskPlaybook(playbookId) {
+  return request(`/api/saas-risk-playbooks/${playbookId}/run`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

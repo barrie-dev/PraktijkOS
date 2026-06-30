@@ -775,6 +775,56 @@ const seedData = {
       completedBy: "Praktijkhouder"
     }
   ],
+  saasRiskPlaybooks: [
+    {
+      id: "playbook-billing-risk",
+      tenantId: "tenant-de-linde",
+      category: "Billing",
+      title: "Betaalrisico opvolgen",
+      trigger: "Open SaaS factuur of billingstatus met actie nodig",
+      severity: "warning",
+      owner: "Customer success",
+      status: "Aanbevolen",
+      recommendedAction: "Plan betaalmethodebevestiging en zet dunning klaar.",
+      actionTitle: "Betaalrisico en betaalmethode opvolgen",
+      actionDetail: "Controleer open SaaS facturen, bevestig Bancontact/Wero en stem volgende dunning af.",
+      lastRunAt: null,
+      lastRunBy: null,
+      runCount: 0
+    },
+    {
+      id: "playbook-adoption-risk",
+      tenantId: "tenant-de-linde",
+      category: "Adoptie",
+      title: "Adoptierisico herstellen",
+      trigger: "Open onboarding, implementatiemijlpalen of lage AI-adoptie",
+      severity: "warning",
+      owner: "Customer success",
+      status: "Aanbevolen",
+      recommendedAction: "Bundel onboarding, portaal en AI-acties in een success-call.",
+      actionTitle: "Adoptiecall met praktijk voorbereiden",
+      actionDetail: "Bespreek open onboardingstappen, portaalactivatie en AI-gebruik met praktijkhouder en onthaal.",
+      lastRunAt: null,
+      lastRunBy: null,
+      runCount: 0
+    },
+    {
+      id: "playbook-support-escalation",
+      tenantId: "tenant-de-linde",
+      category: "Support",
+      title: "Escalatie terug op spoor zetten",
+      trigger: "Geescaleerd supportticket of hoog-prioritaire blocker",
+      severity: "danger",
+      owner: "Customer success",
+      status: "Aanbevolen",
+      recommendedAction: "Wijs eigenaar toe, bevestig SLA en stuur statusupdate.",
+      actionTitle: "Escalatieplan uitvoeren",
+      actionDetail: "Maak een duidelijke owner/SLA-update voor de tenant en koppel blocker aan renewal of entitlement.",
+      lastRunAt: null,
+      lastRunBy: null,
+      runCount: 0
+    }
+  ],
   appointments: [
     {
       id: "apt-001",

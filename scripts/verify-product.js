@@ -223,6 +223,14 @@ async function verify() {
     assert(usageAlertState.saasSuccessMetrics.some((metric) => metric.id === "go-live-readiness"), "SaaS success dashboard should include go-live readiness.");
     assert(usageAlertState.saasSuccessMetrics.some((metric) => metric.id === "support-load"), "SaaS success dashboard should include support load.");
     assert(usageAlertState.saasSuccessActions.some((item) => item.status === "Open"), "SaaS success dashboard should include open actions.");
+    assert(usageAlertState.saasRiskPlaybooks.some((item) => item.status === "Aanbevolen"), "SaaS risk playbooks should recommend active automations.");
+    const recommendedPlaybook = usageAlertState.saasRiskPlaybooks.find((item) => item.status === "Aanbevolen");
+    const playbookRun = await request(`/api/saas-risk-playbooks/${recommendedPlaybook.id}/run`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(playbookRun.playbook.lastRunAt, "Running a risk playbook should stamp execution metadata.");
+    assert(playbookRun.action.status === "Open", "Running a risk playbook should create a customer success action.");
     const openSuccessAction = usageAlertState.saasSuccessActions.find((item) => item.status === "Open");
     const completedSuccessAction = await request(`/api/saas-success-actions/${openSuccessAction.id}/complete`, {
       method: "POST",

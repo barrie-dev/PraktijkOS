@@ -349,6 +349,41 @@ function buildSaasSuccessMetrics(store) {
   ];
 }
 
+function buildSaasRiskPlaybooks(store) {
+  const account = store.practice?.saasAccount || {};
+  const billingStatus = `${account.billingStatus || ""}`.toLowerCase();
+  const openInvoices = (store.saasInvoices || []).filter((invoice) => invoice.status !== "Betaald").length;
+  const activationItems = [
+    ...(store.saasOnboardingChecklist || []),
+    ...(store.saasImplementationMilestones || [])
+  ];
+  const openActivation = activationItems.filter((item) => item.status !== "Klaar").length;
+  const escalatedSupport = (store.saasSupportQueue || []).filter((ticket) => ticket.status === "Geescaleerd").length;
+  const aiAdoption = percentage(account.aiCreditsUsed || 0, account.aiCreditsIncluded || 0);
+
+  const activeById = {
+    "playbook-billing-risk": openInvoices > 0 || billingStatus.includes("betaal") || billingStatus.includes("pauze"),
+    "playbook-adoption-risk": openActivation > 0 || aiAdoption < 10 || aiAdoption > 80,
+    "playbook-support-escalation": escalatedSupport > 0
+  };
+
+  const detailById = {
+    "playbook-billing-risk": openInvoices ? `${openInvoices} open SaaS factuur/facturen of billingactie.` : "Geen open billingrisico.",
+    "playbook-adoption-risk": openActivation ? `${openActivation} open activatiestap(pen), AI-adoptie ${aiAdoption}%.` : `AI-adoptie ${aiAdoption}%.`,
+    "playbook-support-escalation": escalatedSupport ? `${escalatedSupport} supportescalatie(s) vragen opvolging.` : "Geen actieve supportescalatie."
+  };
+
+  return (store.saasRiskPlaybooks || []).map((playbook) => {
+    const active = Boolean(activeById[playbook.id]);
+    return {
+      ...playbook,
+      status: playbook.lastRunAt ? "Uitgevoerd" : active ? "Aanbevolen" : "Stand-by",
+      signal: playbook.lastRunAt ? "success" : active ? playbook.severity || "warning" : "success",
+      triggerDetail: detailById[playbook.id] || playbook.trigger
+    };
+  });
+}
+
 function buildClientExport(store, clientId, user) {
   const client = store.clients.find((item) => item.id === clientId);
   if (!client) return null;
@@ -1159,6 +1194,7 @@ async function handleApi(request, response) {
       saasUsageLedger: (store.saasUsageLedger || []).slice(0, 5),
       saasHealth: buildSaasHealth(store),
       saasSuccessMetrics: buildSaasSuccessMetrics(store),
+      saasRiskPlaybooks: buildSaasRiskPlaybooks(store),
       analytics
     });
     return;
@@ -1170,7 +1206,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/state") {
-    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store), saasHealth: buildSaasHealth(store), saasSuccessMetrics: buildSaasSuccessMetrics(store) });
+    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store), saasHealth: buildSaasHealth(store), saasSuccessMetrics: buildSaasSuccessMetrics(store), saasRiskPlaybooks: buildSaasRiskPlaybooks(store) });
     return;
   }
 
@@ -1515,6 +1551,51 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 200, updatedAction);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-risk-playbooks\/[^/]+\/run$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const playbookId = url.pathname.split("/")[3];
+    const playbook = (store.saasRiskPlaybooks || []).find((item) => item.id === playbookId);
+    if (!playbook) {
+      sendJson(response, 404, { error: "SaaS risk playbook not found" });
+      return;
+    }
+
+    const now = timestampLabel();
+    const updatedPlaybook = {
+      ...playbook,
+      status: "Uitgevoerd",
+      lastRunAt: now,
+      lastRunBy: user.name,
+      runCount: Number(playbook.runCount || 0) + 1
+    };
+    const successAction = {
+      id: uid("success"),
+      tenantId: playbook.tenantId,
+      category: playbook.category,
+      title: playbook.actionTitle || playbook.recommendedAction,
+      owner: playbook.owner || "Customer success",
+      priority: playbook.severity === "danger" ? "Hoog" : "Normaal",
+      status: "Open",
+      dueAt: "Deze week",
+      detail: playbook.actionDetail || playbook.recommendedAction,
+      completedAt: null,
+      completedBy: null
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasRiskPlaybooks: (store.saasRiskPlaybooks || []).map((item) => item.id === playbookId ? updatedPlaybook : item),
+        saasSuccessActions: [successAction, ...(store.saasSuccessActions || [])].slice(0, 30)
+      },
+      "Risk playbook uitgevoerd",
+      `${updatedPlaybook.category}: ${updatedPlaybook.title}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, { playbook: updatedPlaybook, action: successAction });
     return;
   }
 
