@@ -274,6 +274,81 @@ function buildSaasHealth(store) {
   };
 }
 
+function percentage(used, total) {
+  if (!total) return 0;
+  return Math.round((Number(used || 0) / Number(total || 1)) * 100);
+}
+
+function buildSaasSuccessMetrics(store) {
+  const account = store.practice?.saasAccount || {};
+  const featureEntitlements = store.saasFeatureEntitlements || [];
+  const activeFeatures = featureEntitlements.filter((item) => item.status === "Actief").length;
+  const activationItems = [
+    ...(store.saasOnboardingChecklist || []),
+    ...(store.saasImplementationMilestones || [])
+  ];
+  const completedActivation = activationItems.filter((item) => item.status === "Klaar").length;
+  const openSupport = (store.saasSupportQueue || []).filter((ticket) => ticket.status !== "Gesloten");
+  const escalatedSupport = openSupport.filter((ticket) => ticket.status === "Geescaleerd").length;
+  const aiCreditsUsed = Number(account.aiCreditsUsed || 0);
+  const aiCreditsIncluded = Number(account.aiCreditsIncluded || 0);
+  const aiAdoption = percentage(aiCreditsUsed, aiCreditsIncluded);
+  const openLifecycle = (store.saasLifecycleRequests || []).filter((item) => item.status === "In review").length;
+  const openSuccessActions = (store.saasSuccessActions || []).filter((item) => item.status !== "Klaar").length;
+  const activationTotal = activationItems.length || 1;
+
+  return [
+    {
+      id: "feature-adoption",
+      label: "Feature adoption",
+      value: `${activeFeatures}/${featureEntitlements.length || 0}`,
+      target: "Alle kernmodules actief",
+      detail: activeFeatures === featureEntitlements.length ? "Tenant gebruikt alle actieve entitlements." : `${featureEntitlements.length - activeFeatures} entitlement(s) nog beperkt.`,
+      signal: activeFeatures === featureEntitlements.length ? "success" : "warning"
+    },
+    {
+      id: "go-live-readiness",
+      label: "Go-live readiness",
+      value: `${completedActivation}/${activationTotal}`,
+      target: "100% voor livegang",
+      detail: completedActivation === activationTotal ? "Onboarding en implementatie zijn afgerond." : `${activationTotal - completedActivation} activatiestap(pen) open.`,
+      signal: completedActivation === activationTotal ? "success" : "warning"
+    },
+    {
+      id: "support-load",
+      label: "Support load",
+      value: `${openSupport.length}`,
+      target: "0 open blockers",
+      detail: escalatedSupport ? `${escalatedSupport} escalatie(s) bij customer success.` : openSupport.length ? `${openSupport.length} open supportticket(s).` : "Geen open tenanttickets.",
+      signal: escalatedSupport ? "danger" : openSupport.length ? "warning" : "success"
+    },
+    {
+      id: "ai-adoption",
+      label: "AI adoption",
+      value: `${aiAdoption}%`,
+      target: "10-80% gezond gebruik",
+      detail: `${aiCreditsUsed}/${aiCreditsIncluded || "?"} AI credits gebruikt deze maand.`,
+      signal: aiAdoption > 80 || aiAdoption < 10 ? "warning" : "success"
+    },
+    {
+      id: "renewal-readiness",
+      label: "Renewal readiness",
+      value: openLifecycle ? `${openLifecycle} review` : "Rustig",
+      target: account.renewalDate || "Nog te plannen",
+      detail: openLifecycle ? "Er loopt een verlengings- of contractbeslissing." : "Geen lifecycle-aanvraag in review.",
+      signal: openLifecycle ? "warning" : "success"
+    },
+    {
+      id: "success-actions",
+      label: "Success actions",
+      value: `${openSuccessActions}`,
+      target: "0 open acties",
+      detail: openSuccessActions ? `${openSuccessActions} opvolgactie(s) voor customer success.` : "Alle success-acties zijn afgewerkt.",
+      signal: openSuccessActions ? "warning" : "success"
+    }
+  ];
+}
+
 function buildClientExport(store, clientId, user) {
   const client = store.clients.find((item) => item.id === clientId);
   if (!client) return null;
@@ -1083,6 +1158,7 @@ async function handleApi(request, response) {
       saasUsageAlerts: buildSaasUsageAlerts(store),
       saasUsageLedger: (store.saasUsageLedger || []).slice(0, 5),
       saasHealth: buildSaasHealth(store),
+      saasSuccessMetrics: buildSaasSuccessMetrics(store),
       analytics
     });
     return;
@@ -1094,7 +1170,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/state") {
-    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store), saasHealth: buildSaasHealth(store) });
+    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store), saasHealth: buildSaasHealth(store), saasSuccessMetrics: buildSaasSuccessMetrics(store) });
     return;
   }
 
@@ -1410,6 +1486,35 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 200, updatedMilestone);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-success-actions\/[^/]+\/complete$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const actionId = url.pathname.split("/")[3];
+    const action = (store.saasSuccessActions || []).find((item) => item.id === actionId);
+    if (!action) {
+      sendJson(response, 404, { error: "SaaS success action not found" });
+      return;
+    }
+
+    const updatedAction = {
+      ...action,
+      status: "Klaar",
+      completedAt: timestampLabel(),
+      completedBy: user.name
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasSuccessActions: (store.saasSuccessActions || []).map((item) => item.id === actionId ? updatedAction : item)
+      },
+      "Customer success actie afgerond",
+      `${updatedAction.category}: ${updatedAction.title}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedAction);
     return;
   }
 

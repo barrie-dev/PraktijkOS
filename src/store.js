@@ -5,6 +5,7 @@ import {
   completeDayCloseCheck,
   completeSaasImplementationMilestone,
   completeSaasOnboardingCheck,
+  completeSaasSuccessAction,
   completeTask as completeTaskRequest,
   collectIsoEvidencePack,
   createAccessOverride,
@@ -63,7 +64,7 @@ import {
   updateSaasSupportTicket
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasImplementationMilestones, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasImplementationMilestones, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasSuccessActions, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -99,6 +100,7 @@ const initialState = {
   isoEvidenceExport: null,
   saasUsageAlerts: [],
   saasHealth: null,
+  saasSuccessMetrics: [],
   billingExport: null,
   accountingTool: "exact",
   accountingExport: null,
@@ -193,6 +195,7 @@ const initialState = {
   saasLifecycleRequests,
   saasOnboardingChecklist,
   saasPlanChanges,
+  saasSuccessActions,
   saasSupportQueue,
   saasUsageLedger,
   voiceConsents,
@@ -2588,6 +2591,41 @@ export async function completeSaasImplementationItem(milestoneId) {
     `${updatedMilestone.phase}: ${updatedMilestone.label}.`
   ));
   return { ok: true, message: "Implementatiemijlpaal lokaal afgerond." };
+}
+
+export async function completeSaasSuccessActionItem(actionId) {
+  const action = (state.saasSuccessActions || []).find((item) => item.id === actionId);
+  if (!action) {
+    return { ok: false, message: "Customer success actie niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await completeSaasSuccessAction(actionId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Customer success actie afgerond." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedAction = {
+    ...action,
+    status: "Klaar",
+    completedAt: nowLabel(),
+    completedBy: state.currentUser?.name || "PraktijkOS"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasSuccessActions: (state.saasSuccessActions || []).map((item) => item.id === actionId ? updatedAction : item),
+      view: "settings"
+    },
+    "Customer success actie afgerond",
+    `${updatedAction.category}: ${updatedAction.title}.`
+  ));
+  return { ok: true, message: "Customer success actie lokaal afgerond." };
 }
 
 export async function markSaasInvoicePaid(invoiceId) {

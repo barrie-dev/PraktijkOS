@@ -734,6 +734,47 @@ const seedData = {
       detail: "AI policy, modelregister en reviewflow bevestigen."
     }
   ],
+  saasSuccessActions: [
+    {
+      id: "success-001",
+      tenantId: "tenant-de-linde",
+      category: "Adoptie",
+      title: "Portaaladoptie met onthaal opvolgen",
+      owner: "Customer success",
+      priority: "Hoog",
+      status: "Open",
+      dueAt: "03/07/2026",
+      detail: "Bespreek welke clientgroepen eerst portaaluitnodigingen krijgen en meet intakevolledigheid.",
+      completedAt: null,
+      completedBy: null
+    },
+    {
+      id: "success-002",
+      tenantId: "tenant-de-linde",
+      category: "Uitbreiding",
+      title: "Scale-up beslissing voorbereiden",
+      owner: "Customer success",
+      priority: "Normaal",
+      status: "Open",
+      dueAt: "08/07/2026",
+      detail: "Koppel renewal, Belgische integraties en extra seats aan een concreet upgradevoorstel.",
+      completedAt: null,
+      completedBy: null
+    },
+    {
+      id: "success-003",
+      tenantId: "tenant-de-linde",
+      category: "AI",
+      title: "AI-governance checkpoint afgerond",
+      owner: "Praktijkhouder",
+      priority: "Normaal",
+      status: "Klaar",
+      dueAt: "30/06/2026",
+      detail: "Modelregister en reviewafspraken zijn bevestigd voor administratieve AI-acties.",
+      completedAt: "30/06/2026",
+      completedBy: "Praktijkhouder"
+    }
+  ],
   appointments: [
     {
       id: "apt-001",

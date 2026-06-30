@@ -44,6 +44,7 @@ npm run verify
 - `POST /api/saas-lifecycle-requests`
 - `POST /api/saas-contract-documents/:id/share`
 - `POST /api/saas-implementation/:id/complete`
+- `POST /api/saas-success-actions/:id/complete`
 - `PATCH /api/saas-invoices/:id`
 - `POST /api/saas-invoices/:id/payment-handoff`
 - `POST /api/saas-invoices/:id/dunning`

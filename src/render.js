@@ -1907,11 +1907,45 @@ function localSaasHealth(state, saasUsageAlerts) {
   };
 }
 
+function percentage(used, total) {
+  if (!total) return 0;
+  return Math.round((Number(used || 0) / Number(total || 1)) * 100);
+}
+
+function localSaasSuccessMetrics(state) {
+  const account = state.practice.saasAccount || {};
+  const featureEntitlements = state.saasFeatureEntitlements || [];
+  const activeFeatures = featureEntitlements.filter((item) => item.status === "Actief").length;
+  const activationItems = [
+    ...(state.saasOnboardingChecklist || []),
+    ...(state.saasImplementationMilestones || [])
+  ];
+  const completedActivation = activationItems.filter((item) => item.status === "Klaar").length;
+  const activationTotal = activationItems.length || 1;
+  const openSupport = (state.saasSupportQueue || []).filter((ticket) => ticket.status !== "Gesloten");
+  const escalatedSupport = openSupport.filter((ticket) => ticket.status === "Geescaleerd").length;
+  const aiCreditsUsed = Number(account.aiCreditsUsed || 0);
+  const aiCreditsIncluded = Number(account.aiCreditsIncluded || 0);
+  const aiAdoption = percentage(aiCreditsUsed, aiCreditsIncluded);
+  const openLifecycle = (state.saasLifecycleRequests || []).filter((item) => item.status === "In review").length;
+  const openSuccessActions = (state.saasSuccessActions || []).filter((item) => item.status !== "Klaar").length;
+
+  return [
+    { id: "feature-adoption", label: "Feature adoption", value: `${activeFeatures}/${featureEntitlements.length || 0}`, target: "Alle kernmodules actief", detail: activeFeatures === featureEntitlements.length ? "Tenant gebruikt alle actieve entitlements." : `${featureEntitlements.length - activeFeatures} entitlement(s) nog beperkt.`, signal: activeFeatures === featureEntitlements.length ? "success" : "warning" },
+    { id: "go-live-readiness", label: "Go-live readiness", value: `${completedActivation}/${activationTotal}`, target: "100% voor livegang", detail: completedActivation === activationTotal ? "Onboarding en implementatie zijn afgerond." : `${activationTotal - completedActivation} activatiestap(pen) open.`, signal: completedActivation === activationTotal ? "success" : "warning" },
+    { id: "support-load", label: "Support load", value: `${openSupport.length}`, target: "0 open blockers", detail: escalatedSupport ? `${escalatedSupport} escalatie(s) bij customer success.` : openSupport.length ? `${openSupport.length} open supportticket(s).` : "Geen open tenanttickets.", signal: escalatedSupport ? "danger" : openSupport.length ? "warning" : "success" },
+    { id: "ai-adoption", label: "AI adoption", value: `${aiAdoption}%`, target: "10-80% gezond gebruik", detail: `${aiCreditsUsed}/${aiCreditsIncluded || "?"} AI credits gebruikt deze maand.`, signal: aiAdoption > 80 || aiAdoption < 10 ? "warning" : "success" },
+    { id: "renewal-readiness", label: "Renewal readiness", value: openLifecycle ? `${openLifecycle} review` : "Rustig", target: account.renewalDate || "Nog te plannen", detail: openLifecycle ? "Er loopt een verlengings- of contractbeslissing." : "Geen lifecycle-aanvraag in review.", signal: openLifecycle ? "warning" : "success" },
+    { id: "success-actions", label: "Success actions", value: `${openSuccessActions}`, target: "0 open acties", detail: openSuccessActions ? `${openSuccessActions} opvolgactie(s) voor customer success.` : "Alle success-acties zijn afgewerkt.", signal: openSuccessActions ? "warning" : "success" }
+  ];
+}
+
 function settingsView(state) {
   const modelEvaluations = state.aiModelEvaluations || [];
   const saasAccount = state.practice.saasAccount || {};
   const saasUsageAlerts = state.saasUsageAlerts?.length ? state.saasUsageAlerts : localSaasUsageAlerts(state);
   const saasHealth = state.saasHealth || localSaasHealth(state, saasUsageAlerts);
+  const saasSuccessMetrics = state.saasSuccessMetrics?.length ? state.saasSuccessMetrics : localSaasSuccessMetrics(state);
   const seatsUsed = state.team.length;
   const seatsIncluded = Number(saasAccount.seatsIncluded || seatsUsed || 1);
   const clientCount = state.clients.length;
@@ -1927,12 +1961,14 @@ function settingsView(state) {
   const saasAdminActivity = state.saasAdminActivity || [];
   const saasContractDocuments = state.saasContractDocuments || [];
   const saasImplementationMilestones = state.saasImplementationMilestones || [];
+  const saasSuccessActions = state.saasSuccessActions || [];
   const saasSupportQueue = state.saasSupportQueue || [];
   const saasLifecycleRequests = state.saasLifecycleRequests || [];
   const completedSaasOnboarding = saasOnboardingChecklist.filter((item) => item.status === "Klaar").length;
   const unreadSaasActivity = saasAdminActivity.filter((item) => item.status !== "Gelezen").length;
   const openSupportTickets = saasSupportQueue.filter((ticket) => ticket.status !== "Gesloten");
   const completedImplementationMilestones = saasImplementationMilestones.filter((item) => item.status === "Klaar").length;
+  const openSuccessActions = saasSuccessActions.filter((item) => item.status !== "Klaar");
   return `
     <section class="settings-grid">
       <form class="panel wide" data-form="saas-account">
@@ -1979,6 +2015,34 @@ function settingsView(state) {
               <small>${escapeHtml(indicator.detail)}</small>
             </article>
           `).join("")}
+        </div>
+      </div>
+
+      <div class="panel wide" data-section="saas-success">
+        <div class="panel-header"><div><h2>Customer success</h2><p>Adoptie, livegang, supportdruk en renewal readiness voor deze tenant.</p></div>${badge(openSuccessActions.length ? `${openSuccessActions.length} acties` : "Op schema", openSuccessActions.length ? "warning" : "success")}</div>
+        <div class="metric-grid compact-metrics">
+          ${saasSuccessMetrics.map((metric) => `
+            <article class="metric">
+              <span>${escapeHtml(metric.label)}</span>
+              <strong>${escapeHtml(metric.value)}</strong>
+              <small>${escapeHtml(metric.target)} / ${escapeHtml(metric.detail)}</small>
+            </article>
+          `).join("")}
+        </div>
+        <div class="security-list">
+          ${saasSuccessActions.map((item) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(item.category)} / ${escapeHtml(item.title)}</strong>
+                <span>${escapeHtml(item.priority)} / eigenaar ${escapeHtml(item.owner)} / deadline ${escapeHtml(item.dueAt || "niet gepland")}${item.completedAt ? ` / afgerond ${escapeHtml(item.completedAt)} door ${escapeHtml(item.completedBy || "PraktijkOS")}` : ""}</span>
+                <span>${escapeHtml(item.detail)}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(item.status || "Open", item.status === "Klaar" ? "success" : item.priority === "Hoog" ? "danger" : "warning")}
+                ${item.status !== "Klaar" ? `<button class="ghost-action" data-action="complete-saas-success" data-action-id="${escapeHtml(item.id)}" type="button">Opgevolgd</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen customer success acties voor deze tenant.</p>`}
         </div>
       </div>
 

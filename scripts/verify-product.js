@@ -220,6 +220,16 @@ async function verify() {
     });
     assert(completedMilestone.status === "Klaar", "SaaS implementation milestone should be completable.");
     assert(completedMilestone.completedAt, "Completed SaaS implementation milestone should include metadata.");
+    assert(usageAlertState.saasSuccessMetrics.some((metric) => metric.id === "go-live-readiness"), "SaaS success dashboard should include go-live readiness.");
+    assert(usageAlertState.saasSuccessMetrics.some((metric) => metric.id === "support-load"), "SaaS success dashboard should include support load.");
+    assert(usageAlertState.saasSuccessActions.some((item) => item.status === "Open"), "SaaS success dashboard should include open actions.");
+    const openSuccessAction = usageAlertState.saasSuccessActions.find((item) => item.status === "Open");
+    const completedSuccessAction = await request(`/api/saas-success-actions/${openSuccessAction.id}/complete`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(completedSuccessAction.status === "Klaar", "SaaS success action should be completable.");
+    assert(completedSuccessAction.completedAt, "Completed SaaS success action should include metadata.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
     const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {

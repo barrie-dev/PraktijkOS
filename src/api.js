@@ -199,6 +199,13 @@ export async function completeSaasImplementationMilestone(milestoneId) {
   });
 }
 
+export async function completeSaasSuccessAction(actionId) {
+  return request(`/api/saas-success-actions/${actionId}/complete`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

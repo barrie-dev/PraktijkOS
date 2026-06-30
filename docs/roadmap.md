@@ -17,6 +17,7 @@
 - Tenant renewal and cancellation workflow
 - Tenant contract document center
 - Tenant implementation milestone tracker
+- Tenant success metrics dashboard
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -72,7 +73,7 @@
 
 ## Next Product Slice
 
-- Add tenant success metrics dashboard.
+- Add tenant risk playbook automation.
 
 ## Phase 4: Belgian Integrations
 
