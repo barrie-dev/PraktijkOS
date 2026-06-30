@@ -730,6 +730,57 @@ export const saasContractDocuments = [
   }
 ];
 
+export const saasImplementationMilestones = [
+  {
+    id: "milestone-001",
+    tenantId: "tenant-de-linde",
+    phase: "Kickoff",
+    label: "Praktijkconfiguratie bevestigd",
+    owner: "Praktijkhouder",
+    status: "Klaar",
+    dueAt: "30/06/2026",
+    completedAt: "30/06/2026",
+    completedBy: "Praktijkhouder",
+    detail: "Basisinstellingen, taal, locaties en rollen zijn nagekeken."
+  },
+  {
+    id: "milestone-002",
+    tenantId: "tenant-de-linde",
+    phase: "Data",
+    label: "Dossiers en agenda voorbereid",
+    owner: "Onthaal",
+    status: "Open",
+    dueAt: "04/07/2026",
+    completedAt: null,
+    completedBy: null,
+    detail: "Importvoorbereiding en agenda-afspraken valideren."
+  },
+  {
+    id: "milestone-003",
+    tenantId: "tenant-de-linde",
+    phase: "Portaal",
+    label: "Clientportaal piloot getest",
+    owner: "Administratie",
+    status: "Open",
+    dueAt: "06/07/2026",
+    completedAt: null,
+    completedBy: null,
+    detail: "Testuitnodiging sturen en intakeflow controleren."
+  },
+  {
+    id: "milestone-004",
+    tenantId: "tenant-de-linde",
+    phase: "AI",
+    label: "AI governance go-live check",
+    owner: "Praktijkhouder",
+    status: "Open",
+    dueAt: "08/07/2026",
+    completedAt: null,
+    completedBy: null,
+    detail: "AI policy, modelregister en reviewflow bevestigen."
+  }
+];
+
 export const waitlist = [
   {
     id: "wait-001",

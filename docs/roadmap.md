@@ -16,6 +16,7 @@
 - Tenant support and escalation queue
 - Tenant renewal and cancellation workflow
 - Tenant contract document center
+- Tenant implementation milestone tracker
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -71,7 +72,7 @@
 
 ## Next Product Slice
 
-- Add tenant implementation milestone tracker.
+- Add tenant success metrics dashboard.
 
 ## Phase 4: Belgian Integrations
 

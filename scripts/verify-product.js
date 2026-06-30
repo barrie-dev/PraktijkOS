@@ -212,6 +212,14 @@ async function verify() {
     });
     assert(sharedContract.status === "Gedeeld", "SaaS contract document should be shareable.");
     assert(sharedContract.sharedAt, "Shared SaaS contract document should include share metadata.");
+    assert(usageAlertState.saasImplementationMilestones.some((item) => item.status === "Open"), "SaaS implementation tracker should include open milestones.");
+    const openMilestone = usageAlertState.saasImplementationMilestones.find((item) => item.status === "Open");
+    const completedMilestone = await request(`/api/saas-implementation/${openMilestone.id}/complete`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(completedMilestone.status === "Klaar", "SaaS implementation milestone should be completable.");
+    assert(completedMilestone.completedAt, "Completed SaaS implementation milestone should include metadata.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
     const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {

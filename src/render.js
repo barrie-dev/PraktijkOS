@@ -1926,11 +1926,13 @@ function settingsView(state) {
   const saasFeatureEntitlements = state.saasFeatureEntitlements || [];
   const saasAdminActivity = state.saasAdminActivity || [];
   const saasContractDocuments = state.saasContractDocuments || [];
+  const saasImplementationMilestones = state.saasImplementationMilestones || [];
   const saasSupportQueue = state.saasSupportQueue || [];
   const saasLifecycleRequests = state.saasLifecycleRequests || [];
   const completedSaasOnboarding = saasOnboardingChecklist.filter((item) => item.status === "Klaar").length;
   const unreadSaasActivity = saasAdminActivity.filter((item) => item.status !== "Gelezen").length;
   const openSupportTickets = saasSupportQueue.filter((ticket) => ticket.status !== "Gesloten");
+  const completedImplementationMilestones = saasImplementationMilestones.filter((item) => item.status === "Klaar").length;
   return `
     <section class="settings-grid">
       <form class="panel wide" data-form="saas-account">
@@ -1995,6 +1997,25 @@ function settingsView(state) {
               </div>
             </article>
           `).join("") || `<p class="empty-state">Geen onboardingstappen voor deze tenant.</p>`}
+        </div>
+      </div>
+
+      <div class="panel wide" data-section="saas-implementation">
+        <div class="panel-header"><div><h2>Implementation milestones</h2><p>Fases richting livegang met eigenaar, deadline en afrondstatus.</p></div>${badge(`${completedImplementationMilestones}/${saasImplementationMilestones.length} klaar`, completedImplementationMilestones === saasImplementationMilestones.length ? "success" : "warning")}</div>
+        <div class="security-list">
+          ${saasImplementationMilestones.map((item) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(item.phase)} / ${escapeHtml(item.label)}</strong>
+                <span>${escapeHtml(item.owner)} / deadline ${escapeHtml(item.dueAt || "niet gepland")}${item.completedAt ? ` / afgerond ${escapeHtml(item.completedAt)} door ${escapeHtml(item.completedBy || "PraktijkOS")}` : ""}</span>
+                <span>${escapeHtml(item.detail)}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(item.status || "Open", item.status === "Klaar" ? "success" : "warning")}
+                ${item.status !== "Klaar" ? `<button class="ghost-action" data-action="complete-saas-implementation" data-milestone-id="${escapeHtml(item.id)}" type="button">Afronden</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen implementatiemijlpalen voor deze tenant.</p>`}
         </div>
       </div>
 

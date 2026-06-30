@@ -1384,6 +1384,35 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-implementation\/[^/]+\/complete$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const milestoneId = url.pathname.split("/")[3];
+    const milestone = (store.saasImplementationMilestones || []).find((item) => item.id === milestoneId);
+    if (!milestone) {
+      sendJson(response, 404, { error: "SaaS implementation milestone not found" });
+      return;
+    }
+
+    const updatedMilestone = {
+      ...milestone,
+      status: "Klaar",
+      completedAt: timestampLabel(),
+      completedBy: user.name
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasImplementationMilestones: (store.saasImplementationMilestones || []).map((item) => item.id === milestoneId ? updatedMilestone : item)
+      },
+      "SaaS implementatiemijlpaal afgerond",
+      `${updatedMilestone.phase}: ${updatedMilestone.label}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedMilestone);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/team") {
     if (!requirePermission(response, user, "team")) return;
     const payload = await readJson(request);

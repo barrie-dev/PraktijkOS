@@ -192,6 +192,13 @@ export async function shareSaasContractDocument(documentId) {
   });
 }
 
+export async function completeSaasImplementationMilestone(milestoneId) {
+  return request(`/api/saas-implementation/${milestoneId}/complete`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

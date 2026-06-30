@@ -34,6 +34,7 @@ import {
   completeIntegrationReview,
   completeKnowledgeReview,
   completeRetentionReview,
+  completeSaasImplementationItem,
   completeSaasOnboardingItem,
   completeTask,
   completeOnboarding,
@@ -355,6 +356,12 @@ async function handleClick(event) {
 
   if (action === "share-saas-contract") {
     const result = await shareSaasContract(target.dataset.documentId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "complete-saas-implementation") {
+    const result = await completeSaasImplementationItem(target.dataset.milestoneId);
     showToast(result.message);
     return;
   }

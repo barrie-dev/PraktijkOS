@@ -3,6 +3,7 @@ import {
   applyImport,
   approveDraft,
   completeDayCloseCheck,
+  completeSaasImplementationMilestone,
   completeSaasOnboardingCheck,
   completeTask as completeTaskRequest,
   collectIsoEvidencePack,
@@ -62,7 +63,7 @@ import {
   updateSaasSupportTicket
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasImplementationMilestones, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasSupportQueue, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -187,6 +188,7 @@ const initialState = {
   saasAdminActivity,
   saasContractDocuments,
   saasFeatureEntitlements,
+  saasImplementationMilestones,
   saasInvoices,
   saasLifecycleRequests,
   saasOnboardingChecklist,
@@ -2551,6 +2553,41 @@ export async function shareSaasContract(documentId) {
     `${updatedDocument.title} lokaal gedeeld.`
   ));
   return { ok: true, message: "Contractdocument lokaal gedeeld." };
+}
+
+export async function completeSaasImplementationItem(milestoneId) {
+  const milestone = (state.saasImplementationMilestones || []).find((item) => item.id === milestoneId);
+  if (!milestone) {
+    return { ok: false, message: "Implementatiemijlpaal niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await completeSaasImplementationMilestone(milestoneId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Implementatiemijlpaal afgerond." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedMilestone = {
+    ...milestone,
+    status: "Klaar",
+    completedAt: nowLabel(),
+    completedBy: state.currentUser?.name || "PraktijkOS"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasImplementationMilestones: (state.saasImplementationMilestones || []).map((item) => item.id === milestoneId ? updatedMilestone : item),
+      view: "settings"
+    },
+    "SaaS implementatiemijlpaal afgerond",
+    `${updatedMilestone.phase}: ${updatedMilestone.label}.`
+  ));
+  return { ok: true, message: "Implementatiemijlpaal lokaal afgerond." };
 }
 
 export async function markSaasInvoicePaid(invoiceId) {
