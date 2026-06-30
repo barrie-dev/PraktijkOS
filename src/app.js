@@ -14,6 +14,7 @@ import {
   addPortalInvite,
   addTeamMember,
   addVoiceConsent,
+  acknowledgeSaasActivity,
   applyPreparedImport,
   approveCurrentDraft,
   bootstrapState,
@@ -333,6 +334,12 @@ async function handleClick(event) {
 
   if (action === "toggle-saas-entitlement") {
     const result = await changeSaasFeatureEntitlement(target.dataset.entitlementId, target.dataset.status);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "acknowledge-saas-activity") {
+    const result = await acknowledgeSaasActivity(target.dataset.activityId);
     showToast(result.message);
     return;
   }

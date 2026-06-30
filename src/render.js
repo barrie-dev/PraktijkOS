@@ -1896,7 +1896,9 @@ function settingsView(state) {
   const saasPlanChanges = state.saasPlanChanges || [];
   const saasOnboardingChecklist = state.saasOnboardingChecklist || [];
   const saasFeatureEntitlements = state.saasFeatureEntitlements || [];
+  const saasAdminActivity = state.saasAdminActivity || [];
   const completedSaasOnboarding = saasOnboardingChecklist.filter((item) => item.status === "Klaar").length;
+  const unreadSaasActivity = saasAdminActivity.filter((item) => item.status !== "Gelezen").length;
   return `
     <section class="settings-grid">
       <form class="panel wide" data-form="saas-account">
@@ -1947,6 +1949,25 @@ function settingsView(state) {
               </div>
             </article>
           `).join("") || `<p class="empty-state">Geen onboardingstappen voor deze tenant.</p>`}
+        </div>
+      </div>
+
+      <div class="panel wide" data-section="saas-admin-activity">
+        <div class="panel-header"><div><h2>Admin activity</h2><p>Recente tenantgebeurtenissen voor billing, features, plan en onboarding.</p></div>${badge(unreadSaasActivity ? `${unreadSaasActivity} nieuw` : "Alles gelezen", unreadSaasActivity ? "warning" : "success")}</div>
+        <div class="security-list">
+          ${saasAdminActivity.map((item) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(item.category)} / ${escapeHtml(item.title)}</strong>
+                <span>${escapeHtml(item.createdAt)} / prioriteit ${escapeHtml(item.priority || "Normaal")}${item.acknowledgedAt ? ` / gelezen ${escapeHtml(item.acknowledgedAt)} door ${escapeHtml(item.acknowledgedBy || "PraktijkOS")}` : ""}</span>
+                <span>${escapeHtml(item.detail)}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(item.status || "Nieuw", item.status === "Gelezen" ? "success" : "warning")}
+                ${item.status !== "Gelezen" ? `<button class="ghost-action" data-action="acknowledge-saas-activity" data-activity-id="${escapeHtml(item.id)}" type="button">Gelezen</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Nog geen SaaS activiteit.</p>`}
         </div>
       </div>
 

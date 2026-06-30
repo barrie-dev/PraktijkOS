@@ -513,6 +513,56 @@ const seedData = {
       updatedBy: "PraktijkOS"
     }
   ],
+  saasAdminActivity: [
+    {
+      id: "saas-activity-001",
+      tenantId: "tenant-de-linde",
+      category: "Billing",
+      title: "SaaS factuur Juli 2026 staat open",
+      detail: "Betaallink en opvolging zijn beschikbaar in SaaS billing.",
+      status: "Nieuw",
+      priority: "Hoog",
+      createdAt: "01/07/2026",
+      acknowledgedAt: null,
+      acknowledgedBy: null
+    },
+    {
+      id: "saas-activity-002",
+      tenantId: "tenant-de-linde",
+      category: "Onboarding",
+      title: "AI governance stap staat nog open",
+      detail: "Valideer AI policy en modelgovernance voor live gebruik.",
+      status: "Nieuw",
+      priority: "Normaal",
+      createdAt: "30/06/2026",
+      acknowledgedAt: null,
+      acknowledgedBy: null
+    },
+    {
+      id: "saas-activity-003",
+      tenantId: "tenant-de-linde",
+      category: "Features",
+      title: "Geavanceerde Belgische integraties gepauzeerd",
+      detail: "Deze module vereist Scale-entitlement of expliciete activering.",
+      status: "Gelezen",
+      priority: "Normaal",
+      createdAt: "30/06/2026",
+      acknowledgedAt: "30/06/2026",
+      acknowledgedBy: "Praktijkhouder"
+    },
+    {
+      id: "saas-activity-004",
+      tenantId: "tenant-de-linde",
+      category: "Plan",
+      title: "Planwijziging naar Scale aangevraagd",
+      detail: "Aanvraag staat klaar voor opvolging door PraktijkOS.",
+      status: "Nieuw",
+      priority: "Normaal",
+      createdAt: "30/06/2026",
+      acknowledgedAt: null,
+      acknowledgedBy: null
+    }
+  ],
   appointments: [
     {
       id: "apt-001",

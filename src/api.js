@@ -164,6 +164,13 @@ export async function updateSaasFeatureEntitlement(entitlementId, payload = {}) 
   });
 }
 
+export async function acknowledgeSaasAdminActivity(activityId) {
+  return request(`/api/saas-activity/${activityId}/acknowledge`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }

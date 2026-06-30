@@ -1194,6 +1194,35 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-activity\/[^/]+\/acknowledge$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const activityId = url.pathname.split("/")[3];
+    const activity = (store.saasAdminActivity || []).find((item) => item.id === activityId);
+    if (!activity) {
+      sendJson(response, 404, { error: "SaaS activity not found" });
+      return;
+    }
+
+    const updatedActivity = {
+      ...activity,
+      status: "Gelezen",
+      acknowledgedAt: timestampLabel(),
+      acknowledgedBy: user.name
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasAdminActivity: (store.saasAdminActivity || []).map((item) => item.id === activityId ? updatedActivity : item)
+      },
+      "SaaS activiteit gelezen",
+      `${updatedActivity.category}: ${updatedActivity.title}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedActivity);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/team") {
     if (!requirePermission(response, user, "team")) return;
     const payload = await readJson(request);

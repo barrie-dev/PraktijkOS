@@ -1,4 +1,5 @@
 import {
+  acknowledgeSaasAdminActivity,
   applyImport,
   approveDraft,
   completeDayCloseCheck,
@@ -58,7 +59,7 @@ import {
   updateSaasInvoice
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasFeatureEntitlements, saasInvoices, saasOnboardingChecklist, saasPlanChanges, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasFeatureEntitlements, saasInvoices, saasOnboardingChecklist, saasPlanChanges, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -179,6 +180,7 @@ const initialState = {
   knowledgeBase,
   aiModels,
   aiModelEvaluations,
+  saasAdminActivity,
   saasFeatureEntitlements,
   saasInvoices,
   saasOnboardingChecklist,
@@ -2383,6 +2385,41 @@ export async function changeSaasFeatureEntitlement(entitlementId, status) {
     `${updatedEntitlement.feature}: ${updatedEntitlement.status}.`
   ));
   return { ok: true, message: status === "Actief" ? "Feature lokaal geactiveerd." : "Feature lokaal gepauzeerd." };
+}
+
+export async function acknowledgeSaasActivity(activityId) {
+  const activity = (state.saasAdminActivity || []).find((item) => item.id === activityId);
+  if (!activity) {
+    return { ok: false, message: "SaaS activiteit niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await acknowledgeSaasAdminActivity(activityId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "SaaS activiteit gelezen." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedActivity = {
+    ...activity,
+    status: "Gelezen",
+    acknowledgedAt: nowLabel(),
+    acknowledgedBy: state.currentUser?.name || "PraktijkOS"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasAdminActivity: (state.saasAdminActivity || []).map((item) => item.id === activityId ? updatedActivity : item),
+      view: "settings"
+    },
+    "SaaS activiteit gelezen",
+    `${updatedActivity.category}: ${updatedActivity.title}.`
+  ));
+  return { ok: true, message: "SaaS activiteit lokaal gelezen." };
 }
 
 export async function markSaasInvoicePaid(invoiceId) {

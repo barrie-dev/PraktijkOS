@@ -11,6 +11,7 @@
 - Tenant plan change workflow
 - Tenant onboarding and feature checklist
 - Tenant feature entitlement controls
+- Tenant admin activity feed
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -66,7 +67,7 @@
 
 ## Next Product Slice
 
-- Add tenant admin activity feed.
+- Add tenant health score and risk indicators.
 
 ## Phase 4: Belgian Integrations
 

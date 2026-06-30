@@ -167,6 +167,14 @@ async function verify() {
     });
     assert(activatedEntitlement.status === "Actief", "SaaS entitlement should be activatable.");
     assert(activatedEntitlement.updatedAt, "Updated SaaS entitlement should include update metadata.");
+    assert(usageAlertState.saasAdminActivity.some((item) => item.status === "Nieuw"), "SaaS admin activity should include unread items.");
+    const unreadActivity = usageAlertState.saasAdminActivity.find((item) => item.status === "Nieuw");
+    const acknowledgedActivity = await request(`/api/saas-activity/${unreadActivity.id}/acknowledge`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(acknowledgedActivity.status === "Gelezen", "SaaS admin activity should be acknowledgeable.");
+    assert(acknowledgedActivity.acknowledgedAt, "Acknowledged SaaS activity should include read metadata.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
     const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {

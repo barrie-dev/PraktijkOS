@@ -39,6 +39,7 @@ npm run verify
 - `POST /api/saas-plan-changes`
 - `POST /api/saas-onboarding/:id/complete`
 - `PATCH /api/saas-entitlements/:id`
+- `POST /api/saas-activity/:id/acknowledge`
 - `PATCH /api/saas-invoices/:id`
 - `POST /api/saas-invoices/:id/payment-handoff`
 - `POST /api/saas-invoices/:id/dunning`
