@@ -10,6 +10,7 @@
 - Tenant self-service usage ledger
 - Tenant plan change workflow
 - Tenant onboarding and feature checklist
+- Tenant feature entitlement controls
 - Practice, location and team management
 - Multi-provider agenda
 - Client records and basic care tracks
@@ -65,7 +66,7 @@
 
 ## Next Product Slice
 
-- Add tenant feature entitlement controls.
+- Add tenant admin activity feed.
 
 ## Phase 4: Belgian Integrations
 

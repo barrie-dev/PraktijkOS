@@ -1895,6 +1895,7 @@ function settingsView(state) {
   const saasUsageLedger = state.saasUsageLedger || [];
   const saasPlanChanges = state.saasPlanChanges || [];
   const saasOnboardingChecklist = state.saasOnboardingChecklist || [];
+  const saasFeatureEntitlements = state.saasFeatureEntitlements || [];
   const completedSaasOnboarding = saasOnboardingChecklist.filter((item) => item.status === "Klaar").length;
   return `
     <section class="settings-grid">
@@ -1946,6 +1947,27 @@ function settingsView(state) {
               </div>
             </article>
           `).join("") || `<p class="empty-state">Geen onboardingstappen voor deze tenant.</p>`}
+        </div>
+      </div>
+
+      <div class="panel wide" data-section="saas-entitlements">
+        <div class="panel-header"><div><h2>Feature entitlements</h2><p>Beheer welke SaaS-modules actief zijn voor deze tenant.</p></div>${badge(`${saasFeatureEntitlements.filter((item) => item.status === "Actief").length}/${saasFeatureEntitlements.length} actief`, "success")}</div>
+        <div class="security-list">
+          ${saasFeatureEntitlements.map((item) => `
+            <article class="security-row">
+              <div>
+                <strong>${escapeHtml(item.feature)}</strong>
+                <span>${escapeHtml(item.plan)} / ${escapeHtml(item.limitLabel)} / bijgewerkt ${escapeHtml(item.updatedAt || "nog niet")} door ${escapeHtml(item.updatedBy || "PraktijkOS")}</span>
+                <span>${escapeHtml(item.reason)}</span>
+              </div>
+              <div class="status-stack">
+                ${badge(item.status || "Gepauzeerd", item.status === "Actief" ? "success" : "warning")}
+                ${item.status === "Actief"
+                  ? `<button class="ghost-action" data-action="toggle-saas-entitlement" data-entitlement-id="${escapeHtml(item.id)}" data-status="Gepauzeerd" type="button">Pauzeer</button>`
+                  : `<button class="primary-action" data-action="toggle-saas-entitlement" data-entitlement-id="${escapeHtml(item.id)}" data-status="Actief" type="button">Activeer</button>`}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen feature entitlements geconfigureerd.</p>`}
         </div>
       </div>
 

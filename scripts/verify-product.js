@@ -159,6 +159,14 @@ async function verify() {
     });
     assert(completedOnboardingItem.status === "Klaar", "SaaS onboarding item should be completable.");
     assert(completedOnboardingItem.completedAt, "Completed SaaS onboarding item should include completion metadata.");
+    assert(usageAlertState.saasFeatureEntitlements.some((item) => item.status === "Gepauzeerd"), "SaaS entitlements should include paused features.");
+    const pausedEntitlement = usageAlertState.saasFeatureEntitlements.find((item) => item.status === "Gepauzeerd");
+    const activatedEntitlement = await request(`/api/saas-entitlements/${pausedEntitlement.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Actief", reason: "Verify activeert feature entitlement." })
+    });
+    assert(activatedEntitlement.status === "Actief", "SaaS entitlement should be activatable.");
+    assert(activatedEntitlement.updatedAt, "Updated SaaS entitlement should include update metadata.");
     assert(usageAlertState.saasInvoices.some((invoice) => invoice.status === "Open"), "SaaS tenant invoices should include open invoices.");
     const openSaasInvoice = usageAlertState.saasInvoices.find((invoice) => invoice.status === "Open");
     const paymentHandoff = await request(`/api/saas-invoices/${openSaasInvoice.id}/payment-handoff`, {

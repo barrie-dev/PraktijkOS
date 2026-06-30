@@ -20,6 +20,7 @@ import {
   changeAppointmentStatus,
   changeAccessOverrideStatus,
   changeDocumentStatus,
+  changeSaasFeatureEntitlement,
   changeInvoiceChannel,
   changeKnowledgeItemStatus,
   changeMessageStatus,
@@ -326,6 +327,12 @@ async function handleClick(event) {
 
   if (action === "complete-saas-onboarding") {
     const result = await completeSaasOnboardingItem(target.dataset.itemId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "toggle-saas-entitlement") {
+    const result = await changeSaasFeatureEntitlement(target.dataset.entitlementId, target.dataset.status);
     showToast(result.message);
     return;
   }

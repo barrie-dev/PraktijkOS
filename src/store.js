@@ -54,10 +54,11 @@ import {
   updatePortalInvite,
   updatePractice,
   updateRetentionPolicy,
+  updateSaasFeatureEntitlement,
   updateSaasInvoice
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasInvoices, saasOnboardingChecklist, saasPlanChanges, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasFeatureEntitlements, saasInvoices, saasOnboardingChecklist, saasPlanChanges, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -178,6 +179,7 @@ const initialState = {
   knowledgeBase,
   aiModels,
   aiModelEvaluations,
+  saasFeatureEntitlements,
   saasInvoices,
   saasOnboardingChecklist,
   saasPlanChanges,
@@ -2341,6 +2343,46 @@ export async function completeSaasOnboardingItem(itemId) {
     `${updatedItem.label} lokaal afgerond.`
   ));
   return { ok: true, message: "Onboardingstap lokaal afgerond." };
+}
+
+export async function changeSaasFeatureEntitlement(entitlementId, status) {
+  const entitlement = (state.saasFeatureEntitlements || []).find((item) => item.id === entitlementId);
+  if (!entitlement) {
+    return { ok: false, message: "Feature entitlement niet gevonden." };
+  }
+
+  const reason = status === "Actief"
+    ? "Feature geactiveerd voor deze tenant."
+    : "Feature gepauzeerd voor deze tenant.";
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updateSaasFeatureEntitlement(entitlementId, { status, reason });
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: status === "Actief" ? "Feature geactiveerd." : "Feature gepauzeerd." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedEntitlement = {
+    ...entitlement,
+    status,
+    reason,
+    updatedAt: nowLabel(),
+    updatedBy: state.currentUser?.name || "PraktijkOS"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasFeatureEntitlements: (state.saasFeatureEntitlements || []).map((item) => item.id === entitlementId ? updatedEntitlement : item),
+      view: "settings"
+    },
+    "SaaS feature entitlement bijgewerkt",
+    `${updatedEntitlement.feature}: ${updatedEntitlement.status}.`
+  ));
+  return { ok: true, message: status === "Actief" ? "Feature lokaal geactiveerd." : "Feature lokaal gepauzeerd." };
 }
 
 export async function markSaasInvoicePaid(invoiceId) {

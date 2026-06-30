@@ -1162,6 +1162,38 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/saas-entitlements\/[^/]+$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const entitlementId = url.pathname.split("/")[3];
+    const entitlement = (store.saasFeatureEntitlements || []).find((item) => item.id === entitlementId);
+    const payload = await readJson(request);
+    if (!entitlement) {
+      sendJson(response, 404, { error: "SaaS entitlement not found" });
+      return;
+    }
+
+    const status = payload.status || entitlement.status;
+    const updatedEntitlement = {
+      ...entitlement,
+      status,
+      reason: payload.reason || (status === "Actief" ? "Feature geactiveerd voor deze tenant." : "Feature gepauzeerd voor deze tenant."),
+      updatedAt: timestampLabel(),
+      updatedBy: user.name
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        saasFeatureEntitlements: (store.saasFeatureEntitlements || []).map((item) => item.id === entitlementId ? updatedEntitlement : item)
+      },
+      "SaaS feature entitlement bijgewerkt",
+      `${updatedEntitlement.feature}: ${updatedEntitlement.status}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedEntitlement);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/team") {
     if (!requirePermission(response, user, "team")) return;
     const payload = await readJson(request);

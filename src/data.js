@@ -508,6 +508,53 @@ export const saasOnboardingChecklist = [
   }
 ];
 
+export const saasFeatureEntitlements = [
+  {
+    id: "entitlement-ai-copilot",
+    tenantId: "tenant-de-linde",
+    feature: "AI administratieve copilot",
+    plan: "Pro",
+    status: "Actief",
+    limitLabel: "2000 AI credits/maand",
+    reason: "Binnen Pro-plan en AI policy gevalideerd.",
+    updatedAt: "30/06/2026",
+    updatedBy: "PraktijkOS"
+  },
+  {
+    id: "entitlement-client-portal",
+    tenantId: "tenant-de-linde",
+    feature: "Clientportaal",
+    plan: "Pro",
+    status: "Actief",
+    limitLabel: "Onbeperkte portaaluitnodigingen",
+    reason: "Portaalflow ingeschakeld voor communicatie en intake.",
+    updatedAt: "30/06/2026",
+    updatedBy: "PraktijkOS"
+  },
+  {
+    id: "entitlement-accounting",
+    tenantId: "tenant-de-linde",
+    feature: "Boekhouderpakket",
+    plan: "Pro",
+    status: "Actief",
+    limitLabel: "CSV/JSON export",
+    reason: "Beschikbaar voor Pro en hoger.",
+    updatedAt: "30/06/2026",
+    updatedBy: "PraktijkOS"
+  },
+  {
+    id: "entitlement-advanced-integrations",
+    tenantId: "tenant-de-linde",
+    feature: "Geavanceerde Belgische integraties",
+    plan: "Scale",
+    status: "Gepauzeerd",
+    limitLabel: "Peppol, eHealth en Itsme voorbereiding",
+    reason: "Wacht op planwijziging naar Scale.",
+    updatedAt: "30/06/2026",
+    updatedBy: "PraktijkOS"
+  }
+];
+
 export const waitlist = [
   {
     id: "wait-001",

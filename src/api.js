@@ -157,6 +157,13 @@ export async function completeSaasOnboardingCheck(itemId) {
   });
 }
 
+export async function updateSaasFeatureEntitlement(entitlementId, payload = {}) {
+  return request(`/api/saas-entitlements/${entitlementId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function exportAuditLog(filter = "all") {
   return request(`/api/audit/export?filter=${encodeURIComponent(filter)}`);
 }
