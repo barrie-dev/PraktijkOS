@@ -184,38 +184,71 @@ function shell(state) {
   }
 
   const activeView = canView(state, state.view) ? state.view : firstAvailableView(state);
-  const nav = [
-    ["dashboard", "D", "Vandaag"],
-    ["work", "W", "Werk"],
-    ["agenda", "A", "Agenda"],
-    ["waiting", "L", "Wachtlijst"],
-    ["clients", "C", "Dossiers"],
-    ["intake", "I", "Intake"],
-    ["portal", "B", "Berichten"],
-    ["billing", "E", "Facturatie"],
-    ["ai", "AI", "Assistent"],
-    ["import", "M", "Import"],
-    ["security", "V", "Veiligheid"],
-    ["settings", "S", "Instellingen"]
-  ].filter(([view]) => canView(state, view));
+  const navGroups = [
+    {
+      label: "Werkdag",
+      items: [
+        ["dashboard", "VD", "Vandaag", "Dagoverzicht"],
+        ["work", "TA", "Taken", "Werkvoorraad"],
+        ["agenda", "AG", "Agenda", "Planning"],
+        ["waiting", "WL", "Wachtlijst", "Instroom"]
+      ]
+    },
+    {
+      label: "Praktijk",
+      items: [
+        ["clients", "DO", "Dossiers", "Clienten"],
+        ["intake", "IN", "Intakes", "Aanmeldingen"],
+        ["portal", "PO", "Portaal", "Berichten"],
+        ["billing", "FA", "Facturatie", "Betalingen"]
+      ]
+    },
+    {
+      label: "Platform",
+      items: [
+        ["ai", "AI", "AI assistent", "Concepten"],
+        ["security", "VE", "Veiligheid", "Controle"],
+        ["settings", "SA", "SaaS cockpit", "Account"],
+        ["import", "IM", "Import", "Migratie"]
+      ]
+    }
+  ].map((group) => ({
+    ...group,
+    items: group.items.filter(([view]) => canView(state, view))
+  })).filter((group) => group.items.length);
+
+  const account = state.practice?.saasAccount || {};
+  const connectionLabel = state.apiStatus === "connected" ? "Live opgeslagen" : "Offline modus";
+  const connectionSignal = state.apiStatus === "connected" ? "success" : "warning";
 
   return `
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">P</div>
-          <div><strong>PraktijkOS</strong><span>Praktijkbeheer</span></div>
+          <div><strong>PraktijkOS</strong><span>SaaS voor praktijken</span></div>
         </div>
         <nav class="nav-list" aria-label="Hoofdnavigatie">
-          ${nav.map(([view, icon, label]) => `
-            <button class="nav-item ${activeView === view ? "active" : ""}" data-action="navigate" data-view="${view}" type="button">
-              <span>${icon}</span>${label}
-            </button>
+          ${navGroups.map((group) => `
+            <div class="nav-group">
+              <p>${escapeHtml(group.label)}</p>
+              ${group.items.map(([view, icon, label, detail]) => `
+                <button class="nav-item ${activeView === view ? "active" : ""}" data-action="navigate" data-view="${view}" type="button">
+                  <span>${icon}</span>
+                  <strong>${escapeHtml(label)}</strong>
+                  <small>${escapeHtml(detail)}</small>
+                </button>
+              `).join("")}
+            </div>
           `).join("")}
         </nav>
-        <div class="security-note">
-          <span class="status-dot"></span>
-          <div><strong>Zorgvuldig werken</strong><p>${can(state, "ai") ? "Concepten worden pas opgeslagen na review." : "Je ziet alleen wat bij je rol hoort."}</p></div>
+        <div class="tenant-card">
+          <div>
+            <span class="section-kicker">Tenant</span>
+            <strong>${escapeHtml(account.plan || "Pro")} plan</strong>
+            <p>${escapeHtml(account.tenantId || "tenant")} / ${escapeHtml(account.dataRegion || "EU / Belgie")}</p>
+          </div>
+          ${badge(account.billingStatus || "Actief", `${account.billingStatus || ""}`.toLowerCase().includes("betaal") ? "warning" : "success")}
         </div>
       </aside>
       <main class="workspace">
@@ -223,16 +256,17 @@ function shell(state) {
           <div>
             <p class="eyebrow">${escapeHtml(state.practice?.name || "Groepspraktijk")}</p>
             <h1>${viewTitles[activeView]}</h1>
+            <span class="workspace-subtitle">${escapeHtml(state.currentUser?.role || "Team")} workspace</span>
           </div>
           <div class="command-search">
             <label>
-              <span>Zoek</span>
+              <span>Zoek in PraktijkOS</span>
               <input data-action="command-search" type="search" value="${escapeHtml(state.commandQuery || "")}" placeholder="Dossier, afspraak, factuur of actie">
             </label>
             ${commandPanel(state)}
           </div>
           <div class="topbar-actions">
-            <span class="connection-pill">${state.apiStatus === "connected" ? "Opgeslagen" : "Lokaal"}</span>
+            <span class="connection-pill ${connectionSignal}">${connectionLabel}</span>
             <span class="user-pill">${escapeHtml(state.currentUser?.name || "Gebruiker")}</span>
             <button class="ghost-action" data-action="logout" type="button">Afmelden</button>
             ${can(state, "scheduling") ? `<button class="primary-action" data-action="new-appointment" type="button">Nieuwe afspraak</button>` : ""}
@@ -2025,10 +2059,23 @@ function settingsView(state) {
   const recommendedPlaybooks = saasRiskPlaybooks.filter((item) => item.status === "Aanbevolen");
   return `
     <section class="settings-grid">
+      <div class="settings-hero wide">
+        <div>
+          <p class="eyebrow">SaaS cockpit</p>
+          <h2>${escapeHtml(state.practice?.name || "Praktijk")} beheren als klantomgeving</h2>
+          <p>Volg abonnement, adoptie, risico's en customer-success acties op zonder in technische beheerdata te duiken.</p>
+        </div>
+        <div class="hero-metrics">
+          <article><span>Plan</span><strong>${escapeHtml(saasAccount.plan || "Pro")}</strong><small>${escapeHtml(saasAccount.billingStatus || "Actief")}</small></article>
+          <article><span>Portfolio MRR</span><strong>${formatEuro(saasCohortSummary.totalMrr || 0)}</strong><small>${escapeHtml(saasCohortSummary.tenants || 0)} praktijken</small></article>
+          <article><span>Opvolging</span><strong>${escapeHtml(openSuccessActions.length + recommendedPlaybooks.length)}</strong><small>acties en scenario's</small></article>
+        </div>
+      </div>
+
       <form class="panel wide" data-form="saas-account">
-        <div class="panel-header"><div><h2>SaaS account</h2><p>Tenant, abonnement en platformlimieten voor deze praktijkomgeving.</p></div>${badge(saasAccount.billingStatus || "Actief", (saasAccount.billingStatus || "").toLowerCase().includes("pauze") ? "warning" : "success")}</div>
+        <div class="panel-header"><div><h2>Abonnement</h2><p>Plan, limieten en verlenging voor deze praktijkomgeving.</p></div>${badge(saasAccount.billingStatus || "Actief", (saasAccount.billingStatus || "").toLowerCase().includes("pauze") ? "warning" : "success")}</div>
         <div class="metric-grid compact-metrics">
-          <article class="metric"><span>Tenant</span><strong>${escapeHtml(saasAccount.tenantId || "tenant")}</strong><small>${escapeHtml(saasAccount.dataRegion || "EU / Belgie")}</small></article>
+          <article class="metric"><span>Klantomgeving</span><strong>${escapeHtml(saasAccount.tenantId || "tenant")}</strong><small>${escapeHtml(saasAccount.dataRegion || "EU / Belgie")}</small></article>
           <article class="metric"><span>Plan</span><strong>${escapeHtml(saasAccount.plan || "Pro")}</strong><small>verlenging ${escapeHtml(saasAccount.renewalDate || "nog te plannen")}</small></article>
           <article class="metric"><span>Seats</span><strong>${seatsUsed}/${seatsIncluded}</strong><small>teamleden binnen abonnement</small></article>
           <article class="metric"><span>Clienten</span><strong>${clientCount}/${clientLimit}</strong><small>dossiers binnen tenantlimiet</small></article>
@@ -2055,15 +2102,15 @@ function settingsView(state) {
           <label class="field"><span>AI credits gebruikt</span><input name="aiCreditsUsed" type="number" min="0" value="${escapeHtml(aiCreditsUsed)}"></label>
         </div>
         <label class="field"><span>Volgende verlenging</span><input name="renewalDate" value="${escapeHtml(saasAccount.renewalDate || "")}" placeholder="31/07/2026"></label>
-        <button class="primary-action" type="submit">SaaS account opslaan</button>
+        <button class="primary-action" type="submit">Abonnement opslaan</button>
       </form>
 
       <div class="panel wide" data-section="saas-cohorts">
-        <div class="panel-header"><div><h2>Tenant cohort</h2><p>Portfolio-overzicht voor meerdere Belgische praktijken, plans, MRR en QBR-opvolging.</p></div>${badge(`${saasCohortSummary.tenants} tenants`, saasCohortSummary.atRisk ? "warning" : "success")}</div>
+        <div class="panel-header"><div><h2>Praktijkenportfolio</h2><p>Overzicht van klantpraktijken, plannen, omzet en opvolgmomenten.</p></div>${badge(`${saasCohortSummary.tenants} praktijken`, saasCohortSummary.atRisk ? "warning" : "success")}</div>
         <div class="metric-grid compact-metrics">
           <article class="metric"><span>MRR</span><strong>${formatEuro(saasCohortSummary.totalMrr || 0)}</strong><small>maandelijkse recurring revenue</small></article>
           <article class="metric"><span>Health</span><strong>${escapeHtml(saasCohortSummary.averageHealth || 0)}/100</strong><small>gemiddelde tenantscore</small></article>
-          <article class="metric"><span>Risico</span><strong>${escapeHtml(saasCohortSummary.atRisk || 0)}</strong><small>tenant(s) onder opvolging</small></article>
+          <article class="metric"><span>Risico</span><strong>${escapeHtml(saasCohortSummary.atRisk || 0)}</strong><small>praktijk(en) onder opvolging</small></article>
           <article class="metric"><span>QBR</span><strong>${escapeHtml(saasCohortSummary.qbrOpen || 0)}</strong><small>nog te plannen</small></article>
           <article class="metric"><span>Expansion</span><strong>${escapeHtml(saasCohortSummary.expansion || 0)}</strong><small>Scale/Enterprise kansen</small></article>
         </div>
@@ -2085,9 +2132,9 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-health">
-        <div class="panel-header"><div><h2>Tenant health</h2><p>Samenvatting van billing, usage, onboarding, features en accountactiviteit.</p></div>${badge(`${saasHealth.score}/100`, saasHealth.status === "Gezond" ? "success" : saasHealth.status === "Risico" ? "danger" : "warning")}</div>
+        <div class="panel-header"><div><h2>Gezondheid</h2><p>Samenvatting van abonnement, gebruik, onboarding, modules en recente activiteit.</p></div>${badge(`${saasHealth.score}/100`, saasHealth.status === "Gezond" ? "success" : saasHealth.status === "Risico" ? "danger" : "warning")}</div>
         <div class="metric-grid compact-metrics">
-          <article class="metric"><span>Status</span><strong>${escapeHtml(saasHealth.status)}</strong><small>tenant health score</small></article>
+          <article class="metric"><span>Status</span><strong>${escapeHtml(saasHealth.status)}</strong><small>klantgezondheid</small></article>
           ${(saasHealth.indicators || []).map((indicator) => `
             <article class="metric">
               <span>${escapeHtml(indicator.label)}</span>
@@ -2099,7 +2146,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-success">
-        <div class="panel-header"><div><h2>Customer success</h2><p>Adoptie, livegang, supportdruk en renewal readiness voor deze tenant.</p></div>${badge(openSuccessActions.length ? `${openSuccessActions.length} acties` : "Op schema", openSuccessActions.length ? "warning" : "success")}</div>
+        <div class="panel-header"><div><h2>Customer success</h2><p>Adoptie, livegang, supportdruk en verlengingskansen voor deze praktijk.</p></div>${badge(openSuccessActions.length ? `${openSuccessActions.length} acties` : "Op schema", openSuccessActions.length ? "warning" : "success")}</div>
         <div class="metric-grid compact-metrics">
           ${saasSuccessMetrics.map((metric) => `
             <article class="metric">
@@ -2127,7 +2174,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-risk-playbooks">
-        <div class="panel-header"><div><h2>Risk playbooks</h2><p>Automatische opvolgscenario's voor billing, adoptie en supportescalaties.</p></div>${badge(recommendedPlaybooks.length ? `${recommendedPlaybooks.length} aanbevolen` : "Geen risico", recommendedPlaybooks.length ? "warning" : "success")}</div>
+        <div class="panel-header"><div><h2>Opvolgscenario's</h2><p>Voorgestelde acties voor betaling, adoptie en supportescalaties.</p></div>${badge(recommendedPlaybooks.length ? `${recommendedPlaybooks.length} aanbevolen` : "Geen risico", recommendedPlaybooks.length ? "warning" : "success")}</div>
         <div class="security-list">
           ${saasRiskPlaybooks.map((playbook) => `
             <article class="security-row">
@@ -2138,7 +2185,7 @@ function settingsView(state) {
               </div>
               <div class="status-stack">
                 ${badge(playbook.status || "Stand-by", playbook.signal || (playbook.status === "Aanbevolen" ? "warning" : "success"))}
-                <button class="primary-action" data-action="run-saas-playbook" data-playbook-id="${escapeHtml(playbook.id)}" type="button">Start playbook</button>
+                <button class="primary-action" data-action="run-saas-playbook" data-playbook-id="${escapeHtml(playbook.id)}" type="button">Start scenario</button>
               </div>
             </article>
           `).join("") || `<p class="empty-state">Geen risk playbooks voor deze tenant.</p>`}
@@ -2146,7 +2193,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-onboarding">
-        <div class="panel-header"><div><h2>Onboarding checklist</h2><p>Activatiestappen voor tenant, team, billing en AI-governance.</p></div>${badge(`${completedSaasOnboarding}/${saasOnboardingChecklist.length} klaar`, completedSaasOnboarding === saasOnboardingChecklist.length ? "success" : "warning")}</div>
+        <div class="panel-header"><div><h2>Onboarding</h2><p>Activatiestappen voor praktijk, team, betaling en AI-afspraken.</p></div>${badge(`${completedSaasOnboarding}/${saasOnboardingChecklist.length} klaar`, completedSaasOnboarding === saasOnboardingChecklist.length ? "success" : "warning")}</div>
         <div class="security-list">
           ${saasOnboardingChecklist.map((item) => `
             <article class="security-row">
@@ -2164,7 +2211,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-implementation">
-        <div class="panel-header"><div><h2>Implementation milestones</h2><p>Fases richting livegang met eigenaar, deadline en afrondstatus.</p></div>${badge(`${completedImplementationMilestones}/${saasImplementationMilestones.length} klaar`, completedImplementationMilestones === saasImplementationMilestones.length ? "success" : "warning")}</div>
+        <div class="panel-header"><div><h2>Livegang</h2><p>Mijlpalen richting een werkende praktijkomgeving.</p></div>${badge(`${completedImplementationMilestones}/${saasImplementationMilestones.length} klaar`, completedImplementationMilestones === saasImplementationMilestones.length ? "success" : "warning")}</div>
         <div class="security-list">
           ${saasImplementationMilestones.map((item) => `
             <article class="security-row">
@@ -2183,7 +2230,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-contracts">
-        <div class="panel-header"><div><h2>Contract documents</h2><p>Contracten, DPA's, orderformulieren en voorwaarden voor deze tenant.</p></div>${badge(`${saasContractDocuments.filter((item) => item.status === "Gedeeld").length}/${saasContractDocuments.length} gedeeld`, "success")}</div>
+        <div class="panel-header"><div><h2>Contracten</h2><p>Overeenkomsten, DPA's, orderformulieren en voorwaarden.</p></div>${badge(`${saasContractDocuments.filter((item) => item.status === "Gedeeld").length}/${saasContractDocuments.length} gedeeld`, "success")}</div>
         <div class="security-list">
           ${saasContractDocuments.map((document) => `
             <article class="security-row">
@@ -2203,7 +2250,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-support">
-        <div class="panel-header"><div><h2>Support queue</h2><p>Tenantvragen met prioriteit, SLA, eigenaar en escalatiestatus.</p></div>${badge(openSupportTickets.length ? `${openSupportTickets.length} open` : "Alles gesloten", openSupportTickets.length ? "warning" : "success")}</div>
+        <div class="panel-header"><div><h2>Support</h2><p>Klantvragen met prioriteit, eigenaar en afgesproken opvolging.</p></div>${badge(openSupportTickets.length ? `${openSupportTickets.length} open` : "Alles gesloten", openSupportTickets.length ? "warning" : "success")}</div>
         <div class="security-list">
           ${saasSupportQueue.map((ticket) => `
             <article class="security-row">
@@ -2224,7 +2271,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-admin-activity">
-        <div class="panel-header"><div><h2>Admin activity</h2><p>Recente tenantgebeurtenissen voor billing, features, plan en onboarding.</p></div>${badge(unreadSaasActivity ? `${unreadSaasActivity} nieuw` : "Alles gelezen", unreadSaasActivity ? "warning" : "success")}</div>
+        <div class="panel-header"><div><h2>Activiteit</h2><p>Recente gebeurtenissen voor abonnement, modules, plan en onboarding.</p></div>${badge(unreadSaasActivity ? `${unreadSaasActivity} nieuw` : "Alles gelezen", unreadSaasActivity ? "warning" : "success")}</div>
         <div class="security-list">
           ${saasAdminActivity.map((item) => `
             <article class="security-row">
@@ -2243,7 +2290,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-entitlements">
-        <div class="panel-header"><div><h2>Feature entitlements</h2><p>Beheer welke SaaS-modules actief zijn voor deze tenant.</p></div>${badge(`${saasFeatureEntitlements.filter((item) => item.status === "Actief").length}/${saasFeatureEntitlements.length} actief`, "success")}</div>
+        <div class="panel-header"><div><h2>Modules</h2><p>Welke productmodules actief zijn voor deze praktijk.</p></div>${badge(`${saasFeatureEntitlements.filter((item) => item.status === "Actief").length}/${saasFeatureEntitlements.length} actief`, "success")}</div>
         <div class="security-list">
           ${saasFeatureEntitlements.map((item) => `
             <article class="security-row">
@@ -2264,7 +2311,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-usage-ledger">
-        <div class="panel-header"><div><h2>Usage ledger</h2><p>Transparante tenant-events die abonnement, limieten en AI-verbruik verklaren.</p></div>${badge(`${saasUsageLedger.length} events`, "success")}</div>
+        <div class="panel-header"><div><h2>Gebruiksgeschiedenis</h2><p>Gebeurtenissen die limieten, abonnement en AI-verbruik verklaren.</p></div>${badge(`${saasUsageLedger.length} events`, "success")}</div>
         <div class="security-list">
           ${saasUsageLedger.map((entry) => `
             <article class="security-row">
@@ -2282,7 +2329,7 @@ function settingsView(state) {
       </div>
 
       <form class="panel wide" data-form="saas-lifecycle" data-section="saas-lifecycle">
-        <div class="panel-header"><div><h2>Renewal & cancellation</h2><p>Vraag verlenging, opzegging of contractwijziging aan met opvolgstatus.</p></div>${badge(saasLifecycleRequests.length ? `${saasLifecycleRequests.length} aanvragen` : "Geen aanvragen", saasLifecycleRequests.some((item) => item.status === "In review") ? "warning" : "success")}</div>
+        <div class="panel-header"><div><h2>Verlenging en opzegging</h2><p>Vraag verlenging, opzegging of contractwijziging aan met opvolgstatus.</p></div>${badge(saasLifecycleRequests.length ? `${saasLifecycleRequests.length} aanvragen` : "Geen aanvragen", saasLifecycleRequests.some((item) => item.status === "In review") ? "warning" : "success")}</div>
         <div class="form-grid">
           <label class="field"><span>Type aanvraag</span><select name="requestType"><option>Verlenging</option><option>Opzegging</option></select></label>
           <label class="field"><span>Gewenst plan</span><select name="requestedPlan">${["Starter", "Pro", "Scale", "Enterprise", "Geen"].map((plan) => `<option ${plan === "Scale" ? "selected" : ""}>${plan}</option>`).join("")}</select></label>
@@ -2331,7 +2378,7 @@ function settingsView(state) {
       </form>
 
       <div class="panel wide" data-section="saas-billing">
-        <div class="panel-header"><div><h2>SaaS billing</h2><p>Abonnementfacturen voor deze tenant en betaalstatus.</p></div>${badge(openSaasInvoices.length ? `${openSaasInvoices.length} open` : "Betaald", openSaasInvoices.length ? "warning" : "success")}</div>
+        <div class="panel-header"><div><h2>Abonnementfacturen</h2><p>Facturen, betaalstatus, betaallinks en herinneringen.</p></div>${badge(openSaasInvoices.length ? `${openSaasInvoices.length} open` : "Betaald", openSaasInvoices.length ? "warning" : "success")}</div>
         <div class="security-list">
           ${saasInvoices.map((invoice) => `
             <article class="security-row">
