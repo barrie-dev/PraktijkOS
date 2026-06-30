@@ -267,10 +267,11 @@ function buildIsoEvidenceExport(store, user) {
     evidence: item.label,
     evidenceStatus: item.status,
     collectedAt: pack.collectedAt || "",
+    attachments: (pack.attachments || []).map((attachment) => `${attachment.type}: ${attachment.title}`).join(" | "),
     gaps: (pack.gaps || []).join(" | ")
   })));
   const csv = [
-    ["domein", "bewijsmap", "status", "eigenaar", "bewijs", "bewijs_status", "verzameld_op", "gaps"].map(csvValue).join(";"),
+    ["domein", "bewijsmap", "status", "eigenaar", "bewijs", "bewijs_status", "verzameld_op", "bijlagen", "gaps"].map(csvValue).join(";"),
     ...rows.map((row) => [
       row.domain,
       row.pack,
@@ -279,6 +280,7 @@ function buildIsoEvidenceExport(store, user) {
       row.evidence,
       row.evidenceStatus,
       row.collectedAt,
+      row.attachments,
       row.gaps
     ].map(csvValue).join(";"))
   ].join("\n");
@@ -295,6 +297,7 @@ function buildIsoEvidenceExport(store, user) {
       packCount: packs.length,
       collectedCount: packs.filter((pack) => pack.status === "Bewijs verzameld").length,
       openGapCount: packs.reduce((total, pack) => total + (pack.gaps || []).length, 0),
+      attachmentCount: packs.reduce((total, pack) => total + (pack.attachments || []).length, 0),
       evidenceRows: rows.length
     },
     files: {
@@ -1561,6 +1564,44 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 201, note);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/iso-evidence\/[^/]+\/attachments$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const packId = url.pathname.split("/")[3];
+    const pack = (store.isoEvidencePacks || []).find((item) => item.id === packId);
+    const payload = await readJson(request);
+    if (!pack || !payload.title || !payload.source) {
+      sendJson(response, 422, { error: "pack, title and source are required" });
+      return;
+    }
+
+    const attachment = {
+      id: uid("iso-att"),
+      title: payload.title,
+      type: payload.type || "Document",
+      source: payload.source,
+      storageLocation: payload.storageLocation || "PraktijkOS evidence vault",
+      status: payload.status || "Gekoppeld",
+      addedAt: timestampLabel(),
+      addedBy: user.name
+    };
+    const updatedPack = {
+      ...pack,
+      attachments: [attachment, ...(pack.attachments || [])].slice(0, 30)
+    };
+    const nextStore = appendAudit(
+      {
+        ...store,
+        isoEvidencePacks: (store.isoEvidencePacks || []).map((item) => item.id === packId ? updatedPack : item)
+      },
+      "ISO bewijsstuk gekoppeld",
+      `${pack.label}: ${attachment.title}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 201, attachment);
     return;
   }
 

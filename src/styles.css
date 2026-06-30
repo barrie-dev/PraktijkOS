@@ -635,6 +635,10 @@ h2 {
   min-width: 0;
 }
 
+.evidence-attachment-form {
+  grid-template-columns: minmax(150px, 0.8fr) minmax(120px, 0.6fr) minmax(180px, 1fr) minmax(220px, 1.2fr) minmax(180px, 1fr) minmax(130px, 0.7fr) auto;
+}
+
 .panel-header {
   justify-content: space-between;
   align-items: flex-start;

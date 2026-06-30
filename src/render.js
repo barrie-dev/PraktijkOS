@@ -1687,7 +1687,7 @@ function securityView(state) {
           <div><h2>ISO 27001 bewijsmap</h2><p>Verzamel auditmateriaal uit rollen, AI-governance, retentie en exportlogs.</p></div>
           <button class="primary-action" data-action="export-iso-evidence" type="button">Evidence export</button>
         </div>
-        ${isoEvidenceExport ? `<p class="handoff-note">${escapeHtml(isoEvidenceExport.summary.evidenceRows)} bewijsregels klaar in ${escapeHtml(isoEvidenceExport.files.csvFilename)}.</p>` : `<p class="handoff-note">Maak een export wanneer een auditor, DPO of adviseur bewijs wil nakijken.</p>`}
+        ${isoEvidenceExport ? `<p class="handoff-note">${escapeHtml(isoEvidenceExport.summary.evidenceRows)} bewijsregels en ${escapeHtml(isoEvidenceExport.summary.attachmentCount || 0)} bijlagen klaar in ${escapeHtml(isoEvidenceExport.files.csvFilename)}.</p>` : `<p class="handoff-note">Maak een export wanneer een auditor, DPO of adviseur bewijs wil nakijken.</p>`}
         <form class="inline-form" data-form="iso-evidence-note">
           <label class="field"><span>Bewijsmap</span><select name="packId">
             ${isoEvidencePacks.map((pack) => `<option value="${escapeHtml(pack.id)}">${escapeHtml(pack.label)}</option>`).join("")}
@@ -1695,6 +1695,17 @@ function securityView(state) {
           <label class="field"><span>Status</span><select name="status"><option>Opvolging</option><option>Vraag auditor</option><option>Akkoord</option><option>Gap</option></select></label>
           <label class="field grow"><span>Reviewnotitie</span><input name="note" placeholder="Bijv. DPIA toevoegen voor AI-leverancier" required></label>
           <button class="primary-action" type="submit">Notitie toevoegen</button>
+        </form>
+        <form class="inline-form evidence-attachment-form" data-form="iso-evidence-attachment">
+          <label class="field"><span>Bewijsmap</span><select name="packId">
+            ${isoEvidencePacks.map((pack) => `<option value="${escapeHtml(pack.id)}">${escapeHtml(pack.label)}</option>`).join("")}
+          </select></label>
+          <label class="field"><span>Type</span><select name="type"><option>Document</option><option>Export</option><option>Screenshot</option><option>Contract</option><option>Beleid</option></select></label>
+          <label class="field grow"><span>Titel</span><input name="title" placeholder="Bijv. DPA leverancier" required></label>
+          <label class="field grow"><span>Bron</span><input name="source" placeholder="URL, bestandsnaam of systeembron" required></label>
+          <label class="field"><span>Locatie</span><input name="storageLocation" value="PraktijkOS evidence vault"></label>
+          <label class="field"><span>Status</span><select name="status"><option>Gekoppeld</option><option>Review nodig</option><option>Vervangen</option></select></label>
+          <button class="primary-action" type="submit">Bewijsstuk koppelen</button>
         </form>
         <div class="security-list">
           ${isoEvidencePacks.map((pack) => `
@@ -1706,6 +1717,7 @@ function securityView(state) {
                 <span>Bewijs: ${(pack.evidence || []).map((item) => `${escapeHtml(item.label)} (${escapeHtml(item.status)})`).join(" / ")}</span>
                 <span>Gaps: ${(pack.gaps || []).map((gap) => escapeHtml(gap)).join(" / ") || "Geen open gaps"}</span>
                 ${pack.snapshot ? `<span>Snapshot: ${escapeHtml(pack.snapshot.counts.auditEvents)} audit-events / ${escapeHtml(pack.snapshot.counts.retentionPolicies)} retentiebeleid / ${escapeHtml(pack.snapshot.counts.aiModels)} AI-modellen</span>` : ""}
+                ${(pack.attachments || []).slice(0, 4).map((attachment) => `<span>Bijlage: ${escapeHtml(attachment.type)} / ${escapeHtml(attachment.title)} / ${escapeHtml(attachment.source)} / ${escapeHtml(attachment.status)} / ${escapeHtml(attachment.addedBy || "PraktijkOS")} ${escapeHtml(attachment.addedAt || "")}</span>`).join("")}
                 ${(pack.reviewerNotes || []).slice(0, 3).map((note) => `<span>Notitie: ${escapeHtml(note.status)} / ${escapeHtml(note.note)} / ${escapeHtml(note.createdBy || "PraktijkOS")} ${escapeHtml(note.createdAt || "")}</span>`).join("")}
               </div>
               <div class="status-stack">

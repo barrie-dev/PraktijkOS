@@ -11,6 +11,7 @@ import {
   createDocument,
   createIntake,
   createInvoice,
+  createIsoEvidenceAttachment,
   createIsoEvidenceNote,
   createMessage,
   createNote,
@@ -952,10 +953,11 @@ function buildLocalIsoEvidenceExport() {
     evidence: item.label,
     evidenceStatus: item.status,
     collectedAt: pack.collectedAt || "",
+    attachments: (pack.attachments || []).map((attachment) => `${attachment.type}: ${attachment.title}`).join(" | "),
     gaps: (pack.gaps || []).join(" | ")
   })));
   const csv = [
-    ["domein", "bewijsmap", "status", "eigenaar", "bewijs", "bewijs_status", "verzameld_op", "gaps"].map(csvValue).join(";"),
+    ["domein", "bewijsmap", "status", "eigenaar", "bewijs", "bewijs_status", "verzameld_op", "bijlagen", "gaps"].map(csvValue).join(";"),
     ...rows.map((row) => [
       row.domain,
       row.pack,
@@ -964,6 +966,7 @@ function buildLocalIsoEvidenceExport() {
       row.evidence,
       row.evidenceStatus,
       row.collectedAt,
+      row.attachments,
       row.gaps
     ].map(csvValue).join(";"))
   ].join("\n");
@@ -980,6 +983,7 @@ function buildLocalIsoEvidenceExport() {
       packCount: packs.length,
       collectedCount: packs.filter((pack) => pack.status === "Bewijs verzameld").length,
       openGapCount: packs.reduce((total, pack) => total + (pack.gaps || []).length, 0),
+      attachmentCount: packs.reduce((total, pack) => total + (pack.attachments || []).length, 0),
       evidenceRows: rows.length
     },
     files: {
@@ -1058,6 +1062,54 @@ export async function addIsoEvidenceNote(formData) {
     `${pack.label}: ${note.status}.`
   ));
   return { ok: true, message: "Reviewnotitie lokaal toegevoegd." };
+}
+
+export async function addIsoEvidenceAttachment(formData) {
+  const payload = formPayload(formData);
+  const pack = (state.isoEvidencePacks || []).find((item) => item.id === payload.packId);
+  if (!pack || !payload.title || !payload.source) {
+    return { ok: false, message: "Kies een bewijsmap, titel en bron." };
+  }
+
+  const attachmentPayload = {
+    title: payload.title,
+    type: payload.type || "Document",
+    source: payload.source,
+    storageLocation: payload.storageLocation || "PraktijkOS evidence vault",
+    status: payload.status || "Gekoppeld"
+  };
+
+  if (state.apiStatus === "connected") {
+    try {
+      await createIsoEvidenceAttachment(pack.id, attachmentPayload);
+      await refreshFromApi();
+      setState({ view: "security" });
+      return { ok: true, message: "Bewijsstuk gekoppeld." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const attachment = {
+    id: uid("iso-att"),
+    ...attachmentPayload,
+    addedAt: nowLabel(),
+    addedBy: state.currentUser?.name || "PraktijkOS"
+  };
+  const updatedPack = {
+    ...pack,
+    attachments: [attachment, ...(pack.attachments || [])].slice(0, 30)
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      isoEvidencePacks: (state.isoEvidencePacks || []).map((item) => item.id === pack.id ? updatedPack : item),
+      view: "security"
+    },
+    "ISO bewijsstuk gekoppeld",
+    `${pack.label}: ${attachment.title}.`
+  ));
+  return { ok: true, message: "Bewijsstuk lokaal gekoppeld." };
 }
 
 function downloadJson(filename, payload) {

@@ -35,6 +35,7 @@ npm run verify
 - `POST /api/iso-evidence/:id/collect`
 - `POST /api/iso-evidence/export`
 - `POST /api/iso-evidence/:id/notes`
+- `POST /api/iso-evidence/:id/attachments`
 - `GET /api/clients/:id/export`
 - `POST /api/appointments`
 - `PATCH /api/appointments/:id`

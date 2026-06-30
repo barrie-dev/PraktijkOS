@@ -490,18 +490,33 @@ async function verify() {
     assert(collectedEvidence.snapshot.counts.aiModels >= 1, "ISO evidence snapshot should include AI model counts.");
     assert(collectedEvidence.evidence.every((item) => item.status !== "Open"), "ISO evidence items should be marked collected.");
 
-    const evidenceExport = await request("/api/iso-evidence/export", {
-      method: "POST",
-      body: JSON.stringify({})
-    });
-    assert(evidenceExport.summary.packCount >= 1, "ISO evidence export should summarize packs.");
-    assert(evidenceExport.files.csv.includes("bewijsmap"), "ISO evidence export should include CSV headers.");
     const evidenceNote = await request(`/api/iso-evidence/${isoEvidencePack.id}/notes`, {
       method: "POST",
       body: JSON.stringify({ status: "Vraag auditor", note: "Controleer leveranciersbeoordeling voor AI-model." })
     });
     assert(evidenceNote.status === "Vraag auditor", "ISO evidence note should store reviewer status.");
     assert(evidenceNote.note.includes("leveranciersbeoordeling"), "ISO evidence note should store reviewer note.");
+    const evidenceAttachment = await request(`/api/iso-evidence/${isoEvidencePack.id}/attachments`, {
+      method: "POST",
+      body: JSON.stringify({
+        title: "AI leveranciersbeoordeling",
+        type: "Contract",
+        source: "dpa-openai-2026.pdf",
+        storageLocation: "PraktijkOS evidence vault",
+        status: "Gekoppeld"
+      })
+    });
+    assert(evidenceAttachment.title === "AI leveranciersbeoordeling", "ISO evidence attachment should store title.");
+    assert(evidenceAttachment.source.includes("dpa"), "ISO evidence attachment should store source.");
+
+    const evidenceExport = await request("/api/iso-evidence/export", {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(evidenceExport.summary.packCount >= 1, "ISO evidence export should summarize packs.");
+    assert(evidenceExport.summary.attachmentCount >= 1, "ISO evidence export should summarize attachments.");
+    assert(evidenceExport.files.csv.includes("bewijsmap"), "ISO evidence export should include CSV headers.");
+    assert(evidenceExport.files.csv.includes("AI leveranciersbeoordeling"), "ISO evidence export should include attachment titles.");
 
     const modelEvaluation = await request("/api/ai-models/model-care-review/evaluations", {
       method: "POST",
