@@ -1,4 +1,4 @@
-import { getWorkflowLabel } from "./ai.js";
+﻿import { getWorkflowLabel } from "./ai.js";
 
 const viewTitles = {
   dashboard: "Vandaag",
@@ -442,7 +442,7 @@ function roleHome(state, openTasks, pendingIntakes, noShowCount) {
       <section class="role-home">
         <div>
           <span class="section-kicker">Zorgverlener</span>
-          <h2>Cliëntzorg eerst</h2>
+          <h2>Clientzorg eerst</h2>
           <p>Start bij dossiers die context, review of opvolging vragen. Administratieve ruis blijft op de achtergrond.</p>
         </div>
         <div class="role-home-grid">
@@ -505,8 +505,41 @@ function dashboardView(state) {
   const forecast = dashboardForecast(state, openTasks, pendingIntakes, noShowCount);
   const dayCloseItems = state.dayClose || [];
   const dayCloseDone = dayCloseItems.filter((item) => item.status === "Klaar").length;
+  const nextAppointment = state.appointments[0];
+  const priorityTask = openTasks.find((task) => task.priority === "Hoog") || openTasks[0];
+  const attentionCount = noShowCount + pendingIntakes;
 
   return `
+    <section class="dashboard-hero">
+      <div>
+        <p class="eyebrow">Werkdag cockpit</p>
+        <h2>${nextAppointment ? `Volgende afspraak om ${escapeHtml(nextAppointment.time)}` : "Geen afspraken meer gepland"}</h2>
+        <p>${nextAppointment ? `${escapeHtml(nextAppointment.client)} / ${escapeHtml(nextAppointment.type)} bij ${escapeHtml(nextAppointment.clinician)}.` : "Gebruik de vrijgekomen ruimte voor dossiers, facturatie of teamopvolging."}</p>
+        <div class="hero-actions">
+          ${nextAppointment ? `<button class="primary-action" data-action="open-client" data-client-id="${escapeHtml(nextAppointment.clientId)}" type="button">Open dossier</button>` : ""}
+          ${priorityTask ? `<button class="ghost-action" data-action="navigate" data-view="work" type="button">Bekijk prioriteit</button>` : ""}
+          ${can(state, "scheduling") ? `<button class="ghost-action" data-action="new-appointment" type="button">Plan afspraak</button>` : ""}
+        </div>
+      </div>
+      <div class="today-focus">
+        <article>
+          <span>Aandacht</span>
+          <strong>${escapeHtml(attentionCount)}</strong>
+          <small>${attentionCount ? "signalen vandaag" : "geen kritieke signalen"}</small>
+        </article>
+        <article>
+          <span>Werk</span>
+          <strong>${escapeHtml(openTasks.length)}</strong>
+          <small>${priorityTask ? escapeHtml(priorityTask.label) : "alles bijgewerkt"}</small>
+        </article>
+        <article>
+          <span>Dagafsluiting</span>
+          <strong>${escapeHtml(dayCloseDone)}/${escapeHtml(dayCloseItems.length)}</strong>
+          <small>checks afgerond</small>
+        </article>
+      </div>
+    </section>
+
     <section class="metric-grid">
       <article class="metric"><span>Afspraken</span><strong>${state.appointments.length}</strong><small>vandaag gepland</small></article>
       <article class="metric"><span>Concepten</span><strong>${state.aiDrafts.length}</strong><small>${state.aiDrafts.filter((draft) => draft.status === "Goedgekeurd").length} klaar na review</small></article>
@@ -514,11 +547,11 @@ function dashboardView(state) {
       <article class="metric"><span>Aandacht</span><strong>${noShowCount + pendingIntakes}</strong><small>vragen opvolging</small></article>
     </section>
     <section class="quick-actions">
-      ${can(state, "care") ? `<button class="quick-action" data-action="new-client" type="button"><span>Dossier</span><strong>Nieuwe client</strong></button>` : ""}
-      ${can(state, "tasks") ? `<button class="quick-action" data-action="navigate" data-view="work" type="button"><span>Werk</span><strong>Taken opvolgen</strong></button>` : ""}
-      ${can(state, "scheduling") ? `<button class="quick-action" data-action="navigate" data-view="waiting" type="button"><span>Wachtlijst</span><strong>Plan vrije plaats</strong></button>` : ""}
-      ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Antwoorden vastleggen</strong></button>` : ""}
-      ${can(state, "billing") ? `<button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Betalingen</span><strong>Facturen opvolgen</strong></button>` : ""}
+      ${can(state, "care") ? `<button class="quick-action" data-action="new-client" type="button"><span>Dossier</span><strong>Nieuwe client</strong><small>Start een traject</small></button>` : ""}
+      ${can(state, "tasks") ? `<button class="quick-action" data-action="navigate" data-view="work" type="button"><span>Werk</span><strong>Taken opvolgen</strong><small>${escapeHtml(openTasks.length)} open acties</small></button>` : ""}
+      ${can(state, "scheduling") ? `<button class="quick-action" data-action="navigate" data-view="waiting" type="button"><span>Wachtlijst</span><strong>Plan vrije plaats</strong><small>Prioritaire instroom</small></button>` : ""}
+      ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Antwoorden vastleggen</strong><small>${escapeHtml(pendingIntakes)} open intake(s)</small></button>` : ""}
+      ${can(state, "billing") ? `<button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Betalingen</span><strong>Facturen opvolgen</strong><small>${formatEuro(openAmount)} open</small></button>` : ""}
     </section>
     ${roleHome(state, openTasks, pendingIntakes, noShowCount)}
     <section class="dashboard-grid">
@@ -624,8 +657,26 @@ function workView(state) {
   const doneTasks = state.workQueue.filter((task) => (task.status || "Open") === "Klaar");
   const highPriority = openTasks.filter((task) => task.priority === "Hoog").length;
   const dueToday = openTasks.filter((task) => task.dueAt === "Vandaag").length;
+  const topTask = openTasks.find((task) => task.priority === "Hoog") || openTasks.find((task) => task.dueAt === "Vandaag") || openTasks[0];
+  const completionRate = state.workQueue.length ? Math.round((doneTasks.length / state.workQueue.length) * 100) : 100;
+  const topTaskDetail = topTask?.description && topTask.description !== topTask.label
+    ? topTask.description
+    : "Deze taak staat bovenaan je werkvoorraad.";
 
   return `
+    <section class="work-hero">
+      <div>
+        <p class="eyebrow">Werkfocus</p>
+        <h2>${topTask ? escapeHtml(topTask.label) : "Geen open werk meer"}</h2>
+        <p>${topTask ? escapeHtml(topTaskDetail) : "Alles is bijgewerkt. Gebruik de dag om vooruit te plannen of dossiers af te werken."}</p>
+      </div>
+      <div class="work-progress">
+        <article><span>Vandaag</span><strong>${escapeHtml(dueToday)}</strong><small>te doen</small></article>
+        <article><span>Prioriteit</span><strong>${escapeHtml(highPriority)}</strong><small>hoog</small></article>
+        <article><span>Voortgang</span><strong>${escapeHtml(completionRate)}%</strong><small>afgewerkt</small></article>
+      </div>
+    </section>
+
     <section class="metric-grid">
       <article class="metric"><span>Open</span><strong>${openTasks.length}</strong><small>taken in behandeling</small></article>
       <article class="metric"><span>Vandaag</span><strong>${dueToday}</strong><small>moeten opgevolgd worden</small></article>
@@ -684,8 +735,29 @@ function agendaView(state) {
   const appointments = state.appointments.filter((appointment) =>
     [appointment.client, appointment.type, appointment.clinician, appointment.location, appointment.status].join(" ").toLowerCase().includes(filter)
   );
+  const signalAppointments = state.appointments.filter((appointment) => appointment.signal !== "success");
+  const clinicians = new Set(state.appointments.map((appointment) => appointment.clinician));
+  const onlineAppointments = state.appointments.filter((appointment) => appointment.location === "Online").length;
+  const signalCopy = signalAppointments.length === 1
+    ? "1 afspraak vraagt extra opvolging."
+    : signalAppointments.length
+      ? `${signalAppointments.length} afspraken vragen extra opvolging.`
+      : "De dagplanning loopt zonder kritieke signalen.";
 
   return `
+    <section class="agenda-hero">
+      <div>
+        <p class="eyebrow">Planning</p>
+        <h2>${state.appointments.length} afspraken vandaag</h2>
+        <p>${escapeHtml(signalCopy)}</p>
+      </div>
+      <div class="agenda-focus">
+        <article><span>Zorgverleners</span><strong>${escapeHtml(clinicians.size)}</strong><small>actief vandaag</small></article>
+        <article><span>Online</span><strong>${escapeHtml(onlineAppointments)}</strong><small>sessies</small></article>
+        <article><span>Signalen</span><strong>${escapeHtml(signalAppointments.length)}</strong><small>op te volgen</small></article>
+      </div>
+    </section>
+
     <section class="toolbar">
       <label class="search-field"><span>Zoek</span><input data-action="filter-appointments" type="search" value="${escapeHtml(state.appointmentFilter)}" placeholder="Client, zorgverlener of type"></label>
       ${can(state, "scheduling") ? `<button class="primary-action" data-action="new-appointment" type="button">Afspraak plannen</button>` : ""}
@@ -884,6 +956,17 @@ function clientsView(state) {
     { label: "Communicatie", done: clientMessages.length > 0 },
     { label: "Facturatie", done: clientInvoices.length > 0 }
   ];
+  const readinessDone = dossierReadiness.filter((item) => item.done).length;
+  const readinessScore = Math.round((readinessDone / dossierReadiness.length) * 100);
+  const openActionsCount = [
+    !clientIntakes.length,
+    !clientAppointments.length,
+    !clientMessages.length,
+    clientInvoices.some((item) => item.status === "Open" || item.status === "Herinnering")
+  ].filter(Boolean).length;
+  const dossierSignal = openActionsCount
+    ? `${openActionsCount} aandachtspunt${openActionsCount === 1 ? "" : "en"}`
+    : "Dossier op schema";
   const accessRows = accessPolicyRows(state, selected);
   const retentionRows = retentionLabelsForClient(state, selected, clientInvoices);
 
@@ -892,11 +975,34 @@ function clientsView(state) {
       <label class="search-field"><span>Zoek</span><input data-action="filter-clients" type="search" value="${escapeHtml(state.clientFilter)}" placeholder="Naam, traject of status"></label>
       <button class="primary-action" data-action="new-client" type="button">Nieuwe client</button>
     </section>
+    <section class="client-hero">
+      <div>
+        <p class="eyebrow">Dossierwerkruimte</p>
+        <h2>${escapeHtml(selected.name)}</h2>
+        <p>${escapeHtml(selected.track)} / ${escapeHtml(selected.clinician)}. ${escapeHtml(dossierSignal)} voor opvolging.</p>
+        <div class="hero-actions">
+          <button class="primary-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">AI workflow</button>
+          <button class="ghost-action" data-action="schedule-client" data-client-id="${escapeHtml(selected.id)}" type="button">Afspraak plannen</button>
+          <button class="ghost-action" data-action="compose-message" data-client-id="${escapeHtml(selected.id)}" type="button">Bericht maken</button>
+        </div>
+      </div>
+      <div class="client-hero-metrics">
+        <article><span>Compleet</span><strong>${escapeHtml(readinessScore)}%</strong><small>${escapeHtml(readinessDone)}/${escapeHtml(dossierReadiness.length)} onderdelen</small></article>
+        <article><span>Volgende afspraak</span><strong>${escapeHtml(nextAppointment ? nextAppointment.time : "-")}</strong><small>${escapeHtml(nextAppointment ? nextAppointment.type : selected.nextAppointment)}</small></article>
+        <article><span>Openstaand</span><strong>${formatEuro(openInvoiceTotal)}</strong><small>facturatie</small></article>
+      </div>
+    </section>
     <section class="client-layout">
       <div class="client-list">
+        <div class="client-list-header">
+          <strong>Dossiers</strong>
+          <span>${escapeHtml(clients.length)} zichtbaar</span>
+        </div>
         ${clients.map((client) => `
           <button class="client-card ${client.id === selected.id ? "active" : ""}" data-action="select-client" data-client-id="${escapeHtml(client.id)}" type="button">
-            <strong>${escapeHtml(client.name)}</strong><span>${escapeHtml(client.track)}</span>${badge(client.status)}
+            <span class="client-card-main"><strong>${escapeHtml(client.name)}</strong>${badge(client.status)}</span>
+            <span>${escapeHtml(client.track)}</span>
+            <small>${escapeHtml(client.clinician)}</small>
           </button>
         `).join("")}
       </div>
@@ -938,7 +1044,7 @@ function clientsView(state) {
             <h3>Compleetheid</h3>
             <div class="readiness-list">
               ${dossierReadiness.map((item) => `
-                <span class="${item.done ? "ready" : ""}">${item.done ? "✓" : "·"} ${escapeHtml(item.label)}</span>
+                <span class="${item.done ? "ready" : ""}"><strong>${escapeHtml(item.label)}</strong><small>${item.done ? "Klaar" : "Aanvullen"}</small></span>
               `).join("")}
             </div>
           </section>
