@@ -951,6 +951,85 @@ h2 {
   line-height: 1.1;
 }
 
+.settings-guide {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-guide-card {
+  display: grid;
+  gap: 14px;
+  align-content: space-between;
+  min-width: 0;
+  min-height: 178px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-guide-card.warning {
+  border-top-color: var(--warning);
+}
+
+.settings-guide-card.danger {
+  border-top-color: var(--danger);
+}
+
+.settings-guide-card.success {
+  border-top-color: var(--success);
+}
+
+.settings-guide-card span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.settings-guide-card strong,
+.settings-guide-card p,
+.settings-guide-card small {
+  min-width: 0;
+}
+
+.settings-guide-card strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.settings-guide-card p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.settings-guide-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.settings-guide-footer small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.settings-guide-footer b {
+  color: var(--ink);
+}
+
+[data-guide-section] {
+  scroll-margin-top: 24px;
+}
+
 .settings-hero h2 {
   margin-bottom: 8px;
   font-size: 24px;
@@ -2293,6 +2372,10 @@ pre {
     grid-template-columns: 1fr;
   }
 
+  .settings-guide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .sidebar {
     position: sticky;
     z-index: 2;
@@ -2437,7 +2520,8 @@ pre {
 
   .operator-summary,
   .operator-notification,
-  .operator-routing {
+  .operator-routing,
+  .settings-guide {
     grid-template-columns: 1fr;
   }
 

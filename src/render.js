@@ -2329,10 +2329,55 @@ function settingsView(state) {
   const openOperatorNotifications = saasOperatorNotifications.filter((item) => item.status !== "Afgehandeld");
   const highOperatorNotifications = openOperatorNotifications.filter((item) => item.priority === "Hoog");
   const routedOperatorNotifications = openOperatorNotifications.filter((item) => item.owner && item.dueAt).length;
+  const activeEntitlements = saasFeatureEntitlements.filter((item) => item.status === "Actief").length;
+  const activeKnowledgeRules = (state.knowledgeBase || []).filter((item) => item.status === "Actief").length;
   const usageSummary = [
     { label: "Team", value: `${seatsUsed}/${seatsIncluded}`, detail: "plaatsen gebruikt" },
     { label: "Cliënten", value: `${clientCount}/${clientLimit}`, detail: "binnen limiet" },
     { label: "AI", value: `${aiCreditsUsed}/${aiCreditsIncluded}`, detail: "credits deze maand" }
+  ];
+  const openImplementationMilestones = saasImplementationMilestones.length - completedImplementationMilestones;
+  const openInvoiceLabel = openSaasInvoices.length === 1 ? "1 open factuur" : `${openSaasInvoices.length} open facturen`;
+  const planChangeLabel = saasPlanChanges.length === 1 ? "1 planwijziging" : `${saasPlanChanges.length} planwijzigingen`;
+  const supportTicketLabel = openSupportTickets.length === 1 ? "1 open vraag" : `${openSupportTickets.length} open vragen`;
+  const milestoneLabel = openImplementationMilestones === 1 ? "1 mijlpaal open" : `${openImplementationMilestones} mijlpalen open`;
+  const guideSections = [
+    {
+      target: "settings-team",
+      label: "Team & praktijk",
+      title: "Richt je werkruimte in",
+      detail: `${state.team.length} teamleden, ${state.practice.locations.length} locatie${state.practice.locations.length === 1 ? "" : "s"}`,
+      value: `${seatsUsed}/${seatsIncluded}`,
+      meta: "plaatsen gebruikt",
+      signal: seatsUsed > seatsIncluded ? "warning" : "success"
+    },
+    {
+      target: "settings-billing",
+      label: "Abonnement",
+      title: "Hou betaling en limieten helder",
+      detail: `${openInvoiceLabel}, ${planChangeLabel}`,
+      value: saasAccount.plan || "Pro",
+      meta: saasAccount.billingStatus || "Actief",
+      signal: openSaasInvoices.length ? "warning" : "success"
+    },
+    {
+      target: "settings-support",
+      label: "Support",
+      title: "Volg vragen en livegang op",
+      detail: `${supportTicketLabel}, ${milestoneLabel}`,
+      value: openSupportTickets.length,
+      meta: "open support",
+      signal: openSupportTickets.some((ticket) => ticket.status === "Geescaleerd") ? "danger" : openSupportTickets.length ? "warning" : "success"
+    },
+    {
+      target: "settings-ai",
+      label: "AI",
+      title: "Beheer kennis en modelreview",
+      detail: `${activeKnowledgeRules} actieve kennisregels, ${modelEvaluations.length} evaluaties`,
+      value: `${aiCreditsUsed}/${aiCreditsIncluded}`,
+      meta: "credits gebruikt",
+      signal: aiCreditsUsed > aiCreditsIncluded ? "warning" : "success"
+    }
   ];
   return `
     <section class="settings-grid">
@@ -2362,6 +2407,22 @@ function settingsView(state) {
           <strong>${escapeHtml(openSupportTickets.length)}</strong>
           <small>open vraag${openSupportTickets.length === 1 ? "" : "en"}</small>
         </article>
+      </div>
+
+      <div class="settings-guide wide" aria-label="Praktijkcentrum secties">
+        ${guideSections.map((section) => `
+          <article class="settings-guide-card ${escapeHtml(section.signal)}">
+            <div>
+              <span>${escapeHtml(section.label)}</span>
+              <strong>${escapeHtml(section.title)}</strong>
+              <p>${escapeHtml(section.detail)}</p>
+            </div>
+            <div class="settings-guide-footer">
+              <small><b>${escapeHtml(section.value)}</b> ${escapeHtml(section.meta)}</small>
+              <button class="ghost-action" data-action="jump-setting-section" data-section-target="${escapeHtml(section.target)}" type="button">Open</button>
+            </div>
+          </article>
+        `).join("")}
       </div>
 
       <div class="panel wide operator-inbox" data-section="saas-operator-notifications">
@@ -2405,7 +2466,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <form class="panel wide" data-form="saas-account">
+      <form class="panel wide" id="settings-billing" data-form="saas-account" data-guide-section="billing">
         <div class="panel-header"><div><h2>Abonnement</h2><p>Plan, limieten en verlenging voor deze praktijkomgeving.</p></div>${badge(saasAccount.billingStatus || "Actief", (saasAccount.billingStatus || "").toLowerCase().includes("pauze") ? "warning" : "success")}</div>
         <div class="metric-grid compact-metrics">
           <article class="metric"><span>Klantomgeving</span><strong>${escapeHtml(saasAccount.tenantId || "tenant")}</strong><small>${escapeHtml(saasAccount.dataRegion || "EU / Belgie")}</small></article>
@@ -2582,7 +2643,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-support">
+      <div class="panel wide" id="settings-support" data-section="saas-support" data-guide-section="support">
         <div class="panel-header"><div><h2>Support</h2><p>Klantvragen met prioriteit, eigenaar en afgesproken opvolging.</p></div>${badge(openSupportTickets.length ? `${openSupportTickets.length} open` : "Alles gesloten", openSupportTickets.length ? "warning" : "success")}</div>
         <div class="security-list">
           ${saasSupportQueue.map((ticket) => `
@@ -2623,7 +2684,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-entitlements">
-        <div class="panel-header"><div><h2>Modules</h2><p>Welke productmodules actief zijn voor deze praktijk.</p></div>${badge(`${saasFeatureEntitlements.filter((item) => item.status === "Actief").length}/${saasFeatureEntitlements.length} actief`, "success")}</div>
+        <div class="panel-header"><div><h2>Modules</h2><p>Welke productmodules actief zijn voor deze praktijk.</p></div>${badge(`${activeEntitlements}/${saasFeatureEntitlements.length} actief`, "success")}</div>
         <div class="security-list">
           ${saasFeatureEntitlements.map((item) => `
             <article class="security-row">
@@ -2733,7 +2794,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <form class="panel" data-form="practice">
+      <form class="panel" id="settings-team" data-form="practice" data-guide-section="team">
         <div class="panel-header"><div><h2>Praktijk</h2><p>Basisconfiguratie voor de groepspraktijk.</p></div></div>
         <label class="field"><span>Praktijknaam</span><input name="name" value="${escapeHtml(state.practice.name)}" required></label>
         <div class="form-grid">
@@ -2755,7 +2816,7 @@ function settingsView(state) {
         <button class="primary-action" type="submit">Teamlid toevoegen</button>
       </form>
 
-      <form class="panel wide" data-form="knowledge-base">
+      <form class="panel wide" id="settings-ai" data-form="knowledge-base" data-guide-section="ai">
         <div class="panel-header"><div><h2>Praktijkkennis</h2><p>Regels die de AI-assistent als context gebruikt.</p></div></div>
         <div class="form-grid">
           <label class="field"><span>Categorie</span><select name="category"><option>Communicatie</option><option>Planning</option><option>AI</option><option>Facturatie</option><option>Praktijk</option></select></label>

@@ -16,6 +16,7 @@
 - Tenant operator notifications for billing, support, onboarding, playbooks and lifecycle follow-up
 - Operator notification routing with owner, priority and due-date changes
 - SaaS interface polish for a clearer practice-center experience
+- Guided practice-center sections for team, billing, support and AI settings
 - Tenant support and escalation queue
 - Tenant renewal and cancellation workflow
 - Tenant contract document center
@@ -78,7 +79,7 @@
 
 ## Next Product Slice
 
-- Add guided practice-center sections for team, billing, support and AI settings.
+- Add role-specific practice-center defaults and section filters.
 
 ## Phase 4: Belgian Integrations
 

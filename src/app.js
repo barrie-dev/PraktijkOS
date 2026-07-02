@@ -125,6 +125,12 @@ async function handleClick(event) {
     return;
   }
 
+  if (action === "jump-setting-section") {
+    const section = document.getElementById(target.dataset.sectionTarget || "");
+    section?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+
   if (action === "command-open") {
     const nextState = { commandQuery: "" };
     if (target.dataset.view) nextState.view = target.dataset.view;
