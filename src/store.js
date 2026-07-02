@@ -1,5 +1,6 @@
 import {
   acknowledgeSaasAdminActivity,
+  acknowledgeSaasOperatorNotification,
   applyImport,
   approveDraft,
   completeDayCloseCheck,
@@ -46,6 +47,7 @@ import {
   reviewIntegrationReadiness,
   reviewKnowledgeBaseItem,
   reviewRetentionPolicy,
+  resolveSaasOperatorNotification,
   rollbackImport,
   runSaasRiskPlaybook,
   scheduleWaitlistEntry,
@@ -66,7 +68,7 @@ import {
   updateSaasSupportTicket
 } from "./api.js";
 import { generateDraft } from "./ai.js";
-import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasImplementationMilestones, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasPlanChanges, saasRiskPlaybooks, saasSuccessActions, saasSupportQueue, saasTenantCohorts, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
+import { aiModelEvaluations, aiModels, appointments, clients, dayClose, integrationReadiness, invoices, isoEvidencePacks, knowledgeBase, paymentRequests, peppolPreparations, retentionPolicies, saasAdminActivity, saasContractDocuments, saasFeatureEntitlements, saasImplementationMilestones, saasInvoices, saasLifecycleRequests, saasOnboardingChecklist, saasOperatorNotifications, saasPlanChanges, saasRiskPlaybooks, saasSuccessActions, saasSupportQueue, saasTenantCohorts, saasUsageLedger, voiceConsents, waitlist, workQueue } from "./data.js";
 
 const STORAGE_KEY = "praktijkos.state.v1";
 
@@ -197,6 +199,7 @@ const initialState = {
   saasInvoices,
   saasLifecycleRequests,
   saasOnboardingChecklist,
+  saasOperatorNotifications,
   saasPlanChanges,
   saasRiskPlaybooks,
   saasSuccessActions,
@@ -2485,6 +2488,217 @@ export async function acknowledgeSaasActivity(activityId) {
     `${updatedActivity.category}: ${updatedActivity.title}.`
   ));
   return { ok: true, message: "SaaS activiteit lokaal gelezen." };
+}
+
+function operatorNotificationSignal(priority = "Normaal", status = "Nieuw") {
+  if (status === "Afgehandeld") return "success";
+  if (priority === "Hoog") return "danger";
+  return "warning";
+}
+
+function buildLocalSaasOperatorNotifications(sourceState = state) {
+  const account = sourceState.practice?.saasAccount || {};
+  const tenantId = account.tenantId || "tenant";
+  const existingById = new Map((sourceState.saasOperatorNotifications || []).map((item) => [item.id, item]));
+  const openInvoices = (sourceState.saasInvoices || []).filter((invoice) => invoice.status !== "Betaald");
+  const escalatedSupport = (sourceState.saasSupportQueue || []).filter((ticket) => ticket.status === "Geescaleerd");
+  const openActivation = [
+    ...(sourceState.saasOnboardingChecklist || []),
+    ...(sourceState.saasImplementationMilestones || [])
+  ].filter((item) => item.status !== "Klaar");
+  const recommendedPlaybooks = (sourceState.saasRiskPlaybooks || []).filter((playbook) => playbook.status === "Aanbevolen" || !playbook.lastRunAt);
+  const openLifecycle = [
+    ...(sourceState.saasLifecycleRequests || []).filter((item) => item.status === "In review"),
+    ...(sourceState.saasPlanChanges || []).filter((item) => item.status === "Aangevraagd")
+  ];
+  const billingStatus = `${account.billingStatus || ""}`.toLowerCase();
+  const candidates = [];
+
+  if (openInvoices.length || billingStatus.includes("betaal") || billingStatus.includes("pauze")) {
+    candidates.push({
+      id: "operator-billing-open",
+      tenantId,
+      category: "Billing",
+      title: "Abonnementfactuur vraagt opvolging",
+      detail: openInvoices.length ? `${openInvoices.length} open abonnementfactuur/facturen of betaalactie.` : `Billingstatus: ${account.billingStatus || "opvolgen"}.`,
+      source: "saasInvoices",
+      sourceLabel: "Abonnementfacturen",
+      priority: "Hoog",
+      owner: "Customer success",
+      status: "Nieuw",
+      createdAt: openInvoices[0]?.issuedAt || "Vandaag",
+      dueAt: openInvoices[0]?.dueAt || "Vandaag"
+    });
+  }
+
+  if (escalatedSupport.length) {
+    candidates.push({
+      id: "operator-support-escalation",
+      tenantId,
+      category: "Support",
+      title: "Supportescalatie vraagt operatorbeslissing",
+      detail: `${escalatedSupport.length} escalatie(s) moeten eigenaar, SLA en klantupdate krijgen.`,
+      source: "saasSupportQueue",
+      sourceLabel: "Support",
+      priority: "Hoog",
+      owner: "Customer success",
+      status: "Nieuw",
+      createdAt: escalatedSupport[0]?.escalatedAt || escalatedSupport[0]?.createdAt || "Vandaag",
+      dueAt: escalatedSupport[0]?.slaDueAt || "Vandaag"
+    });
+  }
+
+  if (openActivation.length) {
+    candidates.push({
+      id: "operator-onboarding-open",
+      tenantId,
+      category: "Onboarding",
+      title: "Tenantactivatie is nog niet rond",
+      detail: `${openActivation.length} onboarding- of livegangstap(pen) blokkeren volledige activatie.`,
+      source: "saasOnboardingChecklist",
+      sourceLabel: "Onboarding",
+      priority: "Normaal",
+      owner: "Implementation",
+      status: "Nieuw",
+      createdAt: "Vandaag",
+      dueAt: openActivation[0]?.dueAt || "Deze week"
+    });
+  }
+
+  if (recommendedPlaybooks.length) {
+    candidates.push({
+      id: "operator-playbooks-ready",
+      tenantId,
+      category: "Scenario",
+      title: "Opvolgscenario's staan klaar",
+      detail: `${recommendedPlaybooks.length} aanbevolen scenario(s) kunnen customer-success acties aanmaken.`,
+      source: "saasRiskPlaybooks",
+      sourceLabel: "Opvolgscenario's",
+      priority: "Normaal",
+      owner: "Customer success",
+      status: "Nieuw",
+      createdAt: "Vandaag",
+      dueAt: "Deze week"
+    });
+  }
+
+  if (openLifecycle.length) {
+    candidates.push({
+      id: "operator-lifecycle-review",
+      tenantId,
+      category: "Contract",
+      title: "Plan- of contractbeslissing wacht op review",
+      detail: `${openLifecycle.length} lifecycle- of planwijziging(en) staan in review.`,
+      source: "saasLifecycleRequests",
+      sourceLabel: "Verlenging en planwijziging",
+      priority: "Normaal",
+      owner: "Revenue operations",
+      status: "Nieuw",
+      createdAt: openLifecycle[0]?.requestedAt || "Vandaag",
+      dueAt: openLifecycle[0]?.effectiveAt || "Deze maand"
+    });
+  }
+
+  const merged = candidates.map((candidate) => {
+    const existing = existingById.get(candidate.id) || {};
+    return {
+      ...candidate,
+      ...existing,
+      signal: operatorNotificationSignal(existing.priority || candidate.priority, existing.status || candidate.status)
+    };
+  });
+  (sourceState.saasOperatorNotifications || [])
+    .filter((item) => !candidates.some((candidate) => candidate.id === item.id))
+    .forEach((item) => merged.push({ ...item, signal: operatorNotificationSignal(item.priority, item.status) }));
+
+  const priorityRank = { Hoog: 0, Normaal: 1, Laag: 2 };
+  const statusRank = { Nieuw: 0, Gezien: 1, Afgehandeld: 2 };
+  return merged.sort((a, b) =>
+    (statusRank[a.status] ?? 9) - (statusRank[b.status] ?? 9)
+    || (priorityRank[a.priority] ?? 9) - (priorityRank[b.priority] ?? 9)
+    || String(a.dueAt || "").localeCompare(String(b.dueAt || ""))
+  );
+}
+
+function upsertOperatorNotification(notification) {
+  const notifications = state.saasOperatorNotifications || [];
+  return notifications.some((item) => item.id === notification.id)
+    ? notifications.map((item) => item.id === notification.id ? notification : item)
+    : [notification, ...notifications];
+}
+
+export async function acknowledgeSaasOperatorNotificationItem(notificationId) {
+  const notification = buildLocalSaasOperatorNotifications().find((item) => item.id === notificationId);
+  if (!notification) {
+    return { ok: false, message: "Operatornotificatie niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await acknowledgeSaasOperatorNotification(notificationId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Operatornotificatie gezien." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedNotification = {
+    ...notification,
+    status: notification.status === "Afgehandeld" ? "Afgehandeld" : "Gezien",
+    acknowledgedAt: nowLabel(),
+    acknowledgedBy: state.currentUser?.name || "PraktijkOS",
+    signal: notification.status === "Afgehandeld" ? "success" : "warning"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasOperatorNotifications: upsertOperatorNotification(updatedNotification),
+      view: "settings"
+    },
+    "Operatornotificatie gezien",
+    `${updatedNotification.category}: ${updatedNotification.title}.`
+  ));
+  return { ok: true, message: "Operatornotificatie lokaal gezien." };
+}
+
+export async function resolveSaasOperatorNotificationItem(notificationId) {
+  const notification = buildLocalSaasOperatorNotifications().find((item) => item.id === notificationId);
+  if (!notification) {
+    return { ok: false, message: "Operatornotificatie niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await resolveSaasOperatorNotification(notificationId);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Operatornotificatie afgehandeld." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const updatedNotification = {
+    ...notification,
+    status: "Afgehandeld",
+    acknowledgedAt: notification.acknowledgedAt || nowLabel(),
+    acknowledgedBy: notification.acknowledgedBy || state.currentUser?.name || "PraktijkOS",
+    resolvedAt: nowLabel(),
+    resolvedBy: state.currentUser?.name || "PraktijkOS",
+    signal: "success"
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasOperatorNotifications: upsertOperatorNotification(updatedNotification),
+      view: "settings"
+    },
+    "Operatornotificatie afgehandeld",
+    `${updatedNotification.category}: ${updatedNotification.title}.`
+  ));
+  return { ok: true, message: "Operatornotificatie lokaal afgehandeld." };
 }
 
 export async function changeSaasSupportTicket(ticketId, status) {

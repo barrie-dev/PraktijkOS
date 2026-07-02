@@ -15,6 +15,7 @@ import {
   addTeamMember,
   addVoiceConsent,
   acknowledgeSaasActivity,
+  acknowledgeSaasOperatorNotificationItem,
   applyPreparedImport,
   approveCurrentDraft,
   bootstrapState,
@@ -62,6 +63,7 @@ import {
   resetDemoState,
   requestSaasLifecycleChange,
   requestSaasPlanChange,
+  resolveSaasOperatorNotificationItem,
   rollbackPreparedImport,
   runTenantRiskPlaybook,
   runAiWorkflow,
@@ -347,6 +349,18 @@ async function handleClick(event) {
 
   if (action === "acknowledge-saas-activity") {
     const result = await acknowledgeSaasActivity(target.dataset.activityId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "acknowledge-saas-operator-notification") {
+    const result = await acknowledgeSaasOperatorNotificationItem(target.dataset.notificationId);
+    showToast(result.message);
+    return;
+  }
+
+  if (action === "resolve-saas-operator-notification") {
+    const result = await resolveSaasOperatorNotificationItem(target.dataset.notificationId);
     showToast(result.message);
     return;
   }

@@ -31,6 +31,7 @@ const collections = [
   "saasOnboardingChecklist",
   "saasFeatureEntitlements",
   "saasAdminActivity",
+  "saasOperatorNotifications",
   "saasSupportQueue",
   "saasLifecycleRequests",
   "saasContractDocuments",
@@ -201,6 +202,7 @@ function seedIfEmpty() {
   seedCollectionIfEmpty("saasOnboardingChecklist");
   seedCollectionIfEmpty("saasFeatureEntitlements");
   seedCollectionIfEmpty("saasAdminActivity");
+  seedCollectionIfEmpty("saasOperatorNotifications");
   seedCollectionIfEmpty("saasSupportQueue");
   seedCollectionIfEmpty("saasLifecycleRequests");
   seedCollectionIfEmpty("saasContractDocuments");

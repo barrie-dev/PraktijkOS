@@ -1799,6 +1799,103 @@ textarea {
   color: var(--muted);
 }
 
+.operator-inbox {
+  border-color: rgba(21, 113, 95, 0.2);
+}
+
+.operator-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.operator-summary article {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.operator-summary span,
+.operator-summary small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.operator-summary strong {
+  display: block;
+  margin: 5px 0 2px;
+  font-size: 24px;
+  line-height: 1.08;
+}
+
+.operator-list {
+  display: grid;
+  gap: 8px;
+}
+
+.operator-notification {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.operator-notification.warning {
+  border-left-color: var(--warning);
+  background: #fffdf7;
+}
+
+.operator-notification.danger {
+  border-left-color: var(--danger);
+  background: #fff8f9;
+}
+
+.operator-notification.success {
+  border-left-color: var(--success);
+}
+
+.operator-notification p {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.operator-notification small {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.operator-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.operator-meta span {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .insight-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2195,6 +2292,10 @@ pre {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .operator-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .schedule-board {
     grid-template-columns: repeat(2, minmax(220px, 1fr));
   }
@@ -2257,6 +2358,11 @@ pre {
   }
 
   .client-hero-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .operator-summary,
+  .operator-notification {
     grid-template-columns: 1fr;
   }
 

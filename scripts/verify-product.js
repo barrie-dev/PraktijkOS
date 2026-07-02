@@ -168,6 +168,21 @@ async function verify() {
     assert(activatedEntitlement.status === "Actief", "SaaS entitlement should be activatable.");
     assert(activatedEntitlement.updatedAt, "Updated SaaS entitlement should include update metadata.");
     assert(usageAlertState.saasAdminActivity.some((item) => item.status === "Nieuw"), "SaaS admin activity should include unread items.");
+    assert(usageAlertState.saasOperatorNotifications.some((item) => item.id === "operator-billing-open"), "SaaS operator notifications should include billing follow-up.");
+    assert(usageAlertState.saasOperatorNotifications.some((item) => item.priority === "Hoog"), "SaaS operator notifications should expose high-priority items.");
+    const operatorNotification = usageAlertState.saasOperatorNotifications.find((item) => item.status !== "Afgehandeld");
+    const acknowledgedOperatorNotification = await request(`/api/saas-operator-notifications/${operatorNotification.id}/acknowledge`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(acknowledgedOperatorNotification.status === "Gezien", "SaaS operator notification should be acknowledgeable.");
+    assert(acknowledgedOperatorNotification.acknowledgedAt, "Acknowledged operator notification should include metadata.");
+    const resolvedOperatorNotification = await request(`/api/saas-operator-notifications/${operatorNotification.id}/resolve`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    assert(resolvedOperatorNotification.status === "Afgehandeld", "SaaS operator notification should be resolvable.");
+    assert(resolvedOperatorNotification.resolvedAt, "Resolved operator notification should include metadata.");
     assert(usageAlertState.saasHealth.score < 100, "SaaS health should reflect tenant risks.");
     assert(usageAlertState.saasHealth.indicators.some((indicator) => indicator.id === "billing"), "SaaS health should include billing indicators.");
     assert(usageAlertState.saasHealth.indicators.some((indicator) => indicator.id === "features"), "SaaS health should include feature indicators.");

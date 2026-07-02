@@ -384,6 +384,139 @@ function buildSaasRiskPlaybooks(store) {
   });
 }
 
+function notificationSignal(priority = "Normaal", status = "Nieuw") {
+  if (status === "Afgehandeld") return "success";
+  if (priority === "Hoog") return "danger";
+  return "warning";
+}
+
+function buildSaasOperatorNotifications(store) {
+  const account = store.practice?.saasAccount || {};
+  const tenantId = account.tenantId || "tenant";
+  const existingById = new Map((store.saasOperatorNotifications || []).map((item) => [item.id, item]));
+  const candidates = [];
+  const openInvoices = (store.saasInvoices || []).filter((invoice) => invoice.status !== "Betaald");
+  const escalatedSupport = (store.saasSupportQueue || []).filter((ticket) => ticket.status === "Geescaleerd");
+  const openActivation = [
+    ...(store.saasOnboardingChecklist || []),
+    ...(store.saasImplementationMilestones || [])
+  ].filter((item) => item.status !== "Klaar");
+  const recommendedPlaybooks = buildSaasRiskPlaybooks(store).filter((playbook) => playbook.status === "Aanbevolen");
+  const openLifecycle = [
+    ...(store.saasLifecycleRequests || []).filter((item) => item.status === "In review"),
+    ...(store.saasPlanChanges || []).filter((item) => item.status === "Aangevraagd")
+  ];
+  const billingStatus = `${account.billingStatus || ""}`.toLowerCase();
+
+  if (openInvoices.length || billingStatus.includes("betaal") || billingStatus.includes("pauze")) {
+    candidates.push({
+      id: "operator-billing-open",
+      tenantId,
+      category: "Billing",
+      title: "Abonnementfactuur vraagt opvolging",
+      detail: openInvoices.length
+        ? `${openInvoices.length} open abonnementfactuur/facturen of betaalactie.`
+        : `Billingstatus: ${account.billingStatus || "opvolgen"}.`,
+      source: "saasInvoices",
+      sourceLabel: "Abonnementfacturen",
+      priority: "Hoog",
+      owner: "Customer success",
+      status: "Nieuw",
+      createdAt: openInvoices[0]?.issuedAt || "Vandaag",
+      dueAt: openInvoices[0]?.dueAt || "Vandaag"
+    });
+  }
+
+  if (escalatedSupport.length) {
+    candidates.push({
+      id: "operator-support-escalation",
+      tenantId,
+      category: "Support",
+      title: "Supportescalatie vraagt operatorbeslissing",
+      detail: `${escalatedSupport.length} escalatie(s) moeten eigenaar, SLA en klantupdate krijgen.`,
+      source: "saasSupportQueue",
+      sourceLabel: "Support",
+      priority: "Hoog",
+      owner: "Customer success",
+      status: "Nieuw",
+      createdAt: escalatedSupport[0]?.escalatedAt || escalatedSupport[0]?.createdAt || "Vandaag",
+      dueAt: escalatedSupport[0]?.slaDueAt || "Vandaag"
+    });
+  }
+
+  if (openActivation.length) {
+    candidates.push({
+      id: "operator-onboarding-open",
+      tenantId,
+      category: "Onboarding",
+      title: "Tenantactivatie is nog niet rond",
+      detail: `${openActivation.length} onboarding- of livegangstap(pen) blokkeren volledige activatie.`,
+      source: "saasOnboardingChecklist",
+      sourceLabel: "Onboarding",
+      priority: "Normaal",
+      owner: "Implementation",
+      status: "Nieuw",
+      createdAt: "Vandaag",
+      dueAt: openActivation[0]?.dueAt || "Deze week"
+    });
+  }
+
+  if (recommendedPlaybooks.length) {
+    candidates.push({
+      id: "operator-playbooks-ready",
+      tenantId,
+      category: "Scenario",
+      title: "Opvolgscenario's staan klaar",
+      detail: `${recommendedPlaybooks.length} aanbevolen scenario(s) kunnen customer-success acties aanmaken.`,
+      source: "saasRiskPlaybooks",
+      sourceLabel: "Opvolgscenario's",
+      priority: "Normaal",
+      owner: "Customer success",
+      status: "Nieuw",
+      createdAt: "Vandaag",
+      dueAt: "Deze week"
+    });
+  }
+
+  if (openLifecycle.length) {
+    candidates.push({
+      id: "operator-lifecycle-review",
+      tenantId,
+      category: "Contract",
+      title: "Plan- of contractbeslissing wacht op review",
+      detail: `${openLifecycle.length} lifecycle- of planwijziging(en) staan in review.`,
+      source: "saasLifecycleRequests",
+      sourceLabel: "Verlenging en planwijziging",
+      priority: "Normaal",
+      owner: "Revenue operations",
+      status: "Nieuw",
+      createdAt: openLifecycle[0]?.requestedAt || "Vandaag",
+      dueAt: openLifecycle[0]?.effectiveAt || "Deze maand"
+    });
+  }
+
+  const merged = candidates.map((candidate) => {
+    const existing = existingById.get(candidate.id) || {};
+    return {
+      ...candidate,
+      ...existing,
+      signal: notificationSignal(existing.priority || candidate.priority, existing.status || candidate.status)
+    };
+  });
+
+  (store.saasOperatorNotifications || [])
+    .filter((item) => !candidates.some((candidate) => candidate.id === item.id))
+    .forEach((item) => merged.push({ ...item, signal: notificationSignal(item.priority, item.status) }));
+
+  const priorityRank = { Hoog: 0, Normaal: 1, Laag: 2 };
+  const statusRank = { Nieuw: 0, Gezien: 1, Afgehandeld: 2 };
+  return merged.sort((a, b) =>
+    (statusRank[a.status] ?? 9) - (statusRank[b.status] ?? 9)
+    || (priorityRank[a.priority] ?? 9) - (priorityRank[b.priority] ?? 9)
+    || String(a.dueAt || "").localeCompare(String(b.dueAt || ""))
+  );
+}
+
 function buildSaasCohortSummary(store) {
   const tenants = store.saasTenantCohorts || [];
   const totalMrr = tenants.reduce((sum, tenant) => sum + Number(tenant.mrr || 0), 0);
@@ -1212,6 +1345,7 @@ async function handleApi(request, response) {
       saasHealth: buildSaasHealth(store),
       saasSuccessMetrics: buildSaasSuccessMetrics(store),
       saasRiskPlaybooks: buildSaasRiskPlaybooks(store),
+      saasOperatorNotifications: buildSaasOperatorNotifications(store),
       saasCohortSummary: buildSaasCohortSummary(store),
       analytics
     });
@@ -1224,7 +1358,7 @@ async function handleApi(request, response) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/state") {
-    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store), saasHealth: buildSaasHealth(store), saasSuccessMetrics: buildSaasSuccessMetrics(store), saasRiskPlaybooks: buildSaasRiskPlaybooks(store), saasCohortSummary: buildSaasCohortSummary(store) });
+    sendJson(response, 200, { ...store, analytics: buildAnalytics(store), saasUsageAlerts: buildSaasUsageAlerts(store), saasHealth: buildSaasHealth(store), saasSuccessMetrics: buildSaasSuccessMetrics(store), saasRiskPlaybooks: buildSaasRiskPlaybooks(store), saasOperatorNotifications: buildSaasOperatorNotifications(store), saasCohortSummary: buildSaasCohortSummary(store) });
     return;
   }
 
@@ -1412,6 +1546,70 @@ async function handleApi(request, response) {
     );
     writeStore(nextStore);
     sendJson(response, 200, updatedActivity);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-operator-notifications\/[^/]+\/acknowledge$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const notificationId = url.pathname.split("/")[3];
+    const notification = buildSaasOperatorNotifications(store).find((item) => item.id === notificationId);
+    if (!notification) {
+      sendJson(response, 404, { error: "SaaS operator notification not found" });
+      return;
+    }
+
+    const updatedNotification = {
+      ...notification,
+      status: notification.status === "Afgehandeld" ? "Afgehandeld" : "Gezien",
+      acknowledgedAt: timestampLabel(),
+      acknowledgedBy: user.name,
+      signal: notification.status === "Afgehandeld" ? "success" : "warning"
+    };
+    const existingNotifications = store.saasOperatorNotifications || [];
+    const nextNotifications = existingNotifications.some((item) => item.id === notificationId)
+      ? existingNotifications.map((item) => item.id === notificationId ? updatedNotification : item)
+      : [updatedNotification, ...existingNotifications];
+    const nextStore = appendAudit(
+      { ...store, saasOperatorNotifications: nextNotifications },
+      "Operatornotificatie gezien",
+      `${updatedNotification.category}: ${updatedNotification.title}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedNotification);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname.match(/^\/api\/saas-operator-notifications\/[^/]+\/resolve$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const notificationId = url.pathname.split("/")[3];
+    const notification = buildSaasOperatorNotifications(store).find((item) => item.id === notificationId);
+    if (!notification) {
+      sendJson(response, 404, { error: "SaaS operator notification not found" });
+      return;
+    }
+
+    const updatedNotification = {
+      ...notification,
+      status: "Afgehandeld",
+      acknowledgedAt: notification.acknowledgedAt || timestampLabel(),
+      acknowledgedBy: notification.acknowledgedBy || user.name,
+      resolvedAt: timestampLabel(),
+      resolvedBy: user.name,
+      signal: "success"
+    };
+    const existingNotifications = store.saasOperatorNotifications || [];
+    const nextNotifications = existingNotifications.some((item) => item.id === notificationId)
+      ? existingNotifications.map((item) => item.id === notificationId ? updatedNotification : item)
+      : [updatedNotification, ...existingNotifications];
+    const nextStore = appendAudit(
+      { ...store, saasOperatorNotifications: nextNotifications },
+      "Operatornotificatie afgehandeld",
+      `${updatedNotification.category}: ${updatedNotification.title}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedNotification);
     return;
   }
 

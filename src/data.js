@@ -606,6 +606,45 @@ export const saasAdminActivity = [
   }
 ];
 
+export const saasOperatorNotifications = [
+  {
+    id: "operator-billing-open",
+    tenantId: "tenant-de-linde",
+    category: "Billing",
+    title: "Abonnementfactuur vraagt opvolging",
+    detail: "Open SaaS factuur en betaalmethode moeten door operator of customer success opgevolgd worden.",
+    source: "saasInvoices",
+    sourceLabel: "Abonnementfacturen",
+    priority: "Hoog",
+    owner: "Customer success",
+    status: "Nieuw",
+    createdAt: "01/07/2026",
+    dueAt: "Vandaag",
+    acknowledgedAt: null,
+    acknowledgedBy: null,
+    resolvedAt: null,
+    resolvedBy: null
+  },
+  {
+    id: "operator-onboarding-open",
+    tenantId: "tenant-de-linde",
+    category: "Onboarding",
+    title: "Tenantactivatie is nog niet rond",
+    detail: "Open onboardingstappen blokkeren een volledig afgeronde klantomgeving.",
+    source: "saasOnboardingChecklist",
+    sourceLabel: "Onboarding",
+    priority: "Normaal",
+    owner: "Customer success",
+    status: "Nieuw",
+    createdAt: "30/06/2026",
+    dueAt: "Deze week",
+    acknowledgedAt: null,
+    acknowledgedBy: null,
+    resolvedAt: null,
+    resolvedBy: null
+  }
+];
+
 export const saasSupportQueue = [
   {
     id: "support-001",

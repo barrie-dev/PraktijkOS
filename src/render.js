@@ -2109,6 +2109,136 @@ function localSaasRiskPlaybooks(state) {
   });
 }
 
+function notificationSignal(priority = "Normaal", status = "Nieuw") {
+  if (status === "Afgehandeld") return "success";
+  if (priority === "Hoog") return "danger";
+  return "warning";
+}
+
+function localSaasOperatorNotifications(state) {
+  const account = state.practice.saasAccount || {};
+  const tenantId = account.tenantId || "tenant";
+  const existingById = new Map((state.saasOperatorNotifications || []).map((item) => [item.id, item]));
+  const openInvoices = (state.saasInvoices || []).filter((invoice) => invoice.status !== "Betaald");
+  const escalatedSupport = (state.saasSupportQueue || []).filter((ticket) => ticket.status === "Geescaleerd");
+  const openActivation = [
+    ...(state.saasOnboardingChecklist || []),
+    ...(state.saasImplementationMilestones || [])
+  ].filter((item) => item.status !== "Klaar");
+  const recommendedPlaybooks = localSaasRiskPlaybooks(state).filter((playbook) => playbook.status === "Aanbevolen");
+  const openLifecycle = [
+    ...(state.saasLifecycleRequests || []).filter((item) => item.status === "In review"),
+    ...(state.saasPlanChanges || []).filter((item) => item.status === "Aangevraagd")
+  ];
+  const billingStatus = `${account.billingStatus || ""}`.toLowerCase();
+  const candidates = [];
+
+  if (openInvoices.length || billingStatus.includes("betaal") || billingStatus.includes("pauze")) {
+    candidates.push({
+      id: "operator-billing-open",
+      tenantId,
+      category: "Billing",
+      title: "Abonnementfactuur vraagt opvolging",
+      detail: openInvoices.length ? `${openInvoices.length} open abonnementfactuur/facturen of betaalactie.` : `Billingstatus: ${account.billingStatus || "opvolgen"}.`,
+      source: "saasInvoices",
+      sourceLabel: "Abonnementfacturen",
+      priority: "Hoog",
+      owner: "Customer success",
+      status: "Nieuw",
+      createdAt: openInvoices[0]?.issuedAt || "Vandaag",
+      dueAt: openInvoices[0]?.dueAt || "Vandaag"
+    });
+  }
+
+  if (escalatedSupport.length) {
+    candidates.push({
+      id: "operator-support-escalation",
+      tenantId,
+      category: "Support",
+      title: "Supportescalatie vraagt operatorbeslissing",
+      detail: `${escalatedSupport.length} escalatie(s) moeten eigenaar, SLA en klantupdate krijgen.`,
+      source: "saasSupportQueue",
+      sourceLabel: "Support",
+      priority: "Hoog",
+      owner: "Customer success",
+      status: "Nieuw",
+      createdAt: escalatedSupport[0]?.escalatedAt || escalatedSupport[0]?.createdAt || "Vandaag",
+      dueAt: escalatedSupport[0]?.slaDueAt || "Vandaag"
+    });
+  }
+
+  if (openActivation.length) {
+    candidates.push({
+      id: "operator-onboarding-open",
+      tenantId,
+      category: "Onboarding",
+      title: "Tenantactivatie is nog niet rond",
+      detail: `${openActivation.length} onboarding- of livegangstap(pen) blokkeren volledige activatie.`,
+      source: "saasOnboardingChecklist",
+      sourceLabel: "Onboarding",
+      priority: "Normaal",
+      owner: "Implementation",
+      status: "Nieuw",
+      createdAt: "Vandaag",
+      dueAt: openActivation[0]?.dueAt || "Deze week"
+    });
+  }
+
+  if (recommendedPlaybooks.length) {
+    candidates.push({
+      id: "operator-playbooks-ready",
+      tenantId,
+      category: "Scenario",
+      title: "Opvolgscenario's staan klaar",
+      detail: `${recommendedPlaybooks.length} aanbevolen scenario(s) kunnen customer-success acties aanmaken.`,
+      source: "saasRiskPlaybooks",
+      sourceLabel: "Opvolgscenario's",
+      priority: "Normaal",
+      owner: "Customer success",
+      status: "Nieuw",
+      createdAt: "Vandaag",
+      dueAt: "Deze week"
+    });
+  }
+
+  if (openLifecycle.length) {
+    candidates.push({
+      id: "operator-lifecycle-review",
+      tenantId,
+      category: "Contract",
+      title: "Plan- of contractbeslissing wacht op review",
+      detail: `${openLifecycle.length} lifecycle- of planwijziging(en) staan in review.`,
+      source: "saasLifecycleRequests",
+      sourceLabel: "Verlenging en planwijziging",
+      priority: "Normaal",
+      owner: "Revenue operations",
+      status: "Nieuw",
+      createdAt: openLifecycle[0]?.requestedAt || "Vandaag",
+      dueAt: openLifecycle[0]?.effectiveAt || "Deze maand"
+    });
+  }
+
+  const merged = candidates.map((candidate) => {
+    const existing = existingById.get(candidate.id) || {};
+    return {
+      ...candidate,
+      ...existing,
+      signal: notificationSignal(existing.priority || candidate.priority, existing.status || candidate.status)
+    };
+  });
+  (state.saasOperatorNotifications || [])
+    .filter((item) => !candidates.some((candidate) => candidate.id === item.id))
+    .forEach((item) => merged.push({ ...item, signal: notificationSignal(item.priority, item.status) }));
+
+  const priorityRank = { Hoog: 0, Normaal: 1, Laag: 2 };
+  const statusRank = { Nieuw: 0, Gezien: 1, Afgehandeld: 2 };
+  return merged.sort((a, b) =>
+    (statusRank[a.status] ?? 9) - (statusRank[b.status] ?? 9)
+    || (priorityRank[a.priority] ?? 9) - (priorityRank[b.priority] ?? 9)
+    || String(a.dueAt || "").localeCompare(String(b.dueAt || ""))
+  );
+}
+
 function localSaasCohortSummary(state) {
   const tenants = state.saasTenantCohorts || [];
   const totalMrr = tenants.reduce((sum, tenant) => sum + Number(tenant.mrr || 0), 0);
@@ -2133,6 +2263,7 @@ function settingsView(state) {
   const saasHealth = state.saasHealth || localSaasHealth(state, saasUsageAlerts);
   const saasSuccessMetrics = state.saasSuccessMetrics?.length ? state.saasSuccessMetrics : localSaasSuccessMetrics(state);
   const saasRiskPlaybooks = state.saasRiskPlaybooks?.length ? state.saasRiskPlaybooks : localSaasRiskPlaybooks(state);
+  const saasOperatorNotifications = localSaasOperatorNotifications({ ...state, saasRiskPlaybooks });
   const saasTenantCohorts = state.saasTenantCohorts || [];
   const saasCohortSummary = state.saasCohortSummary || localSaasCohortSummary(state);
   const seatsUsed = state.team.length;
@@ -2159,6 +2290,8 @@ function settingsView(state) {
   const completedImplementationMilestones = saasImplementationMilestones.filter((item) => item.status === "Klaar").length;
   const openSuccessActions = saasSuccessActions.filter((item) => item.status !== "Klaar");
   const recommendedPlaybooks = saasRiskPlaybooks.filter((item) => item.status === "Aanbevolen");
+  const openOperatorNotifications = saasOperatorNotifications.filter((item) => item.status !== "Afgehandeld");
+  const highOperatorNotifications = openOperatorNotifications.filter((item) => item.priority === "Hoog");
   return `
     <section class="settings-grid">
       <div class="settings-hero wide">
@@ -2170,7 +2303,41 @@ function settingsView(state) {
         <div class="hero-metrics">
           <article><span>Plan</span><strong>${escapeHtml(saasAccount.plan || "Pro")}</strong><small>${escapeHtml(saasAccount.billingStatus || "Actief")}</small></article>
           <article><span>Portfolio MRR</span><strong>${formatEuro(saasCohortSummary.totalMrr || 0)}</strong><small>${escapeHtml(saasCohortSummary.tenants || 0)} praktijken</small></article>
-          <article><span>Opvolging</span><strong>${escapeHtml(openSuccessActions.length + recommendedPlaybooks.length)}</strong><small>acties en scenario's</small></article>
+          <article><span>Operator inbox</span><strong>${escapeHtml(openOperatorNotifications.length)}</strong><small>${highOperatorNotifications.length ? `${highOperatorNotifications.length} hoog` : "geen hoge prioriteit"}</small></article>
+        </div>
+      </div>
+
+      <div class="panel wide operator-inbox" data-section="saas-operator-notifications">
+        <div class="panel-header">
+          <div><h2>Operator inbox</h2><p>Actieve SaaS-signalen die een owner, beslissing of opvolging nodig hebben.</p></div>
+          ${badge(openOperatorNotifications.length ? `${openOperatorNotifications.length} open` : "Alles afgehandeld", highOperatorNotifications.length ? "danger" : openOperatorNotifications.length ? "warning" : "success")}
+        </div>
+        <div class="operator-summary">
+          <article><span>Hoog</span><strong>${escapeHtml(highOperatorNotifications.length)}</strong><small>vandaag prioriteit</small></article>
+          <article><span>Gezien</span><strong>${escapeHtml(saasOperatorNotifications.filter((item) => item.status === "Gezien").length)}</strong><small>wacht op afhandeling</small></article>
+          <article><span>Klaar</span><strong>${escapeHtml(saasOperatorNotifications.filter((item) => item.status === "Afgehandeld").length)}</strong><small>afgehandeld</small></article>
+        </div>
+        <div class="operator-list">
+          ${saasOperatorNotifications.map((notification) => `
+            <article class="operator-notification ${escapeHtml(notification.signal || "warning")}">
+              <div>
+                <span class="section-kicker">${escapeHtml(notification.category)} / ${escapeHtml(notification.sourceLabel || "SaaS")}</span>
+                <strong>${escapeHtml(notification.title)}</strong>
+                <p>${escapeHtml(notification.detail)}</p>
+                <div class="operator-meta">
+                  <span>Owner: ${escapeHtml(notification.owner || "PraktijkOS")}</span>
+                  <span>Deadline: ${escapeHtml(notification.dueAt || "Niet gepland")}</span>
+                  <span>Aangemaakt: ${escapeHtml(notification.createdAt || "Vandaag")}</span>
+                </div>
+                ${notification.resolvedAt ? `<small>Afgehandeld ${escapeHtml(notification.resolvedAt)} door ${escapeHtml(notification.resolvedBy || "PraktijkOS")}</small>` : notification.acknowledgedAt ? `<small>Gezien ${escapeHtml(notification.acknowledgedAt)} door ${escapeHtml(notification.acknowledgedBy || "PraktijkOS")}</small>` : ""}
+              </div>
+              <div class="status-stack">
+                ${badge(notification.status || "Nieuw", notification.signal || "warning")}
+                ${notification.status === "Nieuw" ? `<button class="ghost-action" data-action="acknowledge-saas-operator-notification" data-notification-id="${escapeHtml(notification.id)}" type="button">Gezien</button>` : ""}
+                ${notification.status !== "Afgehandeld" ? `<button class="primary-action" data-action="resolve-saas-operator-notification" data-notification-id="${escapeHtml(notification.id)}" type="button">Afhandelen</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen operatornotificaties voor deze tenant.</p>`}
         </div>
       </div>
 

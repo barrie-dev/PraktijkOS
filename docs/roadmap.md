@@ -13,6 +13,7 @@
 - Tenant feature entitlement controls
 - Tenant admin activity feed
 - Tenant health score and risk indicators
+- Tenant operator notifications for billing, support, onboarding, playbooks and lifecycle follow-up
 - Tenant support and escalation queue
 - Tenant renewal and cancellation workflow
 - Tenant contract document center
@@ -75,7 +76,7 @@
 
 ## Next Product Slice
 
-- Add tenant operator notifications.
+- Add operator notification routing, owner assignment and due-date changes.
 
 ## Phase 4: Belgian Integrations
 

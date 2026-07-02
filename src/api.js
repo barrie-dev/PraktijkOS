@@ -171,6 +171,20 @@ export async function acknowledgeSaasAdminActivity(activityId) {
   });
 }
 
+export async function acknowledgeSaasOperatorNotification(notificationId) {
+  return request(`/api/saas-operator-notifications/${notificationId}/acknowledge`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
+export async function resolveSaasOperatorNotification(notificationId) {
+  return request(`/api/saas-operator-notifications/${notificationId}/resolve`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function updateSaasSupportTicket(ticketId, payload = {}) {
   return request(`/api/saas-support/${ticketId}`, {
     method: "PATCH",
