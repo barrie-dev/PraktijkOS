@@ -188,28 +188,28 @@ function shell(state) {
     {
       label: "Werkdag",
       items: [
-        ["dashboard", "VD", "Vandaag", "Dagoverzicht"],
-        ["work", "TA", "Taken", "Werkvoorraad"],
-        ["agenda", "AG", "Agenda", "Planning"],
-        ["waiting", "WL", "Wachtlijst", "Instroom"]
+        ["dashboard", "Vandaag", "Overzicht"],
+        ["work", "Taken", "Opvolging"],
+        ["agenda", "Agenda", "Planning"],
+        ["waiting", "Wachtlijst", "Instroom"]
       ]
     },
     {
       label: "Praktijk",
       items: [
-        ["clients", "DO", "Dossiers", "Clienten"],
-        ["intake", "IN", "Intakes", "Aanmeldingen"],
-        ["portal", "PO", "Portaal", "Berichten"],
-        ["billing", "FA", "Facturatie", "Betalingen"]
+        ["clients", "Dossiers", "Cliënten"],
+        ["intake", "Intakes", "Aanmeldingen"],
+        ["portal", "Berichten", "Portaal"],
+        ["billing", "Facturatie", "Betalingen"]
       ]
     },
     {
-      label: "Platform",
+      label: "Beheer",
       items: [
-        ["ai", "AI", "AI assistent", "Concepten"],
-        ["security", "VE", "Veiligheid", "Controle"],
-        ["settings", "SA", "SaaS cockpit", "Account"],
-        ["import", "IM", "Import", "Migratie"]
+        ["ai", "Assistent", "Concepten"],
+        ["security", "Veiligheid", "Controle"],
+        ["settings", "Instellingen", "Praktijk"],
+        ["import", "Import", "Overzetten"]
       ]
     }
   ].map((group) => ({
@@ -218,7 +218,7 @@ function shell(state) {
   })).filter((group) => group.items.length);
 
   const account = state.practice?.saasAccount || {};
-  const connectionLabel = state.apiStatus === "connected" ? "Live opgeslagen" : "Offline modus";
+  const connectionLabel = state.apiStatus === "connected" ? "Opgeslagen" : "Niet gesynchroniseerd";
   const connectionSignal = state.apiStatus === "connected" ? "success" : "warning";
 
   return `
@@ -226,17 +226,16 @@ function shell(state) {
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">P</div>
-          <div><strong>PraktijkOS</strong><span>SaaS voor praktijken</span></div>
+          <div><strong>PraktijkOS</strong><span>Praktijkruimte</span></div>
         </div>
         <nav class="nav-list" aria-label="Hoofdnavigatie">
           ${navGroups.map((group) => `
             <div class="nav-group">
               <p>${escapeHtml(group.label)}</p>
-              ${group.items.map(([view, icon, label, detail]) => `
+              ${group.items.map(([view, label, detail]) => `
                 <button class="nav-item ${activeView === view ? "active" : ""}" data-action="navigate" data-view="${view}" type="button">
-                  <span>${icon}</span>
-                  <strong>${escapeHtml(label)}</strong>
-                  <small>${escapeHtml(detail)}</small>
+                  <span class="nav-marker" aria-hidden="true"></span>
+                  <span class="nav-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(detail)}</small></span>
                 </button>
               `).join("")}
             </div>
@@ -244,9 +243,9 @@ function shell(state) {
         </nav>
         <div class="tenant-card">
           <div>
-            <span class="section-kicker">Tenant</span>
+            <span class="section-kicker">Omgeving</span>
             <strong>${escapeHtml(account.plan || "Pro")} plan</strong>
-            <p>${escapeHtml(account.tenantId || "tenant")} / ${escapeHtml(account.dataRegion || "EU / Belgie")}</p>
+            <p>Praktijkgegevens actief beveiligd.</p>
           </div>
           ${badge(account.billingStatus || "Actief", `${account.billingStatus || ""}`.toLowerCase().includes("betaal") ? "warning" : "success")}
         </div>
@@ -256,12 +255,12 @@ function shell(state) {
           <div>
             <p class="eyebrow">${escapeHtml(state.practice?.name || "Groepspraktijk")}</p>
             <h1>${viewTitles[activeView]}</h1>
-            <span class="workspace-subtitle">${escapeHtml(state.currentUser?.role || "Team")} workspace</span>
+            <span class="workspace-subtitle">${escapeHtml(state.currentUser?.role || "Team")}</span>
           </div>
           <div class="command-search">
             <label>
-              <span>Zoek in PraktijkOS</span>
-              <input data-action="command-search" type="search" value="${escapeHtml(state.commandQuery || "")}" placeholder="Dossier, afspraak, factuur of actie">
+              <span>Snel zoeken</span>
+              <input data-action="command-search" type="search" value="${escapeHtml(state.commandQuery || "")}" placeholder="Zoek client, afspraak of factuur">
             </label>
             ${commandPanel(state)}
           </div>
@@ -547,7 +546,7 @@ function dashboardView(state) {
       <article class="metric"><span>Aandacht</span><strong>${noShowCount + pendingIntakes}</strong><small>vragen opvolging</small></article>
     </section>
     <section class="quick-actions">
-      ${can(state, "care") ? `<button class="quick-action" data-action="new-client" type="button"><span>Dossier</span><strong>Nieuwe client</strong><small>Start een traject</small></button>` : ""}
+      ${can(state, "care") ? `<button class="quick-action" data-action="new-client" type="button"><span>Dossier</span><strong>Nieuwe cliënt</strong><small>Start een traject</small></button>` : ""}
       ${can(state, "tasks") ? `<button class="quick-action" data-action="navigate" data-view="work" type="button"><span>Werk</span><strong>Taken opvolgen</strong><small>${escapeHtml(openTasks.length)} open acties</small></button>` : ""}
       ${can(state, "scheduling") ? `<button class="quick-action" data-action="navigate" data-view="waiting" type="button"><span>Wachtlijst</span><strong>Plan vrije plaats</strong><small>Prioritaire instroom</small></button>` : ""}
       ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Antwoorden vastleggen</strong><small>${escapeHtml(pendingIntakes)} open intake(s)</small></button>` : ""}
@@ -640,7 +639,7 @@ function dashboardView(state) {
               </div>
             </article>
           `).join("") || `<p class="empty-state">Geen kritieke signalen.</p>`}
-          ${pendingIntakes ? `<article class="risk-item"><div><strong>${pendingIntakes} intake open</strong><span>Clientinput ontbreekt voor volledige dossierstart.</span></div><div class="status-stack">${badge("Intake", "warning")}<button class="ghost-action" data-action="navigate" data-view="intake" type="button">Naar intakes</button></div></article>` : ""}
+          ${pendingIntakes ? `<article class="risk-item"><div><strong>${pendingIntakes} intake open</strong><span>Cliëntinput ontbreekt voor volledige dossierstart.</span></div><div class="status-stack">${badge("Intake", "warning")}<button class="ghost-action" data-action="navigate" data-view="intake" type="button">Naar intakes</button></div></article>` : ""}
         </div>
       </div>
 
@@ -907,7 +906,7 @@ function retentionLabelsForClient(state, client, invoices = []) {
   rows.push(
     {
       category: "Portaal",
-      context: "Delen en clientinput",
+      context: "Delen en cliëntinput",
       policy: byCategory("Portaal")
     },
     {
@@ -930,7 +929,7 @@ function clientsView(state) {
     return `
       <section class="toolbar">
         <label class="search-field"><span>Zoek</span><input data-action="filter-clients" type="search" value="${escapeHtml(state.clientFilter)}" placeholder="Naam, traject of status"></label>
-        <button class="primary-action" data-action="new-client" type="button">Nieuwe client</button>
+        <button class="primary-action" data-action="new-client" type="button">Nieuwe cliënt</button>
       </section>
       <section class="panel"><p class="empty-state">Nog geen dossiers.</p></section>
     `;
@@ -973,7 +972,7 @@ function clientsView(state) {
   return `
     <section class="toolbar">
       <label class="search-field"><span>Zoek</span><input data-action="filter-clients" type="search" value="${escapeHtml(state.clientFilter)}" placeholder="Naam, traject of status"></label>
-      <button class="primary-action" data-action="new-client" type="button">Nieuwe client</button>
+      <button class="primary-action" data-action="new-client" type="button">Nieuwe cliënt</button>
     </section>
     <section class="client-hero">
       <div>
@@ -981,7 +980,7 @@ function clientsView(state) {
         <h2>${escapeHtml(selected.name)}</h2>
         <p>${escapeHtml(selected.track)} / ${escapeHtml(selected.clinician)}. ${escapeHtml(dossierSignal)} voor opvolging.</p>
         <div class="hero-actions">
-          <button class="primary-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">AI workflow</button>
+          <button class="primary-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">AI voorstel</button>
           <button class="ghost-action" data-action="schedule-client" data-client-id="${escapeHtml(selected.id)}" type="button">Afspraak plannen</button>
           <button class="ghost-action" data-action="compose-message" data-client-id="${escapeHtml(selected.id)}" type="button">Bericht maken</button>
         </div>
@@ -1009,7 +1008,7 @@ function clientsView(state) {
       <article class="panel client-detail">
         <div class="dossier-header">
           <div>
-            <span class="section-kicker">Clientdossier</span>
+            <span class="section-kicker">Dossier</span>
             <h2>${escapeHtml(selected.name)}</h2>
             <p>${escapeHtml(selected.track)}</p>
           </div>
@@ -1017,11 +1016,8 @@ function clientsView(state) {
         </div>
 
         <div class="action-strip">
-          <button class="primary-action" data-action="prepare-ai" data-source="${escapeHtml(`${selected.name}: ${selected.aiSuggestion}`)}" type="button">AI workflow</button>
-          <button class="ghost-action" data-action="schedule-client" data-client-id="${escapeHtml(selected.id)}" type="button">Afspraak plannen</button>
-          <button class="ghost-action" data-action="compose-message" data-client-id="${escapeHtml(selected.id)}" type="button">Bericht maken</button>
           <button class="ghost-action" data-action="start-intake" data-client-id="${escapeHtml(selected.id)}" type="button">Intake aanvullen</button>
-          <button class="ghost-action" data-action="export-client" data-client-id="${escapeHtml(selected.id)}" type="button">Dossier export</button>
+          <button class="ghost-action" data-action="export-client" data-client-id="${escapeHtml(selected.id)}" type="button">Exporteer dossier</button>
         </div>
 
         <div class="care-strip dossier-metrics">
@@ -1264,7 +1260,7 @@ function intakeView(state) {
   return `
     <section class="content-grid">
       <form class="panel" data-form="intake">
-        <div class="panel-header"><div><h2>Nieuwe intake</h2><p>Leg clientinput vast voor dossier en AI-samenvatting.</p></div></div>
+        <div class="panel-header"><div><h2>Nieuwe intake</h2><p>Leg cliëntinput vast voor dossier en AI-samenvatting.</p></div></div>
         <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
         <label class="field"><span>Hulpvraag</span><textarea name="hulpvraag" rows="4" required></textarea></label>
         <label class="field"><span>Voorkeuren</span><input name="voorkeur" placeholder="Bijv. dinsdagavond, online mogelijk"></label>
@@ -1293,7 +1289,7 @@ function intakeView(state) {
 function portalView(state) {
   const invites = state.portalInvites || [];
   const messageTemplate = state.messageTemplate || {};
-  const messageChannels = ["Client portal", "Email concept", "SMS reminder"];
+  const messageChannels = ["Cliëntportaal", "Email concept", "SMS reminder"];
 
   return `
     <section class="settings-grid">
@@ -1519,7 +1515,7 @@ function aiView(state) {
             ${["intake", "note", "letter", "billing"].map((workflow) => `<option value="${workflow}" ${state.aiWorkflow === workflow ? "selected" : ""}>${getWorkflowLabel(workflow)}</option>`).join("")}
           </select>
         </label>
-        <label class="field"><span>Client voor dossieropslag</span>
+        <label class="field"><span>Cliënt voor dossieropslag</span>
           <select data-action="ai-client">
             ${clientOptions(state)}
           </select>
@@ -1534,7 +1530,7 @@ function aiView(state) {
           <span>${escapeHtml(selectedModel?.useCase || "Voeg een actief model toe in de registry.")}</span>
           ${selectedModel ? badge(`Risico ${selectedModel.riskLevel}`, selectedModel.riskLevel === "Laag" ? "success" : "warning") : ""}
         </div>
-        <label class="field"><span>Broncontext</span><textarea data-action="ai-input" rows="9">${escapeHtml(state.aiSource || "Client meldt stressklachten, slaapproblemen en piekeren rond werk. Eerste gesprek, vraag naar kortdurende begeleiding. Wil graag afspraken op dinsdagavond.")}</textarea></label>
+        <label class="field"><span>Broncontext</span><textarea data-action="ai-input" rows="9">${escapeHtml(state.aiSource || "Cliënt meldt stressklachten, slaapproblemen en piekeren rond werk. Eerste gesprek, vraag naar kortdurende begeleiding. Wil graag afspraken op dinsdagavond.")}</textarea></label>
         <div class="ai-actions"><button class="primary-action" data-action="run-ai" type="button">Genereer concept</button><button class="ghost-action" data-action="clear-ai" type="button">Wis</button></div>
       </div>
       <div class="panel">
@@ -1603,7 +1599,7 @@ function importView(state) {
         <div class="form-grid">
           <label class="field"><span>Type data</span><select name="kind">
             ${[
-              ["clients", "Clienten"],
+              ["clients", "Cliënten"],
               ["appointments", "Afspraken"],
               ["invoices", "Facturen"]
             ].map(([value, label]) => `<option value="${value}" ${state.importKind === value ? "selected" : ""}>${label}</option>`).join("")}
@@ -1991,7 +1987,7 @@ function localSaasUsageAlerts(state) {
     },
     {
       id: "clients",
-      label: "Clientlimiet",
+      label: "Cliëntlimiet",
       used: state.clients?.length || 0,
       limit: Number(account.clientLimit || 0),
       detail: `${state.clients?.length || 0}/${account.clientLimit || "?"} dossiers binnen deze tenant.`
@@ -2167,7 +2163,7 @@ function settingsView(state) {
     <section class="settings-grid">
       <div class="settings-hero wide">
         <div>
-          <p class="eyebrow">SaaS cockpit</p>
+          <p class="eyebrow">Praktijkbeheer</p>
           <h2>${escapeHtml(state.practice?.name || "Praktijk")} beheren als klantomgeving</h2>
           <p>Volg abonnement, adoptie, risico's en customer-success acties op zonder in technische beheerdata te duiken.</p>
         </div>
@@ -2184,7 +2180,7 @@ function settingsView(state) {
           <article class="metric"><span>Klantomgeving</span><strong>${escapeHtml(saasAccount.tenantId || "tenant")}</strong><small>${escapeHtml(saasAccount.dataRegion || "EU / Belgie")}</small></article>
           <article class="metric"><span>Plan</span><strong>${escapeHtml(saasAccount.plan || "Pro")}</strong><small>verlenging ${escapeHtml(saasAccount.renewalDate || "nog te plannen")}</small></article>
           <article class="metric"><span>Seats</span><strong>${seatsUsed}/${seatsIncluded}</strong><small>teamleden binnen abonnement</small></article>
-          <article class="metric"><span>Clienten</span><strong>${clientCount}/${clientLimit}</strong><small>dossiers binnen tenantlimiet</small></article>
+          <article class="metric"><span>Cliënten</span><strong>${clientCount}/${clientLimit}</strong><small>dossiers binnen tenantlimiet</small></article>
           <article class="metric"><span>AI credits</span><strong>${aiCreditsUsed}/${aiCreditsIncluded}</strong><small>maandbudget voor AI-acties</small></article>
         </div>
         <div class="security-alerts">
@@ -2203,7 +2199,7 @@ function settingsView(state) {
         </div>
         <div class="form-grid">
           <label class="field"><span>Seats inbegrepen</span><input name="seatsIncluded" type="number" min="1" value="${escapeHtml(seatsIncluded)}"></label>
-          <label class="field"><span>Clientlimiet</span><input name="clientLimit" type="number" min="1" value="${escapeHtml(clientLimit)}"></label>
+          <label class="field"><span>Cliëntlimiet</span><input name="clientLimit" type="number" min="1" value="${escapeHtml(clientLimit)}"></label>
           <label class="field"><span>AI credits/maand</span><input name="aiCreditsIncluded" type="number" min="0" value="${escapeHtml(aiCreditsIncluded)}"></label>
           <label class="field"><span>AI credits gebruikt</span><input name="aiCreditsUsed" type="number" min="0" value="${escapeHtml(aiCreditsUsed)}"></label>
         </div>
@@ -2697,7 +2693,7 @@ function appointmentModal(state) {
     <div class="modal-backdrop" data-action="close-modal">
       <form class="modal" data-form="appointment" aria-label="Nieuwe afspraak">
         <div class="panel-header">
-          <div><h2>Nieuwe afspraak</h2><p>Plan een afspraak en werk clientstatus meteen bij.</p></div>
+          <div><h2>Nieuwe afspraak</h2><p>Plan een afspraak en werk cliëntstatus meteen bij.</p></div>
           <button class="icon-button" data-action="close-modal" type="button">Sluit</button>
         </div>
         <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
@@ -2748,9 +2744,9 @@ function waitlistModal(state) {
 function clientModal() {
   return `
     <div class="modal-backdrop" data-action="close-modal">
-      <form class="modal" data-form="client" aria-label="Nieuwe client">
+      <form class="modal" data-form="client" aria-label="Nieuwe cliënt">
         <div class="panel-header">
-          <div><h2>Nieuwe client</h2><p>Maak een dossierstarter aan voor intake en planning.</p></div>
+          <div><h2>Nieuwe cliënt</h2><p>Maak een dossierstarter aan voor intake en planning.</p></div>
           <button class="icon-button" data-action="close-modal" type="button">Sluit</button>
         </div>
         <label class="field"><span>Naam</span><input name="name" placeholder="Naam client" required></label>
