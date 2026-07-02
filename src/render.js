@@ -12,7 +12,22 @@ const viewTitles = {
   ai: "Assistent",
   import: "Import",
   security: "Veiligheid",
-  settings: "Instellingen"
+  settings: "Praktijkcentrum"
+};
+
+const viewDescriptions = {
+  dashboard: "Je dag in een helder overzicht.",
+  work: "Taken, opvolging en prioriteiten.",
+  agenda: "Afspraken plannen en opvolgen.",
+  waiting: "Instroom en vrije plaatsen beheren.",
+  clients: "Clientdossiers en trajectcontext.",
+  intake: "Aanmeldingen en ontbrekende input.",
+  portal: "Berichten, documenten en clientcontact.",
+  billing: "Facturen, betalingen en herinneringen.",
+  ai: "Concepten met menselijke review.",
+  import: "Migratie voorbereiden en controleren.",
+  security: "Toegang, audit en bewijsstukken.",
+  settings: "Abonnement, team en praktijkwerking."
 };
 
 function escapeHtml(value = "") {
@@ -46,6 +61,9 @@ const appointmentStatuses = ["Nieuw", "Aanwezig", "Klaar voor facturatie", "Inta
 const messageStatuses = ["Concept", "Klaar voor verzending", "Verzonden", "Gearchiveerd"];
 const documentStatuses = ["Review nodig", "Klaar voor delen", "Gedeeld", "Gearchiveerd"];
 const portalInviteStatuses = ["Actief", "Ingetrokken"];
+const operatorOwners = ["Customer success", "Implementation", "Support", "Revenue operations", "PraktijkOS"];
+const operatorDueOptions = ["Vandaag", "Morgen", "Deze week", "Deze maand", "Volgende review"];
+const operatorPriorities = ["Hoog", "Normaal", "Laag"];
 const auditFilterOptions = [
   { value: "all", label: "Alle events" },
   { value: "exports", label: "Exports" },
@@ -88,6 +106,24 @@ function canView(state, view) {
 
 function firstAvailableView(state) {
   return ["dashboard", "work", "agenda", "waiting", "clients", "billing", "ai", "import", "security", "settings"].find((view) => canView(state, view)) || "dashboard";
+}
+
+function optionList(options, selected = "") {
+  const merged = selected && !options.includes(selected) ? [selected, ...options] : options;
+  return merged.map((option) =>
+    `<option value="${escapeHtml(option)}" ${option === selected ? "selected" : ""}>${escapeHtml(option)}</option>`
+  ).join("");
+}
+
+function operatorCategoryLabel(category = "") {
+  const labels = {
+    Billing: "Abonnement",
+    Support: "Support",
+    Onboarding: "Opstart",
+    Scenario: "Aanbeveling",
+    Contract: "Contract"
+  };
+  return labels[category] || category || "Opvolging";
 }
 
 function commandResults(state) {
@@ -208,7 +244,7 @@ function shell(state) {
       items: [
         ["ai", "Assistent", "Concepten"],
         ["security", "Veiligheid", "Controle"],
-        ["settings", "Instellingen", "Praktijk"],
+        ["settings", "Praktijk", "Team en abonnement"],
         ["import", "Import", "Overzetten"]
       ]
     }
@@ -218,7 +254,7 @@ function shell(state) {
   })).filter((group) => group.items.length);
 
   const account = state.practice?.saasAccount || {};
-  const connectionLabel = state.apiStatus === "connected" ? "Opgeslagen" : "Niet gesynchroniseerd";
+  const connectionLabel = state.apiStatus === "connected" ? "Live opgeslagen" : "Offline opgeslagen";
   const connectionSignal = state.apiStatus === "connected" ? "success" : "warning";
 
   return `
@@ -226,7 +262,7 @@ function shell(state) {
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">P</div>
-          <div><strong>PraktijkOS</strong><span>Praktijkruimte</span></div>
+          <div><strong>PraktijkOS</strong><span>Zorgpraktijk workspace</span></div>
         </div>
         <nav class="nav-list" aria-label="Hoofdnavigatie">
           ${navGroups.map((group) => `
@@ -245,7 +281,7 @@ function shell(state) {
           <div>
             <span class="section-kicker">Omgeving</span>
             <strong>${escapeHtml(account.plan || "Pro")} plan</strong>
-            <p>Praktijkgegevens actief beveiligd.</p>
+            <p>Je praktijkruimte is klaar voor team, dossiers en facturatie.</p>
           </div>
           ${badge(account.billingStatus || "Actief", `${account.billingStatus || ""}`.toLowerCase().includes("betaal") ? "warning" : "success")}
         </div>
@@ -255,12 +291,12 @@ function shell(state) {
           <div>
             <p class="eyebrow">${escapeHtml(state.practice?.name || "Groepspraktijk")}</p>
             <h1>${viewTitles[activeView]}</h1>
-            <span class="workspace-subtitle">${escapeHtml(state.currentUser?.role || "Team")}</span>
+            <span class="workspace-subtitle">${escapeHtml(viewDescriptions[activeView] || state.currentUser?.role || "Team")}</span>
           </div>
           <div class="command-search">
             <label>
-              <span>Snel zoeken</span>
-              <input data-action="command-search" type="search" value="${escapeHtml(state.commandQuery || "")}" placeholder="Zoek client, afspraak of factuur">
+              <span>Zoeken</span>
+              <input data-action="command-search" type="search" value="${escapeHtml(state.commandQuery || "")}" placeholder="Client, afspraak, factuur of taak">
             </label>
             ${commandPanel(state)}
           </div>
@@ -2292,44 +2328,72 @@ function settingsView(state) {
   const recommendedPlaybooks = saasRiskPlaybooks.filter((item) => item.status === "Aanbevolen");
   const openOperatorNotifications = saasOperatorNotifications.filter((item) => item.status !== "Afgehandeld");
   const highOperatorNotifications = openOperatorNotifications.filter((item) => item.priority === "Hoog");
+  const routedOperatorNotifications = openOperatorNotifications.filter((item) => item.owner && item.dueAt).length;
+  const usageSummary = [
+    { label: "Team", value: `${seatsUsed}/${seatsIncluded}`, detail: "plaatsen gebruikt" },
+    { label: "Cliënten", value: `${clientCount}/${clientLimit}`, detail: "binnen limiet" },
+    { label: "AI", value: `${aiCreditsUsed}/${aiCreditsIncluded}`, detail: "credits deze maand" }
+  ];
   return `
     <section class="settings-grid">
       <div class="settings-hero wide">
         <div>
-          <p class="eyebrow">Praktijkbeheer</p>
-          <h2>${escapeHtml(state.practice?.name || "Praktijk")} beheren als klantomgeving</h2>
-          <p>Volg abonnement, adoptie, risico's en customer-success acties op zonder in technische beheerdata te duiken.</p>
+          <p class="eyebrow">Praktijkcentrum</p>
+          <h2>${escapeHtml(state.practice?.name || "Praktijk")} klaar houden voor je team</h2>
+          <p>Beheer abonnement, gebruik, support en opvolging vanuit een rustige werkplek. Alleen wat aandacht vraagt komt bovenaan.</p>
         </div>
         <div class="hero-metrics">
           <article><span>Plan</span><strong>${escapeHtml(saasAccount.plan || "Pro")}</strong><small>${escapeHtml(saasAccount.billingStatus || "Actief")}</small></article>
-          <article><span>Portfolio MRR</span><strong>${formatEuro(saasCohortSummary.totalMrr || 0)}</strong><small>${escapeHtml(saasCohortSummary.tenants || 0)} praktijken</small></article>
-          <article><span>Operator inbox</span><strong>${escapeHtml(openOperatorNotifications.length)}</strong><small>${highOperatorNotifications.length ? `${highOperatorNotifications.length} hoog` : "geen hoge prioriteit"}</small></article>
+          <article><span>Gebruik</span><strong>${escapeHtml(Math.round(saasHealth.score || 0))}%</strong><small>praktijkgezondheid</small></article>
+          <article><span>Acties</span><strong>${escapeHtml(openOperatorNotifications.length)}</strong><small>${highOperatorNotifications.length ? `${highOperatorNotifications.length} dringend` : "rustig"}</small></article>
         </div>
+      </div>
+
+      <div class="settings-overview wide">
+        ${usageSummary.map((item) => `
+          <article>
+            <span>${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(item.value)}</strong>
+            <small>${escapeHtml(item.detail)}</small>
+          </article>
+        `).join("")}
+        <article>
+          <span>Support</span>
+          <strong>${escapeHtml(openSupportTickets.length)}</strong>
+          <small>open vraag${openSupportTickets.length === 1 ? "" : "en"}</small>
+        </article>
       </div>
 
       <div class="panel wide operator-inbox" data-section="saas-operator-notifications">
         <div class="panel-header">
-          <div><h2>Operator inbox</h2><p>Actieve SaaS-signalen die een owner, beslissing of opvolging nodig hebben.</p></div>
+          <div><span class="section-kicker">Actiecentrum</span><h2>Wat vraagt opvolging?</h2><p>Wijs elke open actie toe aan de juiste eigenaar en zet meteen de deadline goed.</p></div>
           ${badge(openOperatorNotifications.length ? `${openOperatorNotifications.length} open` : "Alles afgehandeld", highOperatorNotifications.length ? "danger" : openOperatorNotifications.length ? "warning" : "success")}
         </div>
         <div class="operator-summary">
-          <article><span>Hoog</span><strong>${escapeHtml(highOperatorNotifications.length)}</strong><small>vandaag prioriteit</small></article>
-          <article><span>Gezien</span><strong>${escapeHtml(saasOperatorNotifications.filter((item) => item.status === "Gezien").length)}</strong><small>wacht op afhandeling</small></article>
+          <article><span>Dringend</span><strong>${escapeHtml(highOperatorNotifications.length)}</strong><small>vraagt vandaag aandacht</small></article>
+          <article><span>Toegewezen</span><strong>${escapeHtml(routedOperatorNotifications)}</strong><small>met owner en deadline</small></article>
           <article><span>Klaar</span><strong>${escapeHtml(saasOperatorNotifications.filter((item) => item.status === "Afgehandeld").length)}</strong><small>afgehandeld</small></article>
         </div>
         <div class="operator-list">
           ${saasOperatorNotifications.map((notification) => `
             <article class="operator-notification ${escapeHtml(notification.signal || "warning")}">
               <div>
-                <span class="section-kicker">${escapeHtml(notification.category)} / ${escapeHtml(notification.sourceLabel || "SaaS")}</span>
+                <span class="section-kicker">${escapeHtml(operatorCategoryLabel(notification.category))}</span>
                 <strong>${escapeHtml(notification.title)}</strong>
                 <p>${escapeHtml(notification.detail)}</p>
                 <div class="operator-meta">
-                  <span>Owner: ${escapeHtml(notification.owner || "PraktijkOS")}</span>
-                  <span>Deadline: ${escapeHtml(notification.dueAt || "Niet gepland")}</span>
-                  <span>Aangemaakt: ${escapeHtml(notification.createdAt || "Vandaag")}</span>
+                  <span>${escapeHtml(notification.owner || "PraktijkOS")}</span>
+                  <span>${escapeHtml(notification.dueAt || "Niet gepland")}</span>
+                  <span>${escapeHtml(notification.priority || "Normaal")} prioriteit</span>
                 </div>
-                ${notification.resolvedAt ? `<small>Afgehandeld ${escapeHtml(notification.resolvedAt)} door ${escapeHtml(notification.resolvedBy || "PraktijkOS")}</small>` : notification.acknowledgedAt ? `<small>Gezien ${escapeHtml(notification.acknowledgedAt)} door ${escapeHtml(notification.acknowledgedBy || "PraktijkOS")}</small>` : ""}
+                ${notification.status !== "Afgehandeld" ? `
+                  <div class="operator-routing">
+                    <label class="compact-select"><span>Owner</span><select data-action="saas-operator-owner" data-notification-id="${escapeHtml(notification.id)}">${optionList(operatorOwners, notification.owner || "PraktijkOS")}</select></label>
+                    <label class="compact-select"><span>Deadline</span><select data-action="saas-operator-due" data-notification-id="${escapeHtml(notification.id)}">${optionList(operatorDueOptions, notification.dueAt || "Deze week")}</select></label>
+                    <label class="compact-select"><span>Prioriteit</span><select data-action="saas-operator-priority" data-notification-id="${escapeHtml(notification.id)}">${optionList(operatorPriorities, notification.priority || "Normaal")}</select></label>
+                  </div>
+                ` : ""}
+                ${notification.resolvedAt ? `<small>Afgehandeld ${escapeHtml(notification.resolvedAt)} door ${escapeHtml(notification.resolvedBy || "PraktijkOS")}</small>` : notification.routedAt ? `<small>Bijgewerkt ${escapeHtml(notification.routedAt)} door ${escapeHtml(notification.routedBy || "PraktijkOS")}</small>` : notification.acknowledgedAt ? `<small>Gezien ${escapeHtml(notification.acknowledgedAt)} door ${escapeHtml(notification.acknowledgedBy || "PraktijkOS")}</small>` : ""}
               </div>
               <div class="status-stack">
                 ${badge(notification.status || "Nieuw", notification.signal || "warning")}

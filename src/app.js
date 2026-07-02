@@ -65,6 +65,7 @@ import {
   requestSaasPlanChange,
   resolveSaasOperatorNotificationItem,
   rollbackPreparedImport,
+  routeSaasOperatorNotification,
   runTenantRiskPlaybook,
   runAiWorkflow,
   scheduleFromWaitlist,
@@ -494,6 +495,18 @@ function handleChange(event) {
 
   if (target.dataset.action === "appointment-status") {
     changeAppointmentStatus(target.dataset.appointmentId, target.value).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "saas-operator-owner") {
+    routeSaasOperatorNotification(target.dataset.notificationId, { owner: target.value }).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "saas-operator-due") {
+    routeSaasOperatorNotification(target.dataset.notificationId, { dueAt: target.value }).then((result) => showToast(result.message));
+  }
+
+  if (target.dataset.action === "saas-operator-priority") {
+    routeSaasOperatorNotification(target.dataset.notificationId, { priority: target.value }).then((result) => showToast(result.message));
   }
 
   if (target.dataset.action === "message-status") {

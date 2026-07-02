@@ -178,6 +178,13 @@ export async function acknowledgeSaasOperatorNotification(notificationId) {
   });
 }
 
+export async function updateSaasOperatorNotificationRoute(notificationId, payload = {}) {
+  return request(`/api/saas-operator-notifications/${notificationId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function resolveSaasOperatorNotification(notificationId) {
   return request(`/api/saas-operator-notifications/${notificationId}/resolve`, {
     method: "POST",

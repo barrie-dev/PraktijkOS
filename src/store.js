@@ -65,6 +65,7 @@ import {
   updateRetentionPolicy,
   updateSaasFeatureEntitlement,
   updateSaasInvoice,
+  updateSaasOperatorNotificationRoute,
   updateSaasSupportTicket
 } from "./api.js";
 import { generateDraft } from "./ai.js";
@@ -2625,6 +2626,45 @@ function upsertOperatorNotification(notification) {
   return notifications.some((item) => item.id === notification.id)
     ? notifications.map((item) => item.id === notification.id ? notification : item)
     : [notification, ...notifications];
+}
+
+export async function routeSaasOperatorNotification(notificationId, payload = {}) {
+  const notification = buildLocalSaasOperatorNotifications().find((item) => item.id === notificationId);
+  if (!notification) {
+    return { ok: false, message: "Actie niet gevonden." };
+  }
+
+  if (state.apiStatus === "connected") {
+    try {
+      await updateSaasOperatorNotificationRoute(notificationId, payload);
+      await refreshFromApi();
+      setState({ view: "settings" });
+      return { ok: true, message: "Opvolging bijgewerkt." };
+    } catch {
+      setState({ apiStatus: "local" });
+    }
+  }
+
+  const nextPriority = payload.priority || notification.priority || "Normaal";
+  const updatedNotification = {
+    ...notification,
+    owner: payload.owner || notification.owner || "PraktijkOS",
+    dueAt: payload.dueAt || notification.dueAt || "Deze week",
+    priority: nextPriority,
+    routedAt: nowLabel(),
+    routedBy: state.currentUser?.name || "PraktijkOS",
+    signal: operatorNotificationSignal(nextPriority, notification.status)
+  };
+  commit(pushAudit(
+    {
+      ...state,
+      saasOperatorNotifications: upsertOperatorNotification(updatedNotification),
+      view: "settings"
+    },
+    "Opvolging bijgewerkt",
+    `${updatedNotification.category}: ${updatedNotification.owner} / ${updatedNotification.dueAt}.`
+  ));
+  return { ok: true, message: "Opvolging lokaal bijgewerkt." };
 }
 
 export async function acknowledgeSaasOperatorNotificationItem(notificationId) {

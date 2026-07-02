@@ -40,6 +40,7 @@ npm run verify
 - `POST /api/saas-onboarding/:id/complete`
 - `PATCH /api/saas-entitlements/:id`
 - `POST /api/saas-activity/:id/acknowledge`
+- `PATCH /api/saas-operator-notifications/:id`
 - `POST /api/saas-operator-notifications/:id/acknowledge`
 - `POST /api/saas-operator-notifications/:id/resolve`
 - `PATCH /api/saas-support/:id`

@@ -14,6 +14,8 @@
 - Tenant admin activity feed
 - Tenant health score and risk indicators
 - Tenant operator notifications for billing, support, onboarding, playbooks and lifecycle follow-up
+- Operator notification routing with owner, priority and due-date changes
+- SaaS interface polish for a clearer practice-center experience
 - Tenant support and escalation queue
 - Tenant renewal and cancellation workflow
 - Tenant contract document center
@@ -76,7 +78,7 @@
 
 ## Next Product Slice
 
-- Add operator notification routing, owner assignment and due-date changes.
+- Add guided practice-center sections for team, billing, support and AI settings.
 
 ## Phase 4: Belgian Integrations
 

@@ -1549,6 +1549,41 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "PATCH" && url.pathname.match(/^\/api\/saas-operator-notifications\/[^/]+$/)) {
+    if (!requirePermission(response, user, "practice")) return;
+    const notificationId = url.pathname.split("/")[3];
+    const notification = buildSaasOperatorNotifications(store).find((item) => item.id === notificationId);
+    const payload = await readJson(request);
+    if (!notification) {
+      sendJson(response, 404, { error: "SaaS operator notification not found" });
+      return;
+    }
+
+    const nextPriority = payload.priority || notification.priority || "Normaal";
+    const updatedNotification = {
+      ...notification,
+      owner: payload.owner || notification.owner || "PraktijkOS",
+      dueAt: payload.dueAt || notification.dueAt || "Deze week",
+      priority: nextPriority,
+      routedAt: timestampLabel(),
+      routedBy: user.name,
+      signal: notificationSignal(nextPriority, notification.status)
+    };
+    const existingNotifications = store.saasOperatorNotifications || [];
+    const nextNotifications = existingNotifications.some((item) => item.id === notificationId)
+      ? existingNotifications.map((item) => item.id === notificationId ? updatedNotification : item)
+      : [updatedNotification, ...existingNotifications];
+    const nextStore = appendAudit(
+      { ...store, saasOperatorNotifications: nextNotifications },
+      "Operatornotificatie gerouteerd",
+      `${updatedNotification.category}: ${updatedNotification.owner} / ${updatedNotification.dueAt}.`,
+      user.name
+    );
+    writeStore(nextStore);
+    sendJson(response, 200, updatedNotification);
+    return;
+  }
+
   if (request.method === "POST" && url.pathname.match(/^\/api\/saas-operator-notifications\/[^/]+\/acknowledge$/)) {
     if (!requirePermission(response, user, "practice")) return;
     const notificationId = url.pathname.split("/")[3];
