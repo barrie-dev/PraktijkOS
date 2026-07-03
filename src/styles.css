@@ -55,7 +55,7 @@ button {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 264px minmax(0, 1fr);
+  grid-template-columns: 236px minmax(0, 1fr);
   min-width: 0;
   min-height: 100vh;
 }
@@ -65,9 +65,9 @@ button {
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   height: 100vh;
-  padding: 18px 14px 16px;
+  padding: 18px 12px 16px;
   border-right: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(12px);
@@ -111,7 +111,7 @@ button {
 
 .nav-list {
   display: grid;
-  gap: 11px;
+  gap: 14px;
   overflow-y: auto;
   padding-right: 2px;
   scrollbar-color: var(--line-strong) transparent;
@@ -129,7 +129,7 @@ button {
 
 .nav-group {
   display: grid;
-  gap: 3px;
+  gap: 4px;
 }
 
 .nav-group p {
@@ -144,11 +144,11 @@ button {
 
 .nav-item {
   display: grid;
-  grid-template-columns: 4px minmax(0, 1fr);
+  grid-template-columns: 3px minmax(0, 1fr);
   align-items: center;
-  column-gap: 11px;
+  column-gap: 10px;
   width: 100%;
-  min-height: 48px;
+  min-height: 40px;
   padding: 8px 10px 8px 8px;
   border: 0;
   border-radius: 8px;
@@ -160,8 +160,8 @@ button {
 
 .nav-marker {
   display: block;
-  width: 4px;
-  height: 26px;
+  width: 3px;
+  height: 20px;
   border-radius: 999px;
   background: transparent;
 }
@@ -180,11 +180,11 @@ button {
 }
 
 .nav-item strong {
-  font-size: 13.5px;
+  font-size: 13px;
 }
 
 .nav-item small {
-  display: block;
+  display: none;
   margin-top: 2px;
   color: var(--muted);
   font-size: 11.5px;
@@ -260,7 +260,9 @@ button {
 
 .workspace {
   min-width: 0;
-  padding: 26px 34px 42px;
+  width: min(100%, 1500px);
+  margin: 0 auto;
+  padding: 24px 32px 42px;
   overflow-x: hidden;
 }
 
@@ -277,7 +279,7 @@ button {
 
 .topbar {
   display: grid;
-  grid-template-columns: minmax(210px, 0.78fr) minmax(300px, 1fr) auto;
+  grid-template-columns: minmax(210px, 0.85fr) minmax(280px, 0.9fr) auto;
   justify-content: stretch;
   align-items: center;
   gap: 16px;
@@ -433,6 +435,7 @@ h2 {
 .connection-pill {
   display: inline-flex;
   align-items: center;
+  gap: 7px;
   min-height: 32px;
   padding: 0 9px;
   border: 1px solid transparent;
@@ -441,6 +444,13 @@ h2 {
   color: var(--success);
   font-size: 12px;
   font-weight: 800;
+}
+
+.connection-pill span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
 }
 
 .connection-pill.warning {
@@ -1138,6 +1148,81 @@ h2 {
   margin: 5px 0 2px;
   font-size: 22px;
   line-height: 1.12;
+}
+
+.portal-page {
+  display: grid;
+  gap: 16px;
+}
+
+.portal-work-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  gap: 18px;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f1f7f8 68%, #fff9ea 100%);
+  box-shadow: var(--shadow-soft);
+}
+
+.portal-work-hero h2 {
+  margin-bottom: 8px;
+  font-size: 24px;
+}
+
+.portal-work-hero p {
+  max-width: 690px;
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.portal-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.75fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.portal-side {
+  display: grid;
+  gap: 16px;
+}
+
+.portal-compose {
+  min-height: 100%;
+}
+
+.portal-compose textarea {
+  min-height: 168px;
+}
+
+.compact-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.compact-panel .panel-header {
+  margin-bottom: 0;
+}
+
+.form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.portal-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr) minmax(280px, 0.85fr);
+  gap: 16px;
+  align-items: start;
 }
 
 .inline-form {
@@ -2430,6 +2515,9 @@ pre {
   .dashboard-hero,
   .work-hero,
   .agenda-hero,
+  .portal-work-hero,
+  .portal-workspace,
+  .portal-overview-grid,
   .client-hero,
   .client-layout,
   .ai-layout,
@@ -2546,6 +2634,7 @@ pre {
   .topbar,
   .toolbar,
   .panel-header,
+  .form-footer,
   .approval-row {
     align-items: stretch;
     grid-template-columns: 1fr;
@@ -2553,6 +2642,7 @@ pre {
 
   .toolbar,
   .panel-header,
+  .form-footer,
   .approval-row {
     flex-direction: column;
   }

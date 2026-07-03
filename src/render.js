@@ -268,7 +268,7 @@ function shell(state) {
   })).filter((group) => group.items.length);
 
   const account = state.practice?.saasAccount || {};
-  const connectionLabel = state.apiStatus === "connected" ? "Live opgeslagen" : "Offline opgeslagen";
+  const connectionLabel = state.apiStatus === "connected" ? "Opgeslagen" : "Lokaal bewaard";
   const connectionSignal = state.apiStatus === "connected" ? "success" : "warning";
 
   return `
@@ -276,16 +276,16 @@ function shell(state) {
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">P</div>
-          <div><strong>PraktijkOS</strong><span>Zorgpraktijk workspace</span></div>
+          <div><strong>PraktijkOS</strong><span>Werkruimte voor praktijken</span></div>
         </div>
         <nav class="nav-list" aria-label="Hoofdnavigatie">
           ${navGroups.map((group) => `
             <div class="nav-group">
               <p>${escapeHtml(group.label)}</p>
               ${group.items.map(([view, label, detail]) => `
-                <button class="nav-item ${activeView === view ? "active" : ""}" data-action="navigate" data-view="${view}" type="button">
+                <button class="nav-item ${activeView === view ? "active" : ""}" data-action="navigate" data-view="${view}" aria-label="${escapeHtml(`${label}: ${detail}`)}" title="${escapeHtml(`${label}: ${detail}`)}" type="button">
                   <span class="nav-marker" aria-hidden="true"></span>
-                  <span class="nav-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(detail)}</small></span>
+                  <span class="nav-copy"><strong>${escapeHtml(label)}</strong></span>
                 </button>
               `).join("")}
             </div>
@@ -295,12 +295,12 @@ function shell(state) {
           <div>
             <span class="section-kicker">Omgeving</span>
             <strong>${escapeHtml(account.plan || "Pro")} plan</strong>
-            <p>Je praktijkruimte is klaar voor team, dossiers en facturatie.</p>
+            <p>Team, cliënten en abonnement op één plek.</p>
           </div>
           ${badge(account.billingStatus || "Actief", `${account.billingStatus || ""}`.toLowerCase().includes("betaal") ? "warning" : "success")}
         </div>
       </aside>
-      <main class="workspace">
+      <main class="workspace" data-current-view="${escapeHtml(activeView)}">
         <header class="topbar">
           <div>
             <p class="eyebrow">${escapeHtml(state.practice?.name || "Groepspraktijk")}</p>
@@ -315,7 +315,7 @@ function shell(state) {
             ${commandPanel(state)}
           </div>
           <div class="topbar-actions">
-            <span class="connection-pill ${connectionSignal}">${connectionLabel}</span>
+            <span class="connection-pill ${connectionSignal}"><span aria-hidden="true"></span>${connectionLabel}</span>
             <span class="user-pill">${escapeHtml(state.currentUser?.name || "Gebruiker")}</span>
             <button class="ghost-action" data-action="logout" type="button">Afmelden</button>
             ${can(state, "scheduling") ? `<button class="primary-action" data-action="new-appointment" type="button">Nieuwe afspraak</button>` : ""}
@@ -1340,17 +1340,34 @@ function portalView(state) {
   const invites = state.portalInvites || [];
   const messageTemplate = state.messageTemplate || {};
   const messageChannels = ["Cliëntportaal", "Email concept", "SMS reminder"];
+  const activeInvites = invites.filter((invite) => invite.status === "Actief").length;
+  const draftMessages = state.messages.filter((message) => message.status === "Concept" || message.status === "Klaar voor verzending").length;
+  const reviewDocuments = state.documents.filter((document) => document.status === "Review nodig").length;
 
   return `
-    <section class="settings-grid">
-      <form class="panel" data-form="portal-invite">
-        <div class="panel-header"><div><h2>Portaaltoegang</h2><p>Maak een tijdelijke toegang voor berichten, documenten en intake-status.</p></div></div>
-        <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
-        <button class="primary-action" type="submit">Toegang maken</button>
-      </form>
+    <section class="portal-page">
+      <div class="portal-work-hero">
+        <div>
+          <p class="eyebrow">Cliëntcommunicatie</p>
+          <h2>Berichten, toegang en documenten rustig opvolgen</h2>
+          <p>Start met de boodschap voor je cliënt. Toegang en documenten staan ernaast, zodat de pagina voelt als één workflow in plaats van losse formulieren.</p>
+        </div>
+        <div class="hero-metrics">
+          <article><span>Toegang</span><strong>${escapeHtml(activeInvites)}</strong><small>actieve portalen</small></article>
+          <article><span>Berichten</span><strong>${escapeHtml(draftMessages)}</strong><small>klaar of concept</small></article>
+          <article><span>Documenten</span><strong>${escapeHtml(reviewDocuments)}</strong><small>vragen review</small></article>
+        </div>
+      </div>
 
-      <form class="panel" data-form="message">
-        <div class="panel-header"><div><h2>Nieuw bericht</h2><p>Bereid veilige clientcommunicatie voor.</p></div></div>
+      <div class="portal-workspace">
+        <form class="panel portal-compose" data-form="message">
+          <div class="panel-header">
+            <div>
+              <span class="section-kicker">Hoofdtaak</span>
+              <h2>Bericht klaarzetten</h2>
+              <p>Gebruik een starttekst en bewaar pas wanneer kanaal, cliënt en inhoud kloppen.</p>
+            </div>
+          </div>
         <div class="template-strip" aria-label="Berichttemplates">
           <button class="slot-pill" data-action="use-message-template" data-template="intake" type="button">Intake aanvullen</button>
           <button class="slot-pill" data-action="use-message-template" data-template="appointment" type="button">Afspraakherinnering</button>
@@ -1363,70 +1380,95 @@ function portalView(state) {
           <label class="field"><span>Kanaal</span><select name="channel">${messageChannels.map((channel) => `<option ${channel === messageTemplate.channel ? "selected" : ""}>${channel}</option>`).join("")}</select></label>
           <label class="field"><span>Status</span><select name="status">${messageStatuses.map((status) => `<option ${status === messageTemplate.status ? "selected" : ""}>${status}</option>`).join("")}</select></label>
         </div>
-        <input type="hidden" name="consentNote" value="${escapeHtml(messageTemplate.consentNote || "Inhoudelijke info via portaal; e-mail of sms enkel praktisch.")}">
-        <p class="consent-note">${escapeHtml(messageTemplate.consentNote || "Inhoudelijke info via portaal; e-mail of sms enkel praktisch.")}</p>
-        <button class="primary-action" type="submit">Bericht opslaan</button>
-      </form>
+          <input type="hidden" name="consentNote" value="${escapeHtml(messageTemplate.consentNote || "Inhoudelijke info via portaal; e-mail of sms enkel praktisch.")}">
+          <div class="form-footer">
+            <p class="consent-note">${escapeHtml(messageTemplate.consentNote || "Inhoudelijke info via portaal; e-mail of sms enkel praktisch.")}</p>
+            <button class="primary-action" type="submit">Bericht klaarzetten</button>
+          </div>
+        </form>
 
-      <form class="panel" data-form="document">
-        <div class="panel-header"><div><h2>Document</h2><p>Registreer verslag, attest of nota voor review.</p></div></div>
-        <label class="field"><span>Client</span><select name="clientId" required>${clientOptions(state)}</select></label>
-        <label class="field"><span>Titel</span><input name="title" value="Verslag concept" required></label>
-        <div class="form-grid">
-          <label class="field"><span>Type</span><select name="type"><option>Verslag</option><option>Attest</option><option>Nota</option><option>Doorverwijsbrief</option></select></label>
-          <label class="field"><span>Status</span><select name="status"><option>Review nodig</option><option>Klaar voor delen</option></select></label>
-        </div>
-        <button class="primary-action" type="submit">Document registreren</button>
-      </form>
-
-      <div class="panel wide">
-        <div class="panel-header"><div><h2>Toegangen</h2><p>Beheer clientlinks voor de portal.</p></div></div>
-        <div class="portal-list">
-          ${invites.map((invite) => `
-            <article class="portal-item">
-              <div><strong>${escapeHtml(invite.client)}</strong><span>${escapeHtml(invite.status)} / aangemaakt door ${escapeHtml(invite.createdBy || "PraktijkOS")}</span><p><a href="${escapeHtml(invite.portalUrl)}" target="_blank" rel="noreferrer">${escapeHtml(invite.portalUrl)}</a></p></div>
-              <div class="status-stack">
-                ${badge(invite.status, invite.status === "Actief" ? "success" : "warning")}
-                <label class="compact-select"><span>Status</span><select data-action="portal-invite-status" data-invite-id="${escapeHtml(invite.id)}">
-                  ${portalInviteStatuses.map((status) => `<option ${invite.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
-                </select></label>
+        <aside class="portal-side" aria-label="Snelle acties">
+          <form class="panel compact-panel" data-form="portal-invite">
+            <div class="panel-header">
+              <div>
+                <span class="section-kicker">Toegang</span>
+                <h2>Portaal openen</h2>
+                <p>Maak een tijdelijke cliëntlink.</p>
               </div>
-            </article>
-          `).join("") || `<p class="empty-state">Nog geen portaaltoegangen.</p>`}
-        </div>
+            </div>
+            <label class="field"><span>Cliënt</span><select name="clientId" required>${clientOptions(state)}</select></label>
+            <button class="primary-action" type="submit">Toegang maken</button>
+          </form>
+
+          <form class="panel compact-panel" data-form="document">
+            <div class="panel-header">
+              <div>
+                <span class="section-kicker">Document</span>
+                <h2>Document toevoegen</h2>
+                <p>Registreer iets dat gedeeld of gereviewd moet worden.</p>
+              </div>
+            </div>
+            <label class="field"><span>Cliënt</span><select name="clientId" required>${clientOptions(state)}</select></label>
+            <label class="field"><span>Titel</span><input name="title" value="Verslag concept" required></label>
+            <div class="form-grid">
+              <label class="field"><span>Type</span><select name="type"><option>Verslag</option><option>Attest</option><option>Nota</option><option>Doorverwijsbrief</option></select></label>
+              <label class="field"><span>Status</span><select name="status"><option>Review nodig</option><option>Klaar voor delen</option></select></label>
+            </div>
+            <button class="primary-action" type="submit">Document registreren</button>
+          </form>
+        </aside>
       </div>
 
-      <div class="panel wide">
-        <div class="panel-header"><div><h2>Berichten</h2><p>Concepten en portalcommunicatie.</p></div></div>
-        <div class="portal-list">
-          ${state.messages.map((message) => `
-            <article class="portal-item">
-              <div><strong>${escapeHtml(message.subject)}</strong><span>${escapeHtml(message.client)} / ${escapeHtml(message.channel)} / ${escapeHtml(message.status)}</span><p>${escapeHtml(message.body)}</p>${message.consentNote ? `<p>${escapeHtml(message.consentNote)}</p>` : ""}</div>
-              <div class="status-stack">
-                ${badge(message.status, message.status === "Concept" ? "warning" : "success")}
-                <label class="compact-select"><span>Status</span><select data-action="message-status" data-message-id="${escapeHtml(message.id)}">
-                  ${messageStatuses.map((status) => `<option ${message.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
-                </select></label>
-              </div>
-            </article>
-          `).join("")}
+      <div class="portal-overview-grid">
+        <div class="panel">
+          <div class="panel-header"><div><span class="section-kicker">Opvolging</span><h2>Berichten</h2><p>Concepten en portaalcommunicatie.</p></div></div>
+          <div class="portal-list">
+            ${state.messages.map((message) => `
+              <article class="portal-item">
+                <div><strong>${escapeHtml(message.subject)}</strong><span>${escapeHtml(message.client)} / ${escapeHtml(message.channel)}</span><p>${escapeHtml(message.body)}</p>${message.consentNote ? `<p>${escapeHtml(message.consentNote)}</p>` : ""}</div>
+                <div class="status-stack">
+                  ${badge(message.status, message.status === "Concept" ? "warning" : "success")}
+                  <label class="compact-select"><span>Status</span><select data-action="message-status" data-message-id="${escapeHtml(message.id)}">
+                    ${messageStatuses.map((status) => `<option ${message.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
+                  </select></label>
+                </div>
+              </article>
+            `).join("")}
+          </div>
         </div>
-      </div>
 
-      <div class="panel wide">
-        <div class="panel-header"><div><h2>Documenten</h2><p>Dossierdocumenten en deelstatus.</p></div></div>
-        <div class="portal-list">
-          ${state.documents.map((document) => `
-            <article class="portal-item">
-              <div><strong>${escapeHtml(document.title)}</strong><span>${escapeHtml(document.client)} / ${escapeHtml(document.type)}</span></div>
-              <div class="status-stack">
-                ${badge(document.status, document.status === "Review nodig" ? "warning" : "success")}
-                <label class="compact-select"><span>Status</span><select data-action="document-status" data-document-id="${escapeHtml(document.id)}">
-                  ${documentStatuses.map((status) => `<option ${document.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
-                </select></label>
-              </div>
-            </article>
-          `).join("")}
+        <div class="panel">
+          <div class="panel-header"><div><span class="section-kicker">Links</span><h2>Portaaltoegang</h2><p>Actieve en ingetrokken cliëntlinks.</p></div></div>
+          <div class="portal-list">
+            ${invites.map((invite) => `
+              <article class="portal-item">
+                <div><strong>${escapeHtml(invite.client)}</strong><span>${escapeHtml(invite.status)} / aangemaakt door ${escapeHtml(invite.createdBy || "PraktijkOS")}</span><p><a href="${escapeHtml(invite.portalUrl)}" target="_blank" rel="noreferrer">${escapeHtml(invite.portalUrl)}</a></p></div>
+                <div class="status-stack">
+                  ${badge(invite.status, invite.status === "Actief" ? "success" : "warning")}
+                  <label class="compact-select"><span>Status</span><select data-action="portal-invite-status" data-invite-id="${escapeHtml(invite.id)}">
+                    ${portalInviteStatuses.map((status) => `<option ${invite.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
+                  </select></label>
+                </div>
+              </article>
+            `).join("") || `<p class="empty-state">Nog geen portaaltoegangen.</p>`}
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><div><span class="section-kicker">Delen</span><h2>Documenten</h2><p>Dossierdocumenten en deelstatus.</p></div></div>
+          <div class="portal-list">
+            ${state.documents.map((document) => `
+              <article class="portal-item">
+                <div><strong>${escapeHtml(document.title)}</strong><span>${escapeHtml(document.client)} / ${escapeHtml(document.type)}</span></div>
+                <div class="status-stack">
+                  ${badge(document.status, document.status === "Review nodig" ? "warning" : "success")}
+                  <label class="compact-select"><span>Status</span><select data-action="document-status" data-document-id="${escapeHtml(document.id)}">
+                    ${documentStatuses.map((status) => `<option ${document.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
+                  </select></label>
+                </div>
+              </article>
+            `).join("")}
+          </div>
         </div>
       </div>
     </section>
