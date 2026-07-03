@@ -951,6 +951,74 @@ h2 {
   line-height: 1.1;
 }
 
+.settings-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.35fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-filter-bar p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.settings-filter-options {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.settings-filter-options button {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  min-height: 58px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  text-align: left;
+}
+
+.settings-filter-options button:hover,
+.settings-filter-options button.selected {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.settings-filter-options strong,
+.settings-filter-options small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-filter-options strong {
+  font-size: 12px;
+}
+
+.settings-filter-options small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.settings-grid:not(.settings-filter-all).settings-filter-owner [data-setting-scope]:not([data-setting-scope~="owner"]),
+.settings-grid:not(.settings-filter-all).settings-filter-admin [data-setting-scope]:not([data-setting-scope~="admin"]),
+.settings-grid:not(.settings-filter-all).settings-filter-care [data-setting-scope]:not([data-setting-scope~="care"]),
+.settings-grid:not(.settings-filter-all).settings-filter-support [data-setting-scope]:not([data-setting-scope~="support"]),
+.settings-grid:not(.settings-filter-all).settings-filter-ai [data-setting-scope]:not([data-setting-scope~="ai"]) {
+  display: none;
+}
+
 .settings-guide {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2368,8 +2436,13 @@ pre {
   .settings-grid,
   .settings-hero,
   .settings-overview,
+  .settings-filter-bar,
   .inline-form {
     grid-template-columns: 1fr;
+  }
+
+  .settings-filter-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .settings-guide {
@@ -2521,7 +2594,8 @@ pre {
   .operator-summary,
   .operator-notification,
   .operator-routing,
-  .settings-guide {
+  .settings-guide,
+  .settings-filter-options {
     grid-template-columns: 1fr;
   }
 

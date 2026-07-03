@@ -17,6 +17,7 @@
 - Operator notification routing with owner, priority and due-date changes
 - SaaS interface polish for a clearer practice-center experience
 - Guided practice-center sections for team, billing, support and AI settings
+- Role-specific practice-center defaults and section filters
 - Tenant support and escalation queue
 - Tenant renewal and cancellation workflow
 - Tenant contract document center
@@ -79,7 +80,7 @@
 
 ## Next Product Slice
 
-- Add role-specific practice-center defaults and section filters.
+- Add practice-center saved section presets and quick review checklists.
 
 ## Phase 4: Belgian Integrations
 

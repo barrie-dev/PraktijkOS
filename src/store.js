@@ -85,6 +85,7 @@ const initialState = {
   appointmentFilter: "",
   clientFilter: "",
   commandQuery: "",
+  settingsSectionFilter: "",
   importKind: "clients",
   importCsv: "naam;leeftijd;traject;status;zorgverlener\nNieuwe Client;34;Stress en slaap;Intakefase;L. Janssens",
   importPreview: null,

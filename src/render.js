@@ -64,6 +64,14 @@ const portalInviteStatuses = ["Actief", "Ingetrokken"];
 const operatorOwners = ["Customer success", "Implementation", "Support", "Revenue operations", "PraktijkOS"];
 const operatorDueOptions = ["Vandaag", "Morgen", "Deze week", "Deze maand", "Volgende review"];
 const operatorPriorities = ["Hoog", "Normaal", "Laag"];
+const practiceCenterFilters = [
+  { value: "owner", label: "Praktijkhouder", detail: "Strategie en brede opvolging" },
+  { value: "admin", label: "Administratie", detail: "Team, betaling en contracten" },
+  { value: "care", label: "Zorgteam", detail: "Praktijkafspraken en AI-context" },
+  { value: "support", label: "Support", detail: "Livegang, tickets en scenario's" },
+  { value: "ai", label: "AI beheer", detail: "Kennisbank en modelevaluatie" },
+  { value: "all", label: "Alles", detail: "Alle secties tonen" }
+];
 const auditFilterOptions = [
   { value: "all", label: "Alle events" },
   { value: "exports", label: "Exports" },
@@ -106,6 +114,12 @@ function canView(state, view) {
 
 function firstAvailableView(state) {
   return ["dashboard", "work", "agenda", "waiting", "clients", "billing", "ai", "import", "security", "settings"].find((view) => canView(state, view)) || "dashboard";
+}
+
+function defaultPracticeCenterFilter(role = "") {
+  if (role === "Administratie") return "admin";
+  if (role === "Zorgverlener") return "care";
+  return "owner";
 }
 
 function optionList(options, selected = "") {
@@ -2331,6 +2345,11 @@ function settingsView(state) {
   const routedOperatorNotifications = openOperatorNotifications.filter((item) => item.owner && item.dueAt).length;
   const activeEntitlements = saasFeatureEntitlements.filter((item) => item.status === "Actief").length;
   const activeKnowledgeRules = (state.knowledgeBase || []).filter((item) => item.status === "Actief").length;
+  const defaultSettingsFilter = defaultPracticeCenterFilter(state.currentUser?.role);
+  const activeSettingsFilter = practiceCenterFilters.some((filter) => filter.value === state.settingsSectionFilter)
+    ? state.settingsSectionFilter
+    : defaultSettingsFilter;
+  const activeSettingsFilterLabel = practiceCenterFilters.find((filter) => filter.value === activeSettingsFilter)?.label || "Praktijkhouder";
   const usageSummary = [
     { label: "Team", value: `${seatsUsed}/${seatsIncluded}`, detail: "plaatsen gebruikt" },
     { label: "Cliënten", value: `${clientCount}/${clientLimit}`, detail: "binnen limiet" },
@@ -2349,7 +2368,8 @@ function settingsView(state) {
       detail: `${state.team.length} teamleden, ${state.practice.locations.length} locatie${state.practice.locations.length === 1 ? "" : "s"}`,
       value: `${seatsUsed}/${seatsIncluded}`,
       meta: "plaatsen gebruikt",
-      signal: seatsUsed > seatsIncluded ? "warning" : "success"
+      signal: seatsUsed > seatsIncluded ? "warning" : "success",
+      scope: "owner admin care"
     },
     {
       target: "settings-billing",
@@ -2358,7 +2378,8 @@ function settingsView(state) {
       detail: `${openInvoiceLabel}, ${planChangeLabel}`,
       value: saasAccount.plan || "Pro",
       meta: saasAccount.billingStatus || "Actief",
-      signal: openSaasInvoices.length ? "warning" : "success"
+      signal: openSaasInvoices.length ? "warning" : "success",
+      scope: "owner admin"
     },
     {
       target: "settings-support",
@@ -2367,7 +2388,8 @@ function settingsView(state) {
       detail: `${supportTicketLabel}, ${milestoneLabel}`,
       value: openSupportTickets.length,
       meta: "open support",
-      signal: openSupportTickets.some((ticket) => ticket.status === "Geescaleerd") ? "danger" : openSupportTickets.length ? "warning" : "success"
+      signal: openSupportTickets.some((ticket) => ticket.status === "Geescaleerd") ? "danger" : openSupportTickets.length ? "warning" : "success",
+      scope: "owner support"
     },
     {
       target: "settings-ai",
@@ -2376,21 +2398,38 @@ function settingsView(state) {
       detail: `${activeKnowledgeRules} actieve kennisregels, ${modelEvaluations.length} evaluaties`,
       value: `${aiCreditsUsed}/${aiCreditsIncluded}`,
       meta: "credits gebruikt",
-      signal: aiCreditsUsed > aiCreditsIncluded ? "warning" : "success"
+      signal: aiCreditsUsed > aiCreditsIncluded ? "warning" : "success",
+      scope: "owner care ai"
     }
   ];
   return `
-    <section class="settings-grid">
+    <section class="settings-grid settings-filter-${escapeHtml(activeSettingsFilter)}">
       <div class="settings-hero wide">
         <div>
           <p class="eyebrow">Praktijkcentrum</p>
           <h2>${escapeHtml(state.practice?.name || "Praktijk")} klaar houden voor je team</h2>
-          <p>Beheer abonnement, gebruik, support en opvolging vanuit een rustige werkplek. Alleen wat aandacht vraagt komt bovenaan.</p>
+          <p>Beheer abonnement, gebruik, support en opvolging vanuit een rustige werkplek. Filter staat op ${escapeHtml(activeSettingsFilterLabel)} zodat de juiste secties boven blijven.</p>
         </div>
         <div class="hero-metrics">
           <article><span>Plan</span><strong>${escapeHtml(saasAccount.plan || "Pro")}</strong><small>${escapeHtml(saasAccount.billingStatus || "Actief")}</small></article>
           <article><span>Gebruik</span><strong>${escapeHtml(Math.round(saasHealth.score || 0))}%</strong><small>praktijkgezondheid</small></article>
           <article><span>Acties</span><strong>${escapeHtml(openOperatorNotifications.length)}</strong><small>${highOperatorNotifications.length ? `${highOperatorNotifications.length} dringend` : "rustig"}</small></article>
+        </div>
+      </div>
+
+      <div class="settings-filter-bar wide" aria-label="Praktijkcentrum filter">
+        <div>
+          <span class="section-kicker">Werkmodus</span>
+          <strong>${escapeHtml(activeSettingsFilterLabel)}</strong>
+          <p>Start automatisch vanuit je rol en wissel wanneer je een ander beheerpad nodig hebt.</p>
+        </div>
+        <div class="settings-filter-options">
+          ${practiceCenterFilters.map((filter) => `
+            <button class="${activeSettingsFilter === filter.value ? "selected" : ""}" data-action="settings-section-filter" data-settings-filter="${escapeHtml(filter.value)}" type="button">
+              <strong>${escapeHtml(filter.label)}</strong>
+              <small>${escapeHtml(filter.detail)}</small>
+            </button>
+          `).join("")}
         </div>
       </div>
 
@@ -2411,7 +2450,7 @@ function settingsView(state) {
 
       <div class="settings-guide wide" aria-label="Praktijkcentrum secties">
         ${guideSections.map((section) => `
-          <article class="settings-guide-card ${escapeHtml(section.signal)}">
+          <article class="settings-guide-card ${escapeHtml(section.signal)}" data-setting-scope="${escapeHtml(section.scope)}">
             <div>
               <span>${escapeHtml(section.label)}</span>
               <strong>${escapeHtml(section.title)}</strong>
@@ -2425,7 +2464,7 @@ function settingsView(state) {
         `).join("")}
       </div>
 
-      <div class="panel wide operator-inbox" data-section="saas-operator-notifications">
+      <div class="panel wide operator-inbox" data-section="saas-operator-notifications" data-setting-scope="owner admin support">
         <div class="panel-header">
           <div><span class="section-kicker">Actiecentrum</span><h2>Wat vraagt opvolging?</h2><p>Wijs elke open actie toe aan de juiste eigenaar en zet meteen de deadline goed.</p></div>
           ${badge(openOperatorNotifications.length ? `${openOperatorNotifications.length} open` : "Alles afgehandeld", highOperatorNotifications.length ? "danger" : openOperatorNotifications.length ? "warning" : "success")}
@@ -2466,7 +2505,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <form class="panel wide" id="settings-billing" data-form="saas-account" data-guide-section="billing">
+      <form class="panel wide" id="settings-billing" data-form="saas-account" data-guide-section="billing" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Abonnement</h2><p>Plan, limieten en verlenging voor deze praktijkomgeving.</p></div>${badge(saasAccount.billingStatus || "Actief", (saasAccount.billingStatus || "").toLowerCase().includes("pauze") ? "warning" : "success")}</div>
         <div class="metric-grid compact-metrics">
           <article class="metric"><span>Klantomgeving</span><strong>${escapeHtml(saasAccount.tenantId || "tenant")}</strong><small>${escapeHtml(saasAccount.dataRegion || "EU / Belgie")}</small></article>
@@ -2499,7 +2538,7 @@ function settingsView(state) {
         <button class="primary-action" type="submit">Abonnement opslaan</button>
       </form>
 
-      <div class="panel wide" data-section="saas-cohorts">
+      <div class="panel wide" data-section="saas-cohorts" data-setting-scope="owner">
         <div class="panel-header"><div><h2>Praktijkenportfolio</h2><p>Overzicht van klantpraktijken, plannen, omzet en opvolgmomenten.</p></div>${badge(`${saasCohortSummary.tenants} praktijken`, saasCohortSummary.atRisk ? "warning" : "success")}</div>
         <div class="metric-grid compact-metrics">
           <article class="metric"><span>MRR</span><strong>${formatEuro(saasCohortSummary.totalMrr || 0)}</strong><small>maandelijkse recurring revenue</small></article>
@@ -2525,7 +2564,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-health">
+      <div class="panel wide" data-section="saas-health" data-setting-scope="owner support">
         <div class="panel-header"><div><h2>Gezondheid</h2><p>Samenvatting van abonnement, gebruik, onboarding, modules en recente activiteit.</p></div>${badge(`${saasHealth.score}/100`, saasHealth.status === "Gezond" ? "success" : saasHealth.status === "Risico" ? "danger" : "warning")}</div>
         <div class="metric-grid compact-metrics">
           <article class="metric"><span>Status</span><strong>${escapeHtml(saasHealth.status)}</strong><small>klantgezondheid</small></article>
@@ -2539,7 +2578,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-success">
+      <div class="panel wide" data-section="saas-success" data-setting-scope="owner support">
         <div class="panel-header"><div><h2>Customer success</h2><p>Adoptie, livegang, supportdruk en verlengingskansen voor deze praktijk.</p></div>${badge(openSuccessActions.length ? `${openSuccessActions.length} acties` : "Op schema", openSuccessActions.length ? "warning" : "success")}</div>
         <div class="metric-grid compact-metrics">
           ${saasSuccessMetrics.map((metric) => `
@@ -2567,7 +2606,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-risk-playbooks">
+      <div class="panel wide" data-section="saas-risk-playbooks" data-setting-scope="owner support">
         <div class="panel-header"><div><h2>Opvolgscenario's</h2><p>Voorgestelde acties voor betaling, adoptie en supportescalaties.</p></div>${badge(recommendedPlaybooks.length ? `${recommendedPlaybooks.length} aanbevolen` : "Geen risico", recommendedPlaybooks.length ? "warning" : "success")}</div>
         <div class="security-list">
           ${saasRiskPlaybooks.map((playbook) => `
@@ -2586,7 +2625,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-onboarding">
+      <div class="panel wide" data-section="saas-onboarding" data-setting-scope="owner admin support care">
         <div class="panel-header"><div><h2>Onboarding</h2><p>Activatiestappen voor praktijk, team, betaling en AI-afspraken.</p></div>${badge(`${completedSaasOnboarding}/${saasOnboardingChecklist.length} klaar`, completedSaasOnboarding === saasOnboardingChecklist.length ? "success" : "warning")}</div>
         <div class="security-list">
           ${saasOnboardingChecklist.map((item) => `
@@ -2604,7 +2643,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-implementation">
+      <div class="panel wide" data-section="saas-implementation" data-setting-scope="owner support">
         <div class="panel-header"><div><h2>Livegang</h2><p>Mijlpalen richting een werkende praktijkomgeving.</p></div>${badge(`${completedImplementationMilestones}/${saasImplementationMilestones.length} klaar`, completedImplementationMilestones === saasImplementationMilestones.length ? "success" : "warning")}</div>
         <div class="security-list">
           ${saasImplementationMilestones.map((item) => `
@@ -2623,7 +2662,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-contracts">
+      <div class="panel wide" data-section="saas-contracts" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Contracten</h2><p>Overeenkomsten, DPA's, orderformulieren en voorwaarden.</p></div>${badge(`${saasContractDocuments.filter((item) => item.status === "Gedeeld").length}/${saasContractDocuments.length} gedeeld`, "success")}</div>
         <div class="security-list">
           ${saasContractDocuments.map((document) => `
@@ -2643,7 +2682,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" id="settings-support" data-section="saas-support" data-guide-section="support">
+      <div class="panel wide" id="settings-support" data-section="saas-support" data-guide-section="support" data-setting-scope="owner support">
         <div class="panel-header"><div><h2>Support</h2><p>Klantvragen met prioriteit, eigenaar en afgesproken opvolging.</p></div>${badge(openSupportTickets.length ? `${openSupportTickets.length} open` : "Alles gesloten", openSupportTickets.length ? "warning" : "success")}</div>
         <div class="security-list">
           ${saasSupportQueue.map((ticket) => `
@@ -2664,7 +2703,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-admin-activity">
+      <div class="panel wide" data-section="saas-admin-activity" data-setting-scope="owner admin support">
         <div class="panel-header"><div><h2>Activiteit</h2><p>Recente gebeurtenissen voor abonnement, modules, plan en onboarding.</p></div>${badge(unreadSaasActivity ? `${unreadSaasActivity} nieuw` : "Alles gelezen", unreadSaasActivity ? "warning" : "success")}</div>
         <div class="security-list">
           ${saasAdminActivity.map((item) => `
@@ -2683,7 +2722,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-entitlements">
+      <div class="panel wide" data-section="saas-entitlements" data-setting-scope="owner ai">
         <div class="panel-header"><div><h2>Modules</h2><p>Welke productmodules actief zijn voor deze praktijk.</p></div>${badge(`${activeEntitlements}/${saasFeatureEntitlements.length} actief`, "success")}</div>
         <div class="security-list">
           ${saasFeatureEntitlements.map((item) => `
@@ -2704,7 +2743,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-usage-ledger">
+      <div class="panel wide" data-section="saas-usage-ledger" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Gebruiksgeschiedenis</h2><p>Gebeurtenissen die limieten, abonnement en AI-verbruik verklaren.</p></div>${badge(`${saasUsageLedger.length} events`, "success")}</div>
         <div class="security-list">
           ${saasUsageLedger.map((entry) => `
@@ -2722,7 +2761,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <form class="panel wide" data-form="saas-lifecycle" data-section="saas-lifecycle">
+      <form class="panel wide" data-form="saas-lifecycle" data-section="saas-lifecycle" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Verlenging en opzegging</h2><p>Vraag verlenging, opzegging of contractwijziging aan met opvolgstatus.</p></div>${badge(saasLifecycleRequests.length ? `${saasLifecycleRequests.length} aanvragen` : "Geen aanvragen", saasLifecycleRequests.some((item) => item.status === "In review") ? "warning" : "success")}</div>
         <div class="form-grid">
           <label class="field"><span>Type aanvraag</span><select name="requestType"><option>Verlenging</option><option>Opzegging</option></select></label>
@@ -2747,7 +2786,7 @@ function settingsView(state) {
         </div>
       </form>
 
-      <form class="panel wide" data-form="saas-plan-change" data-section="saas-plan-change">
+      <form class="panel wide" data-form="saas-plan-change" data-section="saas-plan-change" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Planwijziging</h2><p>Vraag een upgrade, downgrade of contractaanpassing aan voor deze tenant.</p></div>${badge(saasPlanChanges.length ? `${saasPlanChanges.length} aanvragen` : "Geen aanvragen", saasPlanChanges.length ? "warning" : "success")}</div>
         <div class="form-grid">
           <label class="field"><span>Gewenst plan</span><select name="requestedPlan">${["Starter", "Pro", "Scale", "Enterprise"].map((plan) => `<option ${plan === "Scale" ? "selected" : ""}>${plan}</option>`).join("")}</select></label>
@@ -2771,7 +2810,7 @@ function settingsView(state) {
         </div>
       </form>
 
-      <div class="panel wide" data-section="saas-billing">
+      <div class="panel wide" data-section="saas-billing" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Abonnementfacturen</h2><p>Facturen, betaalstatus, betaallinks en herinneringen.</p></div>${badge(openSaasInvoices.length ? `${openSaasInvoices.length} open` : "Betaald", openSaasInvoices.length ? "warning" : "success")}</div>
         <div class="security-list">
           ${saasInvoices.map((invoice) => `
@@ -2794,7 +2833,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <form class="panel" id="settings-team" data-form="practice" data-guide-section="team">
+      <form class="panel" id="settings-team" data-form="practice" data-guide-section="team" data-setting-scope="owner admin care">
         <div class="panel-header"><div><h2>Praktijk</h2><p>Basisconfiguratie voor de groepspraktijk.</p></div></div>
         <label class="field"><span>Praktijknaam</span><input name="name" value="${escapeHtml(state.practice.name)}" required></label>
         <div class="form-grid">
@@ -2806,7 +2845,7 @@ function settingsView(state) {
         <button class="primary-action" type="submit">Instellingen opslaan</button>
       </form>
 
-      <form class="panel" data-form="team">
+      <form class="panel" data-form="team" data-setting-scope="owner admin care">
         <div class="panel-header"><div><h2>Team en rollen</h2><p>Voeg zorgverleners of secretariaatsrollen toe.</p></div></div>
         <label class="field"><span>Naam</span><input name="name" placeholder="Naam of functie" required></label>
         <div class="form-grid">
@@ -2816,7 +2855,7 @@ function settingsView(state) {
         <button class="primary-action" type="submit">Teamlid toevoegen</button>
       </form>
 
-      <form class="panel wide" id="settings-ai" data-form="knowledge-base" data-guide-section="ai">
+      <form class="panel wide" id="settings-ai" data-form="knowledge-base" data-guide-section="ai" data-setting-scope="owner care ai">
         <div class="panel-header"><div><h2>Praktijkkennis</h2><p>Regels die de AI-assistent als context gebruikt.</p></div></div>
         <div class="form-grid">
           <label class="field"><span>Categorie</span><select name="category"><option>Communicatie</option><option>Planning</option><option>AI</option><option>Facturatie</option><option>Praktijk</option></select></label>
@@ -2831,7 +2870,7 @@ function settingsView(state) {
         <button class="primary-action" type="submit">Kennisregel toevoegen</button>
       </form>
 
-      <div class="panel wide">
+      <div class="panel wide" data-setting-scope="owner care ai">
         <div class="panel-header"><div><h2>Kennisbank</h2><p>${(state.knowledgeBase || []).length} regels beschikbaar voor AI-context.</p></div></div>
         <div class="security-list">
           ${(state.knowledgeBase || []).map((item) => `
@@ -2852,7 +2891,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide">
+      <div class="panel wide" data-setting-scope="owner ai">
         <div class="panel-header"><div><h2>AI model registry</h2><p>Modelprofielen, promptversies en risicolabels voor AI-concepten.</p></div></div>
         <div class="security-list">
           ${(state.aiModels || []).map((model) => `
@@ -2870,7 +2909,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <form class="panel wide" data-form="ai-model-evaluation">
+      <form class="panel wide" data-form="ai-model-evaluation" data-setting-scope="owner ai">
         <div class="panel-header"><div><h2>Modelevaluatie</h2><p>Registreer reviewresultaten voor modelgovernance.</p></div></div>
         <div class="form-grid">
           <label class="field"><span>Model</span><select name="modelId">
@@ -2883,7 +2922,7 @@ function settingsView(state) {
         <button class="primary-action" type="submit">Evaluatie registreren</button>
       </form>
 
-      <div class="panel wide">
+      <div class="panel wide" data-setting-scope="owner ai">
         <div class="panel-header"><div><h2>Evaluatiegeschiedenis</h2><p>${modelEvaluations.length} modelreviews vastgelegd.</p></div></div>
         <div class="security-list">
           ${modelEvaluations.slice(0, 8).map((evaluation) => `
@@ -2898,7 +2937,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide">
+      <div class="panel wide" data-setting-scope="owner admin care">
         <div class="panel-header"><div><h2>Actieve rollen</h2><p>Huidige toegangen in de praktijk.</p></div></div>
         <div class="team-table">
           ${state.team.map((member) => `

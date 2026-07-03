@@ -131,6 +131,11 @@ async function handleClick(event) {
     return;
   }
 
+  if (action === "settings-section-filter") {
+    setState({ settingsSectionFilter: target.dataset.settingsFilter || "" });
+    return;
+  }
+
   if (action === "command-open") {
     const nextState = { commandQuery: "" };
     if (target.dataset.view) nextState.view = target.dataset.view;
