@@ -557,6 +557,29 @@ function dashboardView(state) {
   const nextAppointment = state.appointments[0];
   const priorityTask = openTasks.find((task) => task.priority === "Hoog") || openTasks[0];
   const attentionCount = noShowCount + pendingIntakes;
+  const dailyFocusTitle = nextAppointment
+    ? `${nextAppointment.time} - ${nextAppointment.client}`
+    : priorityTask
+      ? priorityTask.label
+      : "Dag rustig verderzetten";
+  const dailyFocusDetail = nextAppointment
+    ? `${nextAppointment.type} bij ${nextAppointment.clinician}. ${nextAppointment.aiHint}`
+    : priorityTask
+      ? priorityTask.description || "Deze taak staat bovenaan je werkvoorraad."
+      : "Alles is bijgewerkt. Gebruik de ruimte voor voorbereiding, facturatie of teamopvolging.";
+  const workbenchActions = [
+    nextAppointment ? { label: "Open dossier", action: "open-client", clientId: nextAppointment.clientId, tone: "primary" } : null,
+    priorityTask ? { label: "Werkvoorraad", action: "navigate", view: "work" } : null,
+    can(state, "scheduling") ? { label: "Plan afspraak", action: "new-appointment" } : null,
+    can(state, "care") ? { label: "Nieuwe cliënt", action: "new-client" } : null,
+    can(state, "billing") ? { label: "Facturen", action: "navigate", view: "billing" } : null
+  ].filter(Boolean);
+  const dailyStatus = [
+    { label: "Afspraken", value: state.appointments.length, detail: "vandaag" },
+    { label: "Werk", value: openTasks.length, detail: "open acties" },
+    { label: "Te innen", value: formatEuro(openAmount), detail: `${state.invoices.length} betalingen` },
+    { label: "Dagafsluiting", value: `${dayCloseDone}/${dayCloseItems.length}`, detail: "checks klaar" }
+  ];
 
   return `
     <section class="dashboard-hero">
@@ -589,18 +612,28 @@ function dashboardView(state) {
       </div>
     </section>
 
-    <section class="metric-grid">
-      <article class="metric"><span>Afspraken</span><strong>${state.appointments.length}</strong><small>vandaag gepland</small></article>
-      <article class="metric"><span>Concepten</span><strong>${state.aiDrafts.length}</strong><small>${state.aiDrafts.filter((draft) => draft.status === "Goedgekeurd").length} klaar na review</small></article>
-      <article class="metric"><span>Te innen</span><strong>${formatEuro(openAmount)}</strong><small>${state.invoices.length} betalingen</small></article>
-      <article class="metric"><span>Aandacht</span><strong>${noShowCount + pendingIntakes}</strong><small>vragen opvolging</small></article>
-    </section>
-    <section class="quick-actions">
-      ${can(state, "care") ? `<button class="quick-action" data-action="new-client" type="button"><span>Dossier</span><strong>Nieuwe cliënt</strong><small>Start een traject</small></button>` : ""}
-      ${can(state, "tasks") ? `<button class="quick-action" data-action="navigate" data-view="work" type="button"><span>Werk</span><strong>Taken opvolgen</strong><small>${escapeHtml(openTasks.length)} open acties</small></button>` : ""}
-      ${can(state, "scheduling") ? `<button class="quick-action" data-action="navigate" data-view="waiting" type="button"><span>Wachtlijst</span><strong>Plan vrije plaats</strong><small>Prioritaire instroom</small></button>` : ""}
-      ${can(state, "care") ? `<button class="quick-action" data-action="navigate" data-view="intake" type="button"><span>Intake</span><strong>Antwoorden vastleggen</strong><small>${escapeHtml(pendingIntakes)} open intake(s)</small></button>` : ""}
-      ${can(state, "billing") ? `<button class="quick-action" data-action="navigate" data-view="billing" type="button"><span>Betalingen</span><strong>Facturen opvolgen</strong><small>${formatEuro(openAmount)} open</small></button>` : ""}
+    <section class="daily-workbench">
+      <div class="workbench-primary">
+        <span class="section-kicker">Nu eerst</span>
+        <h2>${escapeHtml(dailyFocusTitle)}</h2>
+        <p>${escapeHtml(dailyFocusDetail)}</p>
+        <div class="hero-actions">
+          ${workbenchActions.slice(0, 3).map((item) => `
+            <button class="${item.tone === "primary" ? "primary-action" : "ghost-action"}" data-action="${escapeHtml(item.action)}" ${item.view ? `data-view="${escapeHtml(item.view)}"` : ""} ${item.clientId ? `data-client-id="${escapeHtml(item.clientId)}"` : ""} type="button">${escapeHtml(item.label)}</button>
+          `).join("")}
+        </div>
+      </div>
+      <div class="workbench-action-list" aria-label="Snelle acties">
+        ${workbenchActions.slice(3).map((item) => `
+          <button class="quick-action compact" data-action="${escapeHtml(item.action)}" ${item.view ? `data-view="${escapeHtml(item.view)}"` : ""} ${item.clientId ? `data-client-id="${escapeHtml(item.clientId)}"` : ""} type="button">
+            <span>Actie</span><strong>${escapeHtml(item.label)}</strong><small>Direct openen</small>
+          </button>
+        `).join("")}
+        ${can(state, "scheduling") ? `<button class="quick-action compact" data-action="navigate" data-view="waiting" type="button"><span>Planning</span><strong>Wachtlijst</strong><small>Vrije plaats zoeken</small></button>` : ""}
+      </div>
+      <div class="workbench-metrics">
+        ${dailyStatus.map((item) => `<article><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong><small>${escapeHtml(item.detail)}</small></article>`).join("")}
+      </div>
     </section>
     ${roleHome(state, openTasks, pendingIntakes, noShowCount)}
     <section class="dashboard-grid">
@@ -787,6 +820,7 @@ function agendaView(state) {
   const signalAppointments = state.appointments.filter((appointment) => appointment.signal !== "success");
   const clinicians = new Set(state.appointments.map((appointment) => appointment.clinician));
   const onlineAppointments = state.appointments.filter((appointment) => appointment.location === "Online").length;
+  const nextSignalAppointment = signalAppointments[0];
   const signalCopy = signalAppointments.length === 1
     ? "1 afspraak vraagt extra opvolging."
     : signalAppointments.length
@@ -811,23 +845,53 @@ function agendaView(state) {
       <label class="search-field"><span>Zoek</span><input data-action="filter-appointments" type="search" value="${escapeHtml(state.appointmentFilter)}" placeholder="Client, zorgverlener of type"></label>
       ${can(state, "scheduling") ? `<button class="primary-action" data-action="new-appointment" type="button">Afspraak plannen</button>` : ""}
     </section>
-    <section class="schedule-board">
-      ${appointments.map((appointment) => `
-        <article class="schedule-card">
-          <header><div><span class="time">${escapeHtml(appointment.time)}</span><strong>${escapeHtml(appointment.client)}</strong></div>${badge(appointment.status, appointment.signal)}</header>
-          <p>${escapeHtml(appointment.type)}</p>
-          <span>${escapeHtml(appointment.clinician)} / ${escapeHtml(appointment.location)}</span>
-          <p>${escapeHtml(appointment.aiHint)}</p>
-          <label class="compact-select"><span>Status</span><select data-action="appointment-status" data-appointment-id="${escapeHtml(appointment.id)}">
-            ${appointmentStatuses.map((status) => `<option ${appointment.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
-          </select></label>
-          <div class="inline-actions">
-            <button class="ghost-action" data-action="open-client" data-client-id="${escapeHtml(appointment.clientId)}" type="button">Dossier</button>
-            <button class="ghost-action" data-action="compose-message" data-client-id="${escapeHtml(appointment.clientId)}" type="button">Bericht</button>
-            ${can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(`${appointment.client}: ${appointment.aiHint}`)}" type="button">Concept</button>` : ""}
+    <section class="agenda-workspace">
+      <div class="panel agenda-timeline">
+        <div class="panel-header">
+          <div><span class="section-kicker">Dagplanning</span><h2>${escapeHtml(appointments.length)} afspraak${appointments.length === 1 ? "" : "en"} zichtbaar</h2><p>Status, dossier en bericht staan per afspraak samen.</p></div>
+        </div>
+        <div class="agenda-list">
+          ${appointments.map((appointment) => `
+            <article class="agenda-row ${escapeHtml(appointment.signal)}">
+              <div class="agenda-time"><span>${escapeHtml(appointment.time)}</span><small>${escapeHtml(appointment.location)}</small></div>
+              <div class="agenda-main">
+                <div class="task-heading"><strong>${escapeHtml(appointment.client)}</strong>${badge(appointment.status, appointment.signal)}</div>
+                <p>${escapeHtml(appointment.type)} / ${escapeHtml(appointment.clinician)}</p>
+                <small>${escapeHtml(appointment.aiHint)}</small>
+              </div>
+              <label class="compact-select"><span>Status</span><select data-action="appointment-status" data-appointment-id="${escapeHtml(appointment.id)}">
+                ${appointmentStatuses.map((status) => `<option ${appointment.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
+              </select></label>
+              <div class="inline-actions">
+                <button class="ghost-action" data-action="open-client" data-client-id="${escapeHtml(appointment.clientId)}" type="button">Dossier</button>
+                <button class="ghost-action" data-action="compose-message" data-client-id="${escapeHtml(appointment.clientId)}" type="button">Bericht</button>
+                ${can(state, "ai") ? `<button class="ghost-action" data-action="prepare-ai" data-source="${escapeHtml(`${appointment.client}: ${appointment.aiHint}`)}" type="button">Concept</button>` : ""}
+              </div>
+            </article>
+          `).join("") || `<p class="empty-state">Geen afspraken gevonden.</p>`}
+        </div>
+      </div>
+      <aside class="agenda-side">
+        <div class="panel compact-panel">
+          <div class="panel-header"><div><span class="section-kicker">Dagregie</span><h2>Volgende beslissing</h2><p>${escapeHtml(nextSignalAppointment ? `${nextSignalAppointment.client}: ${nextSignalAppointment.aiHint}` : "Geen kritieke opvolging in deze planning.")}</p></div></div>
+          <div class="dossier-actions">
+            ${nextSignalAppointment ? `<button class="primary-action" data-action="open-client" data-client-id="${escapeHtml(nextSignalAppointment.clientId)}" type="button">Open signaaldossier</button>` : ""}
+            ${can(state, "scheduling") ? `<button class="ghost-action" data-action="navigate" data-view="waiting" type="button">Wachtlijst bekijken</button>` : ""}
+            ${can(state, "scheduling") ? `<button class="ghost-action" data-action="new-appointment" type="button">Afspraak plannen</button>` : ""}
           </div>
-        </article>
-      `).join("")}
+        </div>
+        <div class="panel compact-panel">
+          <div class="panel-header"><div><span class="section-kicker">Signalen</span><h2>${escapeHtml(signalAppointments.length)} op te volgen</h2></div></div>
+          <div class="risk-list">
+            ${signalAppointments.slice(0, 4).map((appointment) => `
+              <article class="risk-item">
+                <div><strong>${escapeHtml(appointment.client)}</strong><span>${escapeHtml(appointment.status)} / ${escapeHtml(appointment.time)}</span></div>
+                <button class="ghost-action" data-action="open-client" data-client-id="${escapeHtml(appointment.clientId)}" type="button">Open</button>
+              </article>
+            `).join("") || `<p class="empty-state">Geen signalen.</p>`}
+          </div>
+        </div>
+      </aside>
     </section>
   `;
 }
@@ -1018,6 +1082,22 @@ function clientsView(state) {
     : "Dossier op schema";
   const accessRows = accessPolicyRows(state, selected);
   const retentionRows = retentionLabelsForClient(state, selected, clientInvoices);
+  const hasOpenInvoice = clientInvoices.some((item) => item.status === "Open" || item.status === "Herinnering");
+  const dossierNextAction = !clientIntakes.length
+    ? { label: "Intake vastleggen", detail: "Maak de startinformatie compleet.", action: "start-intake", clientId: selected.id }
+    : !clientAppointments.length
+      ? { label: "Afspraak plannen", detail: "Zet de volgende zorgstap in de agenda.", action: "schedule-client", clientId: selected.id }
+      : hasOpenInvoice
+        ? { label: "Betaling opvolgen", detail: `${formatEuro(openInvoiceTotal)} staat nog open.`, action: "navigate", view: "billing" }
+        : !clientMessages.length
+          ? { label: "Bericht voorbereiden", detail: "Zet veilige communicatie klaar.", action: "compose-message", clientId: selected.id }
+          : { label: "AI concept maken", detail: selected.aiSuggestion, action: "prepare-ai", source: `${selected.name}: ${selected.aiSuggestion}` };
+  const dossierActionCards = [
+    { label: "Intake", detail: clientIntakes.length ? "Aanwezig" : "Aanvullen", action: "start-intake", clientId: selected.id },
+    { label: "Planning", detail: nextAppointment ? `${nextAppointment.time} vandaag` : "Afspraak nodig", action: "schedule-client", clientId: selected.id },
+    { label: "Bericht", detail: clientMessages.length ? `${clientMessages.length} item(s)` : "Voorbereiden", action: "compose-message", clientId: selected.id },
+    { label: "Facturatie", detail: openInvoiceTotal ? formatEuro(openInvoiceTotal) : "Geen open bedrag", action: "navigate", view: "billing" }
+  ];
 
   return `
     <section class="toolbar">
@@ -1039,6 +1119,22 @@ function clientsView(state) {
         <article><span>Compleet</span><strong>${escapeHtml(readinessScore)}%</strong><small>${escapeHtml(readinessDone)}/${escapeHtml(dossierReadiness.length)} onderdelen</small></article>
         <article><span>Volgende afspraak</span><strong>${escapeHtml(nextAppointment ? nextAppointment.time : "-")}</strong><small>${escapeHtml(nextAppointment ? nextAppointment.type : selected.nextAppointment)}</small></article>
         <article><span>Openstaand</span><strong>${formatEuro(openInvoiceTotal)}</strong><small>facturatie</small></article>
+      </div>
+    </section>
+    <section class="dossier-command-strip">
+      <article class="dossier-next-step">
+        <span class="section-kicker">Volgende stap</span>
+        <strong>${escapeHtml(dossierNextAction.label)}</strong>
+        <p>${escapeHtml(dossierNextAction.detail)}</p>
+        <button class="primary-action" data-action="${escapeHtml(dossierNextAction.action)}" ${dossierNextAction.view ? `data-view="${escapeHtml(dossierNextAction.view)}"` : ""} ${dossierNextAction.clientId ? `data-client-id="${escapeHtml(dossierNextAction.clientId)}"` : ""} ${dossierNextAction.source ? `data-source="${escapeHtml(dossierNextAction.source)}"` : ""} type="button">Start</button>
+      </article>
+      <div class="dossier-action-grid">
+        ${dossierActionCards.map((item) => `
+          <button class="dossier-action-card" data-action="${escapeHtml(item.action)}" ${item.view ? `data-view="${escapeHtml(item.view)}"` : ""} ${item.clientId ? `data-client-id="${escapeHtml(item.clientId)}"` : ""} type="button">
+            <span>${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(item.detail)}</strong>
+          </button>
+        `).join("")}
       </div>
     </section>
     <section class="client-layout">

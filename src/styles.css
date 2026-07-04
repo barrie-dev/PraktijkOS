@@ -723,6 +723,81 @@ h2 {
   margin-bottom: 14px;
 }
 
+.daily-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(220px, 0.55fr) minmax(360px, 0.9fr);
+  gap: 14px;
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+
+.workbench-primary,
+.workbench-action-list,
+.workbench-metrics,
+.dossier-command-strip,
+.agenda-workspace,
+.agenda-side,
+.agenda-list,
+.dossier-action-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.workbench-primary {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.workbench-primary h2 {
+  margin-bottom: 7px;
+  font-size: 21px;
+}
+
+.workbench-primary p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.workbench-action-list {
+  align-content: stretch;
+}
+
+.quick-action.compact {
+  min-height: 70px;
+}
+
+.workbench-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workbench-metrics article {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.workbench-metrics span,
+.workbench-metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.workbench-metrics strong {
+  display: block;
+  margin: 5px 0 2px;
+  font-size: 23px;
+  line-height: 1.08;
+}
+
 .secretary-lanes {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -892,6 +967,15 @@ h2 {
 
 .schedule-board {
   grid-template-columns: repeat(3, minmax(220px, 1fr));
+}
+
+.agenda-workspace {
+  grid-template-columns: minmax(0, 1.45fr) minmax(310px, 0.75fr);
+  align-items: start;
+}
+
+.agenda-side {
+  align-content: start;
 }
 
 .metric,
@@ -1574,6 +1658,50 @@ textarea {
   min-height: 168px;
 }
 
+.agenda-row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) minmax(150px, 0.42fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.agenda-row.warning {
+  border-left-color: var(--warning);
+  background: #fffdf7;
+}
+
+.agenda-row.danger {
+  border-left-color: var(--danger);
+  background: #fff8f9;
+}
+
+.agenda-time span,
+.agenda-time small,
+.agenda-main small {
+  display: block;
+}
+
+.agenda-time span {
+  color: var(--brand-dark);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.agenda-time small,
+.agenda-main small,
+.agenda-main p {
+  color: var(--muted);
+}
+
+.agenda-main p {
+  margin: 0 0 4px;
+}
+
 .schedule-card header {
   display: flex;
   justify-content: space-between;
@@ -1626,6 +1754,70 @@ textarea {
 .client-card:hover {
   border-color: var(--brand);
   background: #fff;
+}
+
+.dossier-command-strip {
+  grid-template-columns: minmax(260px, 0.55fr) minmax(0, 1fr);
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+
+.dossier-next-step {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 15px;
+  border: 1px solid rgba(21, 113, 95, 0.24);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #f3faf7 100%);
+  box-shadow: var(--shadow-soft);
+}
+
+.dossier-next-step strong {
+  font-size: 18px;
+}
+
+.dossier-next-step p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.dossier-action-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.dossier-action-card {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  min-width: 0;
+  min-height: 92px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: var(--shadow-soft);
+}
+
+.dossier-action-card:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.dossier-action-card span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.dossier-action-card strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
 }
 
 .client-detail dl {
@@ -2508,6 +2700,8 @@ pre {
   .app-shell,
   .metric-grid,
   .quick-actions,
+  .daily-workbench,
+  .workbench-metrics,
   .secretary-lanes,
   .role-home-grid,
   .content-grid,
@@ -2515,11 +2709,15 @@ pre {
   .dashboard-hero,
   .work-hero,
   .agenda-hero,
+  .agenda-workspace,
   .portal-work-hero,
   .portal-workspace,
   .portal-overview-grid,
   .client-hero,
   .client-layout,
+  .dossier-command-strip,
+  .dossier-action-grid,
+  .agenda-row,
   .ai-layout,
   .settings-grid,
   .settings-hero,
@@ -2700,6 +2898,7 @@ pre {
   }
 
   .schedule-board,
+  .agenda-row,
   .quick-actions,
   .insight-grid,
   .forecast-grid,
@@ -2710,6 +2909,11 @@ pre {
   .security-alert,
   .task-item.rich-task,
   .waitlist-item,
+  .daily-workbench,
+  .workbench-metrics,
+  .dossier-command-strip,
+  .dossier-action-grid,
+  .agenda-workspace,
   .secretary-lane,
   .role-home-card,
   .day-close-item,
