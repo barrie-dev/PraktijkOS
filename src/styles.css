@@ -32,6 +32,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   background: var(--bg);
   color: var(--ink);
   font-size: 14px;
@@ -821,6 +822,14 @@ h2 {
 
 .import-hero {
   background: linear-gradient(135deg, #ffffff 0%, #f4f8f2 62%, #eef5f7 100%);
+}
+
+.security-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #f2f7f8 62%, #fff2f0 100%);
+}
+
+.settings-activation-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #f3f8f6 62%, #f7f5ec 100%);
 }
 
 .workflow-hero h2 {
@@ -2849,9 +2858,12 @@ pre {
   .sidebar {
     position: sticky;
     z-index: 2;
+    top: 0;
     height: auto;
     min-width: 0;
     padding: 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
     overflow-x: hidden;
   }
 
@@ -2863,14 +2875,18 @@ pre {
 
   .nav-list {
     display: flex;
+    flex-wrap: nowrap;
     gap: 10px;
     max-width: 100%;
     overflow-x: auto;
+    padding: 0 2px 6px;
     overscroll-behavior-x: contain;
   }
 
   .nav-group {
     display: flex;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
     gap: 6px;
   }
 
@@ -2883,8 +2899,10 @@ pre {
     flex: 0 0 auto;
     grid-template-columns: auto;
     width: auto;
+    min-width: max-content;
     min-height: 38px;
     padding: 8px 12px;
+    white-space: nowrap;
   }
 
   .nav-marker {
@@ -2892,7 +2910,22 @@ pre {
   }
 
   .nav-copy {
-    display: block;
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .nav-item strong {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .nav-list::-webkit-scrollbar {
+    height: 4px;
+    width: 0;
+  }
+
+  .workspace {
+    padding: 20px 24px 38px;
   }
 
   .hero-metrics {
@@ -2970,6 +3003,32 @@ pre {
     flex-wrap: wrap;
   }
 
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .topbar-actions .connection-pill,
+  .topbar-actions .user-pill,
+  .topbar-actions .ghost-action,
+  .topbar-actions .primary-action {
+    width: 100%;
+    min-height: 40px;
+    justify-content: center;
+  }
+
+  .topbar-actions .ghost-action {
+    border-color: var(--line);
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  .topbar-actions .primary-action {
+    grid-column: auto;
+    max-width: none;
+  }
+
   .hero-metrics {
     grid-template-columns: 1fr;
   }
@@ -3044,6 +3103,15 @@ pre {
   .timeline-item,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .metric-grid,
+  .workflow-metrics,
+  .hero-metrics,
+  .client-hero-metrics,
+  .workbench-metrics,
+  .settings-overview {
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
   }
 
   .modal-actions {

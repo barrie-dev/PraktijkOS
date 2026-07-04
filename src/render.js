@@ -26,7 +26,7 @@ const viewDescriptions = {
   billing: "Facturen, betalingen en herinneringen.",
   ai: "Concepten met menselijke review.",
   import: "Migratie voorbereiden en controleren.",
-  security: "Toegang, audit en bewijsstukken.",
+  security: "Toegang, controle en bewijsstukken.",
   settings: "Abonnement, team en praktijkwerking."
 };
 
@@ -61,19 +61,19 @@ const appointmentStatuses = ["Nieuw", "Aanwezig", "Klaar voor facturatie", "Inta
 const messageStatuses = ["Concept", "Klaar voor verzending", "Verzonden", "Gearchiveerd"];
 const documentStatuses = ["Review nodig", "Klaar voor delen", "Gedeeld", "Gearchiveerd"];
 const portalInviteStatuses = ["Actief", "Ingetrokken"];
-const operatorOwners = ["Customer success", "Implementation", "Support", "Revenue operations", "PraktijkOS"];
+const operatorOwners = ["Klantopvolging", "Implementatie", "Support", "Facturatie", "PraktijkOS"];
 const operatorDueOptions = ["Vandaag", "Morgen", "Deze week", "Deze maand", "Volgende review"];
 const operatorPriorities = ["Hoog", "Normaal", "Laag"];
 const practiceCenterFilters = [
   { value: "owner", label: "Praktijkhouder", detail: "Strategie en brede opvolging" },
   { value: "admin", label: "Administratie", detail: "Team, betaling en contracten" },
   { value: "care", label: "Zorgteam", detail: "Praktijkafspraken en AI-context" },
-  { value: "support", label: "Support", detail: "Livegang, tickets en scenario's" },
+  { value: "support", label: "Support", detail: "Livegang, vragen en scenario's" },
   { value: "ai", label: "AI beheer", detail: "Kennisbank en modelevaluatie" },
   { value: "all", label: "Alles", detail: "Alle secties tonen" }
 ];
 const auditFilterOptions = [
-  { value: "all", label: "Alle events" },
+  { value: "all", label: "Alle gebeurtenissen" },
   { value: "exports", label: "Exports" },
   { value: "access", label: "Toegang" },
   { value: "ai", label: "AI" },
@@ -132,6 +132,7 @@ function optionList(options, selected = "") {
 function operatorCategoryLabel(category = "") {
   const labels = {
     Billing: "Abonnement",
+    Betaling: "Abonnement",
     Support: "Support",
     Onboarding: "Opstart",
     Scenario: "Aanbeveling",
@@ -2058,8 +2059,8 @@ function securityView(state) {
   const selectedAuditRows = filteredAuditLog(state, selectedAuditFilter);
   const securityAlerts = [
     ...activeOverrides.map((override) => ({
-      label: "Toegang reviewen",
-      detail: `${override.member} heeft ${override.access} op ${override.client}. Review: ${override.reviewDue || "Binnen 7 dagen"}`,
+      label: "Toegang controleren",
+      detail: `${override.member} heeft ${override.access} op ${override.client}. Controle: ${override.reviewDue || "Binnen 7 dagen"}`,
       action: "clients",
       severity: override.reviewDue === "Vandaag" ? "danger" : "warning"
     })),
@@ -2076,13 +2077,13 @@ function securityView(state) {
       severity: "warning"
     })),
     ...retentionReviews.map((policy) => ({
-      label: "Retentiebeleid reviewen",
+      label: "Retentiebeleid controleren",
       detail: `${policy.label}: ${policy.status}. Eigenaar: ${policy.owner || "Praktijkhouder"}`,
       action: "security",
       severity: "warning"
     })),
     ...openIntegrationReviews.slice(0, 2).map((item) => ({
-      label: "Integratie readiness",
+      label: "Integratiecheck",
       detail: `${item.name}: ${item.nextStep}`,
       action: "security",
       severity: item.priority === "Hoog" ? "warning" : "info"
@@ -2094,25 +2095,67 @@ function securityView(state) {
       severity: "warning"
     }))
   ];
+  const dangerAlerts = securityAlerts.filter((alert) => alert.severity === "danger");
+  const nextSecurityAlert = dangerAlerts[0] || securityAlerts[0];
 
   return `
+    <section class="workflow-hero security-hero">
+      <div>
+        <p class="eyebrow">Veiligheidscheck</p>
+        <h2>${nextSecurityAlert ? escapeHtml(nextSecurityAlert.label) : "Veiligheidscentrum op schema"}</h2>
+        <p>${nextSecurityAlert ? escapeHtml(nextSecurityAlert.detail) : "Er zijn geen urgente toegangs-, retentie- of bewijsacties open voor deze praktijk."}</p>
+        <div class="hero-actions">
+          ${nextSecurityAlert ? `<button class="primary-action" data-action="navigate" data-view="${escapeHtml(nextSecurityAlert.action)}" type="button">Controle openen</button>` : ""}
+          <button class="ghost-action" data-action="export-audit" type="button">Controleverslag</button>
+          <button class="ghost-action" data-action="export-iso-evidence" type="button">Bewijsmap</button>
+        </div>
+      </div>
+      <div class="workflow-metrics">
+        <article><span>Signalen</span><strong>${escapeHtml(securityAlerts.length)}</strong><small>${dangerAlerts.length ? `${dangerAlerts.length} dringend` : "te controleren"}</small></article>
+        <article><span>Toegang</span><strong>${escapeHtml(activeOverrides.length)}</strong><small>uitzonderingen actief</small></article>
+        <article><span>Retentie</span><strong>${escapeHtml(retentionReviews.length)}</strong><small>beleid te controleren</small></article>
+        <article><span>Bewijs</span><strong>${escapeHtml(openIsoEvidence.length)}</strong><small>bewijsmap open</small></article>
+      </div>
+    </section>
+    <section class="workflow-strip">
+      <article>
+        <span>1</span>
+        <strong>Signaleren</strong>
+        <small>Toegang, portaal, imports en bewijsstukken komen samen.</small>
+      </article>
+      <article>
+        <span>2</span>
+        <strong>Reviewen</strong>
+        <small>Eigenaars controleren uitzonderingen en voorbereiding.</small>
+      </article>
+      <article>
+        <span>3</span>
+        <strong>Bewijzen</strong>
+        <small>Bewijsmappen en controleverslagen blijven reproduceerbaar.</small>
+      </article>
+      <article>
+        <span>4</span>
+        <strong>Opschonen</strong>
+        <small>Retentie en opruimlijst sluiten risico's af.</small>
+      </article>
+    </section>
     <section class="metric-grid">
       <article class="metric"><span>Actieve uitzonderingen</span><strong>${activeOverrides.length}</strong><small>dossiertoegang te reviewen</small></article>
       <article class="metric"><span>Portaaltoegang</span><strong>${activeInvites.length}</strong><small>actieve clientlinks</small></article>
       <article class="metric"><span>Exports</span><strong>${exportEvents.length}</strong><small>dossier of boekhouding</small></article>
-      <article class="metric"><span>Integraties</span><strong>${openIntegrationReviews.length}</strong><small>readiness reviews open</small></article>
-      <article class="metric"><span>ISO bewijs</span><strong>${openIsoEvidence.length}</strong><small>evidence packs open</small></article>
+      <article class="metric"><span>Integraties</span><strong>${openIntegrationReviews.length}</strong><small>checks open</small></article>
+      <article class="metric"><span>ISO bewijs</span><strong>${openIsoEvidence.length}</strong><small>bewijsmappen open</small></article>
     </section>
     <section class="content-grid">
       <div class="panel wide">
-        <div class="panel-header"><div><h2>Review alerts</h2><p>Wat moet vandaag of deze week security-aandacht krijgen?</p></div></div>
+        <div class="panel-header"><div><h2>Aandachtspunten</h2><p>Wat vraagt vandaag of deze week aandacht voor veiligheid en vertrouwen?</p></div></div>
         <div class="security-alerts">
           ${securityAlerts.slice(0, 8).map((alert) => `
             <article class="security-alert ${escapeHtml(alert.severity)}">
               <div><strong>${escapeHtml(alert.label)}</strong><span>${escapeHtml(alert.detail)}</span></div>
               <button class="ghost-action" data-action="navigate" data-view="${escapeHtml(alert.action)}" type="button">Open</button>
             </article>
-          `).join("") || `<p class="empty-state">Geen security alerts open.</p>`}
+          `).join("") || `<p class="empty-state">Geen aandachtspunten open.</p>`}
         </div>
       </div>
       <div class="panel wide" data-section="integration-readiness">
@@ -2135,13 +2178,13 @@ function securityView(state) {
                 ${can(state, "practice") && item.status !== "Review afgerond" ? `<button class="primary-action" data-action="complete-integration-review" data-integration-id="${escapeHtml(item.id)}" type="button">Review klaar</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Nog geen integratie-readiness items.</p>`}
+          `).join("") || `<p class="empty-state">Nog geen integratiechecks.</p>`}
         </div>
       </div>
       <div class="panel wide" data-section="iso-evidence">
         <div class="panel-header">
-          <div><h2>ISO 27001 bewijsmap</h2><p>Verzamel auditmateriaal uit rollen, AI-governance, retentie en exportlogs.</p></div>
-          <button class="primary-action" data-action="export-iso-evidence" type="button">Evidence export</button>
+          <div><h2>ISO 27001 bewijsmap</h2><p>Verzamel controlemateriaal uit rollen, AI-afspraken, retentie en exports.</p></div>
+          <button class="primary-action" data-action="export-iso-evidence" type="button">Bewijsmap maken</button>
         </div>
         ${isoEvidenceExport ? `<p class="handoff-note">${escapeHtml(isoEvidenceExport.summary.evidenceRows)} bewijsregels en ${escapeHtml(isoEvidenceExport.summary.attachmentCount || 0)} bijlagen klaar in ${escapeHtml(isoEvidenceExport.files.csvFilename)}.</p>` : `<p class="handoff-note">Maak een export wanneer een auditor, DPO of adviseur bewijs wil nakijken.</p>`}
         <form class="inline-form" data-form="iso-evidence-note">
@@ -2159,7 +2202,7 @@ function securityView(state) {
           <label class="field"><span>Type</span><select name="type"><option>Document</option><option>Export</option><option>Screenshot</option><option>Contract</option><option>Beleid</option></select></label>
           <label class="field grow"><span>Titel</span><input name="title" placeholder="Bijv. DPA leverancier" required></label>
           <label class="field grow"><span>Bron</span><input name="source" placeholder="URL, bestandsnaam of systeembron" required></label>
-          <label class="field"><span>Locatie</span><input name="storageLocation" value="PraktijkOS evidence vault"></label>
+          <label class="field"><span>Locatie</span><input name="storageLocation" value="PraktijkOS bewijsmap"></label>
           <label class="field"><span>Status</span><select name="status"><option>Gekoppeld</option><option>Review nodig</option><option>Vervangen</option></select></label>
           <button class="primary-action" type="submit">Bewijsstuk koppelen</button>
         </form>
@@ -2171,8 +2214,8 @@ function securityView(state) {
                 <span>${escapeHtml(pack.summary)} Eigenaar: ${escapeHtml(pack.owner || "Praktijkhouder")} / deadline ${escapeHtml(pack.dueAt || "Nog te plannen")}</span>
                 <span>Bronnen: ${(pack.sources || []).map((source) => escapeHtml(source)).join(" / ")}</span>
                 <span>Bewijs: ${(pack.evidence || []).map((item) => `${escapeHtml(item.label)} (${escapeHtml(item.status)})`).join(" / ")}</span>
-                <span>Gaps: ${(pack.gaps || []).map((gap) => escapeHtml(gap)).join(" / ") || "Geen open gaps"}</span>
-                ${pack.snapshot ? `<span>Snapshot: ${escapeHtml(pack.snapshot.counts.auditEvents)} audit-events / ${escapeHtml(pack.snapshot.counts.retentionPolicies)} retentiebeleid / ${escapeHtml(pack.snapshot.counts.aiModels)} AI-modellen</span>` : ""}
+                <span>Ontbreekt nog: ${(pack.gaps || []).map((gap) => escapeHtml(gap)).join(" / ") || "Niets open"}</span>
+                ${pack.snapshot ? `<span>Overzicht: ${escapeHtml(pack.snapshot.counts.auditEvents)} controlegebeurtenissen / ${escapeHtml(pack.snapshot.counts.retentionPolicies)} retentiebeleid / ${escapeHtml(pack.snapshot.counts.aiModels)} AI-modellen</span>` : ""}
                 ${(pack.attachments || []).slice(0, 4).map((attachment) => `<span>Bijlage: ${escapeHtml(attachment.type)} / ${escapeHtml(attachment.title)} / ${escapeHtml(attachment.source)} / ${escapeHtml(attachment.status)} / ${escapeHtml(attachment.addedBy || "PraktijkOS")} ${escapeHtml(attachment.addedAt || "")}</span>`).join("")}
                 ${(pack.reviewerNotes || []).slice(0, 3).map((note) => `<span>Notitie: ${escapeHtml(note.status)} / ${escapeHtml(note.note)} / ${escapeHtml(note.createdBy || "PraktijkOS")} ${escapeHtml(note.createdAt || "")}</span>`).join("")}
               </div>
@@ -2182,11 +2225,11 @@ function securityView(state) {
                 ${can(state, "practice") && pack.status !== "Bewijs verzameld" ? `<button class="primary-action" data-action="collect-iso-evidence" data-pack-id="${escapeHtml(pack.id)}" type="button">Bewijs verzamelen</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Nog geen ISO evidence packs.</p>`}
+          `).join("") || `<p class="empty-state">Nog geen ISO bewijsmappen.</p>`}
         </div>
       </div>
       <div class="panel wide">
-        <div class="panel-header"><div><h2>Access review</h2><p>Bekijk tijdelijke toegang en trek uitzonderingen in wanneer ze niet meer nodig zijn.</p></div></div>
+        <div class="panel-header"><div><h2>Toegangscontrole</h2><p>Bekijk tijdelijke toegang en trek uitzonderingen in wanneer ze niet meer nodig zijn.</p></div></div>
         <div class="security-list">
           ${[...activeOverrides, ...inactiveOverrides].slice(0, 12).map((override) => `
             <article class="security-row">
@@ -2223,7 +2266,7 @@ function securityView(state) {
         </div>
       </div>
       <div class="panel wide" data-section="cleanup-queue">
-        <div class="panel-header"><div><h2>Cleanup queue</h2><p>Concrete retentie-acties voor toegang, portaal, documenten en migratie.</p></div></div>
+        <div class="panel-header"><div><h2>Opruimlijst</h2><p>Concrete retentie-acties voor toegang, portaal, documenten en migratie.</p></div></div>
         <div class="security-list">
           ${cleanupQueue.slice(0, 10).map((item) => `
             <article class="security-row ${escapeHtml(item.severity)}">
@@ -2236,7 +2279,7 @@ function securityView(state) {
                 ${item.view ? `<button class="ghost-action" data-action="navigate" data-view="${escapeHtml(item.view)}" type="button">Open</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Geen cleanup-acties open.</p>`}
+          `).join("") || `<p class="empty-state">Geen opruimacties open.</p>`}
         </div>
       </div>
       <div class="panel">
@@ -2273,7 +2316,7 @@ function securityView(state) {
       </div>
       <div class="panel wide">
         <div class="panel-header">
-          <div><h2>Auditlog</h2><p>${selectedAuditRows.length} events binnen deze filter.</p></div>
+          <div><h2>Controlelog</h2><p>${selectedAuditRows.length} gebeurtenissen binnen deze filter.</p></div>
           <div class="inline-actions">
             <label class="compact-select"><span>Filter</span><select data-action="audit-filter">
               ${auditFilterOptions.map((option) => `<option value="${escapeHtml(option.value)}" ${selectedAuditFilter === option.value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
@@ -2310,7 +2353,7 @@ function localSaasUsageAlerts(state) {
       label: "Cliëntlimiet",
       used: state.clients?.length || 0,
       limit: Number(account.clientLimit || 0),
-      detail: `${state.clients?.length || 0}/${account.clientLimit || "?"} dossiers binnen deze tenant.`
+      detail: `${state.clients?.length || 0}/${account.clientLimit || "?"} dossiers binnen dit abonnement.`
     },
     {
       id: "ai-credits",
@@ -2328,7 +2371,7 @@ function localSaasUsageAlerts(state) {
   if (billingStatus.includes("betaal") || billingStatus.includes("pauze")) {
     alerts.push({
       id: "billing",
-      label: "Billingstatus",
+      label: "Betaalstatus",
       detail: account.billingStatus,
       severity: billingStatus.includes("pauze") ? "danger" : "warning"
     });
@@ -2354,11 +2397,11 @@ function localSaasHealth(state, saasUsageAlerts) {
     score,
     status: score >= 85 ? "Gezond" : score >= 65 ? "Opvolgen" : "Risico",
     indicators: [
-      { label: "Billing", status: openInvoices ? "Opvolgen" : "Gezond", detail: openInvoices ? `${openInvoices} open tenantfactuur.` : "Alle tenantfacturen zijn betaald.", severity: openInvoices ? "warning" : "success" },
-      { label: "Usage", status: (saasUsageAlerts || []).length ? "Risico" : "Gezond", detail: (saasUsageAlerts || []).length ? `${saasUsageAlerts.length} usage alert(s).` : "Gebruik blijft binnen limieten.", severity: (saasUsageAlerts || []).some((alert) => alert.severity === "danger") ? "danger" : (saasUsageAlerts || []).length ? "warning" : "success" },
-      { label: "Onboarding", status: openOnboarding ? "Open" : "Klaar", detail: openOnboarding ? `${openOnboarding} onboardingstap(pen) open.` : "Tenantactivatie is klaar.", severity: openOnboarding ? "warning" : "success" },
-      { label: "Features", status: pausedFeatures ? "Beperkt" : "Actief", detail: pausedFeatures ? `${pausedFeatures} feature entitlement(s) gepauzeerd.` : "Alle feature entitlements zijn actief.", severity: pausedFeatures ? "warning" : "success" },
-      { label: "Activity", status: unreadActivity ? "Nieuw" : "Rustig", detail: unreadActivity ? `${unreadActivity} nieuwe activiteit(en).` : "Geen nieuwe tenantactiviteit.", severity: unreadActivity ? "warning" : "success" }
+      { label: "Betaling", status: openInvoices ? "Opvolgen" : "Gezond", detail: openInvoices ? `${openInvoices} open abonnementsfactuur.` : "Alle abonnementsfacturen zijn betaald.", severity: openInvoices ? "warning" : "success" },
+      { label: "Gebruik", status: (saasUsageAlerts || []).length ? "Risico" : "Gezond", detail: (saasUsageAlerts || []).length ? `${saasUsageAlerts.length} gebruikswaarschuwing(en).` : "Gebruik blijft binnen limieten.", severity: (saasUsageAlerts || []).some((alert) => alert.severity === "danger") ? "danger" : (saasUsageAlerts || []).length ? "warning" : "success" },
+      { label: "Opstart", status: openOnboarding ? "Open" : "Klaar", detail: openOnboarding ? `${openOnboarding} activatiestap(pen) open.` : "Praktijkactivatie is klaar.", severity: openOnboarding ? "warning" : "success" },
+      { label: "Modules", status: pausedFeatures ? "Beperkt" : "Actief", detail: pausedFeatures ? `${pausedFeatures} module(s) gepauzeerd.` : "Alle modules zijn actief.", severity: pausedFeatures ? "warning" : "success" },
+      { label: "Activiteit", status: unreadActivity ? "Nieuw" : "Rustig", detail: unreadActivity ? `${unreadActivity} nieuwe activiteit(en).` : "Geen nieuwe accountactiviteit.", severity: unreadActivity ? "warning" : "success" }
     ]
   };
 }
@@ -2387,12 +2430,12 @@ function localSaasSuccessMetrics(state) {
   const openSuccessActions = (state.saasSuccessActions || []).filter((item) => item.status !== "Klaar").length;
 
   return [
-    { id: "feature-adoption", label: "Feature adoption", value: `${activeFeatures}/${featureEntitlements.length || 0}`, target: "Alle kernmodules actief", detail: activeFeatures === featureEntitlements.length ? "Tenant gebruikt alle actieve entitlements." : `${featureEntitlements.length - activeFeatures} entitlement(s) nog beperkt.`, signal: activeFeatures === featureEntitlements.length ? "success" : "warning" },
-    { id: "go-live-readiness", label: "Go-live readiness", value: `${completedActivation}/${activationTotal}`, target: "100% voor livegang", detail: completedActivation === activationTotal ? "Onboarding en implementatie zijn afgerond." : `${activationTotal - completedActivation} activatiestap(pen) open.`, signal: completedActivation === activationTotal ? "success" : "warning" },
-    { id: "support-load", label: "Support load", value: `${openSupport.length}`, target: "0 open blockers", detail: escalatedSupport ? `${escalatedSupport} escalatie(s) bij customer success.` : openSupport.length ? `${openSupport.length} open supportticket(s).` : "Geen open tenanttickets.", signal: escalatedSupport ? "danger" : openSupport.length ? "warning" : "success" },
-    { id: "ai-adoption", label: "AI adoption", value: `${aiAdoption}%`, target: "10-80% gezond gebruik", detail: `${aiCreditsUsed}/${aiCreditsIncluded || "?"} AI credits gebruikt deze maand.`, signal: aiAdoption > 80 || aiAdoption < 10 ? "warning" : "success" },
-    { id: "renewal-readiness", label: "Renewal readiness", value: openLifecycle ? `${openLifecycle} review` : "Rustig", target: account.renewalDate || "Nog te plannen", detail: openLifecycle ? "Er loopt een verlengings- of contractbeslissing." : "Geen lifecycle-aanvraag in review.", signal: openLifecycle ? "warning" : "success" },
-    { id: "success-actions", label: "Success actions", value: `${openSuccessActions}`, target: "0 open acties", detail: openSuccessActions ? `${openSuccessActions} opvolgactie(s) voor customer success.` : "Alle success-acties zijn afgewerkt.", signal: openSuccessActions ? "warning" : "success" }
+    { id: "feature-adoption", label: "Modules", value: `${activeFeatures}/${featureEntitlements.length || 0}`, target: "Alle kernmodules actief", detail: activeFeatures === featureEntitlements.length ? "Alle actieve modules worden gebruikt." : `${featureEntitlements.length - activeFeatures} module(s) nog beperkt.`, signal: activeFeatures === featureEntitlements.length ? "success" : "warning" },
+    { id: "go-live-readiness", label: "Livegang", value: `${completedActivation}/${activationTotal}`, target: "100% voor livegang", detail: completedActivation === activationTotal ? "Onboarding en implementatie zijn afgerond." : `${activationTotal - completedActivation} activatiestap(pen) open.`, signal: completedActivation === activationTotal ? "success" : "warning" },
+    { id: "support-load", label: "Supportdruk", value: `${openSupport.length}`, target: "0 open blokkades", detail: escalatedSupport ? `${escalatedSupport} escalatie(s) bij klantopvolging.` : openSupport.length ? `${openSupport.length} open supportvraag/-vragen.` : "Geen open supportvragen.", signal: escalatedSupport ? "danger" : openSupport.length ? "warning" : "success" },
+    { id: "ai-adoption", label: "AI-gebruik", value: `${aiAdoption}%`, target: "10-80% gezond gebruik", detail: `${aiCreditsUsed}/${aiCreditsIncluded || "?"} AI credits gebruikt deze maand.`, signal: aiAdoption > 80 || aiAdoption < 10 ? "warning" : "success" },
+    { id: "renewal-readiness", label: "Verlenging", value: openLifecycle ? `${openLifecycle} review` : "Rustig", target: account.renewalDate || "Nog te plannen", detail: openLifecycle ? "Er loopt een verlengings- of contractbeslissing." : "Geen verlengingsaanvraag in review.", signal: openLifecycle ? "warning" : "success" },
+    { id: "success-actions", label: "Opvolging", value: `${openSuccessActions}`, target: "0 open acties", detail: openSuccessActions ? `${openSuccessActions} opvolgactie(s) voor klantopvolging.` : "Alle opvolgacties zijn afgewerkt.", signal: openSuccessActions ? "warning" : "success" }
   ];
 }
 
@@ -2413,7 +2456,7 @@ function localSaasRiskPlaybooks(state) {
     "playbook-support-escalation": escalatedSupport > 0
   };
   const detailById = {
-    "playbook-billing-risk": openInvoices ? `${openInvoices} open SaaS factuur/facturen of billingactie.` : "Geen open billingrisico.",
+    "playbook-billing-risk": openInvoices ? `${openInvoices} open abonnementsfactuur/facturen of betaalactie.` : "Geen open betaalrisico.",
     "playbook-adoption-risk": openActivation ? `${openActivation} open activatiestap(pen), AI-adoptie ${aiAdoption}%.` : `AI-adoptie ${aiAdoption}%.`,
     "playbook-support-escalation": escalatedSupport ? `${escalatedSupport} supportescalatie(s) vragen opvolging.` : "Geen actieve supportescalatie."
   };
@@ -2459,11 +2502,11 @@ function localSaasOperatorNotifications(state) {
       tenantId,
       category: "Billing",
       title: "Abonnementfactuur vraagt opvolging",
-      detail: openInvoices.length ? `${openInvoices.length} open abonnementfactuur/facturen of betaalactie.` : `Billingstatus: ${account.billingStatus || "opvolgen"}.`,
+      detail: openInvoices.length ? `${openInvoices.length} open abonnementfactuur/facturen of betaalactie.` : `Betaalstatus: ${account.billingStatus || "opvolgen"}.`,
       source: "saasInvoices",
       sourceLabel: "Abonnementfacturen",
       priority: "Hoog",
-      owner: "Customer success",
+      owner: "Klantopvolging",
       status: "Nieuw",
       createdAt: openInvoices[0]?.issuedAt || "Vandaag",
       dueAt: openInvoices[0]?.dueAt || "Vandaag"
@@ -2475,12 +2518,12 @@ function localSaasOperatorNotifications(state) {
       id: "operator-support-escalation",
       tenantId,
       category: "Support",
-      title: "Supportescalatie vraagt operatorbeslissing",
+      title: "Supportescalatie vraagt beslissing",
       detail: `${escalatedSupport.length} escalatie(s) moeten eigenaar, SLA en klantupdate krijgen.`,
       source: "saasSupportQueue",
       sourceLabel: "Support",
       priority: "Hoog",
-      owner: "Customer success",
+      owner: "Klantopvolging",
       status: "Nieuw",
       createdAt: escalatedSupport[0]?.escalatedAt || escalatedSupport[0]?.createdAt || "Vandaag",
       dueAt: escalatedSupport[0]?.slaDueAt || "Vandaag"
@@ -2492,12 +2535,12 @@ function localSaasOperatorNotifications(state) {
       id: "operator-onboarding-open",
       tenantId,
       category: "Onboarding",
-      title: "Tenantactivatie is nog niet rond",
+      title: "Praktijkactivatie is nog niet rond",
       detail: `${openActivation.length} onboarding- of livegangstap(pen) blokkeren volledige activatie.`,
       source: "saasOnboardingChecklist",
       sourceLabel: "Onboarding",
       priority: "Normaal",
-      owner: "Implementation",
+      owner: "Implementatie",
       status: "Nieuw",
       createdAt: "Vandaag",
       dueAt: openActivation[0]?.dueAt || "Deze week"
@@ -2510,11 +2553,11 @@ function localSaasOperatorNotifications(state) {
       tenantId,
       category: "Scenario",
       title: "Opvolgscenario's staan klaar",
-      detail: `${recommendedPlaybooks.length} aanbevolen scenario(s) kunnen customer-success acties aanmaken.`,
+      detail: `${recommendedPlaybooks.length} aanbevolen scenario(s) kunnen opvolgacties aanmaken.`,
       source: "saasRiskPlaybooks",
       sourceLabel: "Opvolgscenario's",
       priority: "Normaal",
-      owner: "Customer success",
+      owner: "Klantopvolging",
       status: "Nieuw",
       createdAt: "Vandaag",
       dueAt: "Deze week"
@@ -2527,11 +2570,11 @@ function localSaasOperatorNotifications(state) {
       tenantId,
       category: "Contract",
       title: "Plan- of contractbeslissing wacht op review",
-      detail: `${openLifecycle.length} lifecycle- of planwijziging(en) staan in review.`,
+      detail: `${openLifecycle.length} contract- of planwijziging(en) staan in review.`,
       source: "saasLifecycleRequests",
       sourceLabel: "Verlenging en planwijziging",
       priority: "Normaal",
-      owner: "Revenue operations",
+      owner: "Facturatie",
       status: "Nieuw",
       createdAt: openLifecycle[0]?.requestedAt || "Vandaag",
       dueAt: openLifecycle[0]?.effectiveAt || "Deze maand"
@@ -2564,7 +2607,7 @@ function localSaasCohortSummary(state) {
   const totalMrr = tenants.reduce((sum, tenant) => sum + Number(tenant.mrr || 0), 0);
   const atRisk = tenants.filter((tenant) => Number(tenant.healthScore || 0) < 75 || !["Laag", "Geen"].includes(tenant.risk)).length;
   const qbrOpen = tenants.filter((tenant) => tenant.qbrStatus !== "Gepland").length;
-  const expansion = tenants.filter((tenant) => ["Scale", "Enterprise"].includes(tenant.plan) || tenant.lifecycleStage === "Expansion").length;
+  const expansion = tenants.filter((tenant) => ["Scale", "Enterprise"].includes(tenant.plan) || ["Expansion", "Uitbreiding"].includes(tenant.lifecycleStage)).length;
 
   return {
     tenants: tenants.length,
@@ -2630,6 +2673,23 @@ function settingsView(state) {
   const planChangeLabel = saasPlanChanges.length === 1 ? "1 planwijziging" : `${saasPlanChanges.length} planwijzigingen`;
   const supportTicketLabel = openSupportTickets.length === 1 ? "1 open vraag" : `${openSupportTickets.length} open vragen`;
   const milestoneLabel = openImplementationMilestones === 1 ? "1 mijlpaal open" : `${openImplementationMilestones} mijlpalen open`;
+  const openOnboardingSteps = saasOnboardingChecklist.filter((item) => item.status !== "Klaar");
+  const nextOnboardingStep = openOnboardingSteps[0];
+  const escalatedSupportTickets = openSupportTickets.filter((ticket) => ticket.status === "Geescaleerd");
+  const nextSupportTicket = escalatedSupportTickets[0] || openSupportTickets[0];
+  const activationProgress = saasOnboardingChecklist.length
+    ? Math.round((completedSaasOnboarding / saasOnboardingChecklist.length) * 100)
+    : 100;
+  const activationFocus = nextSupportTicket
+    ? `${nextSupportTicket.category}: ${nextSupportTicket.title}`
+    : nextOnboardingStep
+      ? nextOnboardingStep.label
+      : "Klantomgeving klaar";
+  const activationFocusDetail = nextSupportTicket
+    ? `${nextSupportTicket.status} / ${nextSupportTicket.priority} / SLA ${nextSupportTicket.slaDueAt || "niet gepland"}`
+    : nextOnboardingStep
+      ? `${nextOnboardingStep.owner} / deadline ${nextOnboardingStep.dueAt || "niet gepland"}`
+      : "Onboarding, livegang en support zijn opgevolgd.";
   const guideSections = [
     {
       target: "settings-team",
@@ -2734,6 +2794,48 @@ function settingsView(state) {
         `).join("")}
       </div>
 
+      <div class="workflow-hero settings-activation-hero wide" data-setting-scope="owner admin support care">
+        <div>
+          <p class="eyebrow">Activatie en support</p>
+          <h2>${escapeHtml(activationFocus)}</h2>
+          <p>${escapeHtml(activationFocusDetail)}</p>
+          <div class="hero-actions">
+            ${nextOnboardingStep ? `<button class="primary-action" data-action="complete-saas-onboarding" data-item-id="${escapeHtml(nextOnboardingStep.id)}" type="button">Onboardingstap afronden</button>` : ""}
+            ${nextSupportTicket ? `<button class="ghost-action" data-action="jump-setting-section" data-section-target="settings-support" type="button">Support openen</button>` : ""}
+            <button class="ghost-action" data-action="jump-setting-section" data-section-target="settings-onboarding" type="button">Onboarding openen</button>
+          </div>
+        </div>
+        <div class="workflow-metrics">
+          <article><span>Activatie</span><strong>${escapeHtml(activationProgress)}%</strong><small>${completedSaasOnboarding}/${saasOnboardingChecklist.length} stappen klaar</small></article>
+          <article><span>Livegang</span><strong>${escapeHtml(completedImplementationMilestones)}/${escapeHtml(saasImplementationMilestones.length)}</strong><small>mijlpalen klaar</small></article>
+          <article><span>Support</span><strong>${escapeHtml(openSupportTickets.length)}</strong><small>${escalatedSupportTickets.length ? `${escalatedSupportTickets.length} escalatie(s)` : "open vragen"}</small></article>
+          <article><span>Success</span><strong>${escapeHtml(openSuccessActions.length)}</strong><small>opvolgacties open</small></article>
+        </div>
+      </div>
+
+      <div class="workflow-strip wide" data-setting-scope="owner admin support care">
+        <article>
+          <span>1</span>
+          <strong>Activeren</strong>
+          <small>Team, betaling en AI-afspraken klaarmaken.</small>
+        </article>
+        <article>
+          <span>2</span>
+          <strong>Livegang</strong>
+          <small>Implementatiemijlpalen afvinken tot de praktijk werkt.</small>
+        </article>
+        <article>
+          <span>3</span>
+          <strong>Support</strong>
+          <small>Open vragen met SLA en escalatie opvolgen.</small>
+        </article>
+        <article>
+          <span>4</span>
+          <strong>Adoptie</strong>
+          <small>Success-acties en playbooks sluiten de lus.</small>
+        </article>
+      </div>
+
       <div class="panel wide operator-inbox" data-section="saas-operator-notifications" data-setting-scope="owner admin support">
         <div class="panel-header">
           <div><span class="section-kicker">Actiecentrum</span><h2>Wat vraagt opvolging?</h2><p>Wijs elke open actie toe aan de juiste eigenaar en zet meteen de deadline goed.</p></div>
@@ -2741,7 +2843,7 @@ function settingsView(state) {
         </div>
         <div class="operator-summary">
           <article><span>Dringend</span><strong>${escapeHtml(highOperatorNotifications.length)}</strong><small>vraagt vandaag aandacht</small></article>
-          <article><span>Toegewezen</span><strong>${escapeHtml(routedOperatorNotifications)}</strong><small>met owner en deadline</small></article>
+          <article><span>Toegewezen</span><strong>${escapeHtml(routedOperatorNotifications)}</strong><small>met eigenaar en deadline</small></article>
           <article><span>Klaar</span><strong>${escapeHtml(saasOperatorNotifications.filter((item) => item.status === "Afgehandeld").length)}</strong><small>afgehandeld</small></article>
         </div>
         <div class="operator-list">
@@ -2758,7 +2860,7 @@ function settingsView(state) {
                 </div>
                 ${notification.status !== "Afgehandeld" ? `
                   <div class="operator-routing">
-                    <label class="compact-select"><span>Owner</span><select data-action="saas-operator-owner" data-notification-id="${escapeHtml(notification.id)}">${optionList(operatorOwners, notification.owner || "PraktijkOS")}</select></label>
+                    <label class="compact-select"><span>Eigenaar</span><select data-action="saas-operator-owner" data-notification-id="${escapeHtml(notification.id)}">${optionList(operatorOwners, notification.owner || "PraktijkOS")}</select></label>
                     <label class="compact-select"><span>Deadline</span><select data-action="saas-operator-due" data-notification-id="${escapeHtml(notification.id)}">${optionList(operatorDueOptions, notification.dueAt || "Deze week")}</select></label>
                     <label class="compact-select"><span>Prioriteit</span><select data-action="saas-operator-priority" data-notification-id="${escapeHtml(notification.id)}">${optionList(operatorPriorities, notification.priority || "Normaal")}</select></label>
                   </div>
@@ -2771,17 +2873,17 @@ function settingsView(state) {
                 ${notification.status !== "Afgehandeld" ? `<button class="primary-action" data-action="resolve-saas-operator-notification" data-notification-id="${escapeHtml(notification.id)}" type="button">Afhandelen</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Geen operatornotificaties voor deze tenant.</p>`}
+          `).join("") || `<p class="empty-state">Geen open meldingen voor deze praktijk.</p>`}
         </div>
       </div>
 
       <form class="panel wide" id="settings-billing" data-form="saas-account" data-guide-section="billing" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Abonnement</h2><p>Plan, limieten en verlenging voor deze praktijkomgeving.</p></div>${badge(saasAccount.billingStatus || "Actief", (saasAccount.billingStatus || "").toLowerCase().includes("pauze") ? "warning" : "success")}</div>
         <div class="metric-grid compact-metrics">
-          <article class="metric"><span>Klantomgeving</span><strong>${escapeHtml(saasAccount.tenantId || "tenant")}</strong><small>${escapeHtml(saasAccount.dataRegion || "EU / Belgie")}</small></article>
+          <article class="metric"><span>Praktijkomgeving</span><strong>${escapeHtml(saasAccount.tenantId || "praktijk")}</strong><small>${escapeHtml(saasAccount.dataRegion || "EU / Belgie")}</small></article>
           <article class="metric"><span>Plan</span><strong>${escapeHtml(saasAccount.plan || "Pro")}</strong><small>verlenging ${escapeHtml(saasAccount.renewalDate || "nog te plannen")}</small></article>
           <article class="metric"><span>Seats</span><strong>${seatsUsed}/${seatsIncluded}</strong><small>teamleden binnen abonnement</small></article>
-          <article class="metric"><span>Cliënten</span><strong>${clientCount}/${clientLimit}</strong><small>dossiers binnen tenantlimiet</small></article>
+          <article class="metric"><span>Cliënten</span><strong>${clientCount}/${clientLimit}</strong><small>dossiers binnen limiet</small></article>
           <article class="metric"><span>AI credits</span><strong>${aiCreditsUsed}/${aiCreditsIncluded}</strong><small>maandbudget voor AI-acties</small></article>
         </div>
         <div class="security-alerts">
@@ -2790,12 +2892,12 @@ function settingsView(state) {
               <div><strong>${escapeHtml(alert.label)}</strong><span>${escapeHtml(alert.detail)}</span></div>
               ${badge(alert.severity === "danger" ? "Actie nodig" : "Opvolgen", alert.severity)}
             </article>
-          `).join("") || `<p class="empty-state">Geen tenant usage alerts.</p>`}
+          `).join("") || `<p class="empty-state">Geen gebruikswaarschuwingen.</p>`}
         </div>
         <div class="form-grid">
-          <label class="field"><span>Tenant ID</span><input name="tenantId" value="${escapeHtml(saasAccount.tenantId || "tenant-de-linde")}" required></label>
+          <label class="field"><span>Praktijkcode</span><input name="tenantId" value="${escapeHtml(saasAccount.tenantId || "praktijk-de-linde")}" required></label>
           <label class="field"><span>Plan</span><select name="plan">${["Starter", "Pro", "Scale", "Enterprise"].map((plan) => `<option ${saasAccount.plan === plan ? "selected" : ""}>${plan}</option>`).join("")}</select></label>
-          <label class="field"><span>Billingstatus</span><select name="billingStatus">${["Trial actief", "Actief", "Betaalactie nodig", "Pauze"].map((status) => `<option ${saasAccount.billingStatus === status ? "selected" : ""}>${status}</option>`).join("")}</select></label>
+          <label class="field"><span>Betaalstatus</span><select name="billingStatus">${["Trial actief", "Actief", "Betaalactie nodig", "Pauze"].map((status) => `<option ${saasAccount.billingStatus === status ? "selected" : ""}>${status}</option>`).join("")}</select></label>
           <label class="field"><span>Dataregio</span><select name="dataRegion">${["EU / Belgie", "EU", "EU / Nederland"].map((region) => `<option ${saasAccount.dataRegion === region ? "selected" : ""}>${region}</option>`).join("")}</select></label>
         </div>
         <div class="form-grid">
@@ -2811,26 +2913,26 @@ function settingsView(state) {
       <div class="panel wide" data-section="saas-cohorts" data-setting-scope="owner">
         <div class="panel-header"><div><h2>Praktijkenportfolio</h2><p>Overzicht van klantpraktijken, plannen, omzet en opvolgmomenten.</p></div>${badge(`${saasCohortSummary.tenants} praktijken`, saasCohortSummary.atRisk ? "warning" : "success")}</div>
         <div class="metric-grid compact-metrics">
-          <article class="metric"><span>MRR</span><strong>${formatEuro(saasCohortSummary.totalMrr || 0)}</strong><small>maandelijkse recurring revenue</small></article>
-          <article class="metric"><span>Health</span><strong>${escapeHtml(saasCohortSummary.averageHealth || 0)}/100</strong><small>gemiddelde tenantscore</small></article>
+          <article class="metric"><span>Maandomzet</span><strong>${formatEuro(saasCohortSummary.totalMrr || 0)}</strong><small>terugkerende omzet</small></article>
+          <article class="metric"><span>Health</span><strong>${escapeHtml(saasCohortSummary.averageHealth || 0)}/100</strong><small>gemiddelde praktijkscore</small></article>
           <article class="metric"><span>Risico</span><strong>${escapeHtml(saasCohortSummary.atRisk || 0)}</strong><small>praktijk(en) onder opvolging</small></article>
-          <article class="metric"><span>QBR</span><strong>${escapeHtml(saasCohortSummary.qbrOpen || 0)}</strong><small>nog te plannen</small></article>
-          <article class="metric"><span>Expansion</span><strong>${escapeHtml(saasCohortSummary.expansion || 0)}</strong><small>Scale/Enterprise kansen</small></article>
+          <article class="metric"><span>Review</span><strong>${escapeHtml(saasCohortSummary.qbrOpen || 0)}</strong><small>nog te plannen</small></article>
+          <article class="metric"><span>Groei</span><strong>${escapeHtml(saasCohortSummary.expansion || 0)}</strong><small>Scale/Enterprise kansen</small></article>
         </div>
         <div class="security-list">
           ${saasTenantCohorts.map((tenant) => `
             <article class="security-row">
               <div>
-                <strong>${escapeHtml(tenant.practiceName)} / ${escapeHtml(tenant.plan)} / ${formatEuro(tenant.mrr || 0)} MRR</strong>
-                <span>${escapeHtml(tenant.segment)} / ${escapeHtml(tenant.region)} / ${escapeHtml(tenant.lifecycleStage)} / owner ${escapeHtml(tenant.owner)}</span>
-                <span>Health ${escapeHtml(tenant.healthScore)}/100 / risico ${escapeHtml(tenant.risk)} / actief ${escapeHtml(tenant.lastActiveAt)}${tenant.qbrPlannedAt ? ` / QBR gepland ${escapeHtml(tenant.qbrPlannedAt)} door ${escapeHtml(tenant.qbrPlannedBy || "PraktijkOS")}` : ""}</span>
+                <strong>${escapeHtml(tenant.practiceName)} / ${escapeHtml(tenant.plan)} / ${formatEuro(tenant.mrr || 0)} per maand</strong>
+                <span>${escapeHtml(tenant.segment)} / ${escapeHtml(tenant.region)} / ${escapeHtml(tenant.lifecycleStage)} / eigenaar ${escapeHtml(tenant.owner)}</span>
+                <span>Gezondheid ${escapeHtml(tenant.healthScore)}/100 / risico ${escapeHtml(tenant.risk)} / actief ${escapeHtml(tenant.lastActiveAt)}${tenant.qbrPlannedAt ? ` / review gepland ${escapeHtml(tenant.qbrPlannedAt)} door ${escapeHtml(tenant.qbrPlannedBy || "PraktijkOS")}` : ""}</span>
               </div>
               <div class="status-stack">
                 ${badge(tenant.qbrStatus || "Te plannen", tenant.qbrStatus === "Gepland" ? "success" : Number(tenant.healthScore || 0) < 75 ? "danger" : "warning")}
-                ${tenant.qbrStatus !== "Gepland" ? `<button class="ghost-action" data-action="plan-tenant-qbr" data-cohort-id="${escapeHtml(tenant.id)}" type="button">QBR plannen</button>` : ""}
+                ${tenant.qbrStatus !== "Gepland" ? `<button class="ghost-action" data-action="plan-tenant-qbr" data-cohort-id="${escapeHtml(tenant.id)}" type="button">Review plannen</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Geen tenantcohort data.</p>`}
+          `).join("") || `<p class="empty-state">Geen praktijkportfolio beschikbaar.</p>`}
         </div>
       </div>
 
@@ -2849,7 +2951,7 @@ function settingsView(state) {
       </div>
 
       <div class="panel wide" data-section="saas-success" data-setting-scope="owner support">
-        <div class="panel-header"><div><h2>Customer success</h2><p>Adoptie, livegang, supportdruk en verlengingskansen voor deze praktijk.</p></div>${badge(openSuccessActions.length ? `${openSuccessActions.length} acties` : "Op schema", openSuccessActions.length ? "warning" : "success")}</div>
+        <div class="panel-header"><div><h2>Klantopvolging</h2><p>Adoptie, livegang, supportdruk en verlengingskansen voor deze praktijk.</p></div>${badge(openSuccessActions.length ? `${openSuccessActions.length} acties` : "Op schema", openSuccessActions.length ? "warning" : "success")}</div>
         <div class="metric-grid compact-metrics">
           ${saasSuccessMetrics.map((metric) => `
             <article class="metric">
@@ -2872,7 +2974,7 @@ function settingsView(state) {
                 ${item.status !== "Klaar" ? `<button class="ghost-action" data-action="complete-saas-success" data-action-id="${escapeHtml(item.id)}" type="button">Opgevolgd</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Geen customer success acties voor deze tenant.</p>`}
+          `).join("") || `<p class="empty-state">Geen opvolgacties voor deze praktijk.</p>`}
         </div>
       </div>
 
@@ -2891,11 +2993,11 @@ function settingsView(state) {
                 <button class="primary-action" data-action="run-saas-playbook" data-playbook-id="${escapeHtml(playbook.id)}" type="button">Start scenario</button>
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Geen risk playbooks voor deze tenant.</p>`}
+          `).join("") || `<p class="empty-state">Geen opvolgscenario's voor deze praktijk.</p>`}
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-onboarding" data-setting-scope="owner admin support care">
+      <div class="panel wide" id="settings-onboarding" data-section="saas-onboarding" data-setting-scope="owner admin support care">
         <div class="panel-header"><div><h2>Onboarding</h2><p>Activatiestappen voor praktijk, team, betaling en AI-afspraken.</p></div>${badge(`${completedSaasOnboarding}/${saasOnboardingChecklist.length} klaar`, completedSaasOnboarding === saasOnboardingChecklist.length ? "success" : "warning")}</div>
         <div class="security-list">
           ${saasOnboardingChecklist.map((item) => `
@@ -2909,7 +3011,7 @@ function settingsView(state) {
                 ${item.status !== "Klaar" ? `<button class="ghost-action" data-action="complete-saas-onboarding" data-item-id="${escapeHtml(item.id)}" type="button">Afronden</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Geen onboardingstappen voor deze tenant.</p>`}
+          `).join("") || `<p class="empty-state">Geen onboardingstappen voor deze praktijk.</p>`}
         </div>
       </div>
 
@@ -2928,7 +3030,7 @@ function settingsView(state) {
                 ${item.status !== "Klaar" ? `<button class="ghost-action" data-action="complete-saas-implementation" data-milestone-id="${escapeHtml(item.id)}" type="button">Afronden</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Geen implementatiemijlpalen voor deze tenant.</p>`}
+          `).join("") || `<p class="empty-state">Geen implementatiemijlpalen voor deze praktijk.</p>`}
         </div>
       </div>
 
@@ -2948,7 +3050,7 @@ function settingsView(state) {
                 ${document.status !== "Gedeeld" ? `<button class="primary-action" data-action="share-saas-contract" data-document-id="${escapeHtml(document.id)}" type="button">Delen</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Geen contractdocumenten voor deze tenant.</p>`}
+          `).join("") || `<p class="empty-state">Geen contractdocumenten voor deze praktijk.</p>`}
         </div>
       </div>
 
@@ -2969,7 +3071,7 @@ function settingsView(state) {
                 ${ticket.status !== "Gesloten" ? `<button class="primary-action" data-action="change-saas-support" data-ticket-id="${escapeHtml(ticket.id)}" data-status="Gesloten" type="button">Sluiten</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Geen supporttickets voor deze tenant.</p>`}
+          `).join("") || `<p class="empty-state">Geen supportvragen voor deze praktijk.</p>`}
         </div>
       </div>
 
@@ -2988,7 +3090,7 @@ function settingsView(state) {
                 ${item.status !== "Gelezen" ? `<button class="ghost-action" data-action="acknowledge-saas-activity" data-activity-id="${escapeHtml(item.id)}" type="button">Gelezen</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Nog geen SaaS activiteit.</p>`}
+          `).join("") || `<p class="empty-state">Nog geen accountactiviteit.</p>`}
         </div>
       </div>
 
@@ -3009,12 +3111,12 @@ function settingsView(state) {
                   : `<button class="primary-action" data-action="toggle-saas-entitlement" data-entitlement-id="${escapeHtml(item.id)}" data-status="Actief" type="button">Activeer</button>`}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Geen feature entitlements geconfigureerd.</p>`}
+          `).join("") || `<p class="empty-state">Geen modules geconfigureerd.</p>`}
         </div>
       </div>
 
       <div class="panel wide" data-section="saas-usage-ledger" data-setting-scope="owner admin">
-        <div class="panel-header"><div><h2>Gebruiksgeschiedenis</h2><p>Gebeurtenissen die limieten, abonnement en AI-verbruik verklaren.</p></div>${badge(`${saasUsageLedger.length} events`, "success")}</div>
+        <div class="panel-header"><div><h2>Gebruiksgeschiedenis</h2><p>Gebeurtenissen die limieten, abonnement en AI-verbruik verklaren.</p></div>${badge(`${saasUsageLedger.length} momenten`, "success")}</div>
         <div class="security-list">
           ${saasUsageLedger.map((entry) => `
             <article class="security-row">
@@ -3027,7 +3129,7 @@ function settingsView(state) {
                 ${badge(entry.status, entry.status === "Open" ? "warning" : "success")}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Nog geen usage events voor deze tenant.</p>`}
+          `).join("") || `<p class="empty-state">Nog geen gebruiksmomenten voor deze praktijk.</p>`}
         </div>
       </div>
 
@@ -3052,12 +3154,12 @@ function settingsView(state) {
                 ${badge(item.status || "In review", item.status === "Goedgekeurd" ? "success" : item.status === "Concept" ? "warning" : "warning")}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Nog geen lifecycle-aanvragen.</p>`}
+          `).join("") || `<p class="empty-state">Nog geen contractaanvragen.</p>`}
         </div>
       </form>
 
       <form class="panel wide" data-form="saas-plan-change" data-section="saas-plan-change" data-setting-scope="owner admin">
-        <div class="panel-header"><div><h2>Planwijziging</h2><p>Vraag een upgrade, downgrade of contractaanpassing aan voor deze tenant.</p></div>${badge(saasPlanChanges.length ? `${saasPlanChanges.length} aanvragen` : "Geen aanvragen", saasPlanChanges.length ? "warning" : "success")}</div>
+        <div class="panel-header"><div><h2>Planwijziging</h2><p>Vraag een upgrade, downgrade of contractaanpassing aan voor deze praktijkomgeving.</p></div>${badge(saasPlanChanges.length ? `${saasPlanChanges.length} aanvragen` : "Geen aanvragen", saasPlanChanges.length ? "warning" : "success")}</div>
         <div class="form-grid">
           <label class="field"><span>Gewenst plan</span><select name="requestedPlan">${["Starter", "Pro", "Scale", "Enterprise"].map((plan) => `<option ${plan === "Scale" ? "selected" : ""}>${plan}</option>`).join("")}</select></label>
           <label class="field"><span>Ingang vanaf</span><input name="effectiveAt" value="${escapeHtml(saasAccount.renewalDate || "01/08/2026")}" required></label>
@@ -3087,7 +3189,7 @@ function settingsView(state) {
             <article class="security-row">
               <div>
                 <strong>${escapeHtml(invoice.period)} / ${escapeHtml(invoice.plan)} / ${formatEuro(invoice.amount)}</strong>
-                <span>Tenant ${escapeHtml(invoice.tenantId || saasAccount.tenantId || "tenant")} / uitgifte ${escapeHtml(invoice.issuedAt || "n.v.t.")} / vervalt ${escapeHtml(invoice.dueAt || "n.v.t.")}${invoice.paidAt ? ` / betaald ${escapeHtml(invoice.paidAt)}` : ""}</span>
+                <span>Praktijk ${escapeHtml(invoice.tenantId || saasAccount.tenantId || "praktijk")} / uitgifte ${escapeHtml(invoice.issuedAt || "n.v.t.")} / vervalt ${escapeHtml(invoice.dueAt || "n.v.t.")}${invoice.paidAt ? ` / betaald ${escapeHtml(invoice.paidAt)}` : ""}</span>
                 ${invoice.paymentHandoff ? `<span>Betaallink: ${escapeHtml(invoice.paymentHandoff.status)} / ${escapeHtml(invoice.paymentHandoff.reference)} / ${escapeHtml(invoice.paymentHandoff.channel)}</span>` : ""}
                 ${invoice.dunningNotice ? `<span>Opvolging: ${escapeHtml(invoice.dunningNotice.status)} / ronde ${escapeHtml(invoice.dunningNotice.sequence)} / ${escapeHtml(invoice.dunningNotice.channel)}</span>` : ""}
                 ${invoice.receipt ? `<span>Ontvangstbewijs: ${escapeHtml(invoice.receipt.status)} / ${escapeHtml(invoice.receipt.reference)} / ${escapeHtml(invoice.receipt.channel)}</span>` : ""}
@@ -3099,7 +3201,7 @@ function settingsView(state) {
                 ${invoice.status !== "Betaald" ? `<button class="primary-action" data-action="mark-saas-invoice-paid" data-invoice-id="${escapeHtml(invoice.id)}" type="button">Markeer betaald</button>` : ""}
               </div>
             </article>
-          `).join("") || `<p class="empty-state">Nog geen SaaS facturen.</p>`}
+          `).join("") || `<p class="empty-state">Nog geen abonnementsfacturen.</p>`}
         </div>
       </div>
 
@@ -3271,7 +3373,7 @@ function auditList(state, limit = 8, filter = "all") {
           <div><strong>${escapeHtml(entry.event)}</strong><span>${escapeHtml(entry.detail)}</span></div>
           <span class="audit-meta">${escapeHtml(entry.at)} / ${escapeHtml(displayActor(entry.actor))}</span>
         </article>
-      `).join("") || `<p class="empty-state">Geen audit-events voor deze filter.</p>`}
+      `).join("") || `<p class="empty-state">Geen controlegebeurtenissen voor deze filter.</p>`}
     </div>
   `;
 }

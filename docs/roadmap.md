@@ -19,6 +19,7 @@
 - Client communication workspace UI for messages, portal access and documents
 - SaaS workbench UI for dashboard, agenda and dossier next-step workflows
 - SaaS workflow UI for billing, AI review and safe import controls
+- SaaS workflow UI for security review, onboarding and support activation
 - Guided practice-center sections for team, billing, support and AI settings
 - Role-specific practice-center defaults and section filters
 - Tenant support and escalation queue
@@ -83,7 +84,7 @@
 
 ## Next Product Slice
 
-- Continue SaaS frontend polish across security, onboarding and support workflows.
+- Continue SaaS frontend polish across tenant lifecycle, contracts and usage governance.
 
 ## Phase 4: Belgian Integrations
 

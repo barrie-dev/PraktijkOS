@@ -81,12 +81,92 @@ import { renderApp } from "./render.js";
 const root = document.querySelector("#app");
 let toastTimer;
 
+const productCopyReplacements = [
+  [/Scale-entitlement/gi, "Scale-module"],
+  [/integratie-entitlements/gi, "integratiemodules"],
+  [/feature entitlements?/gi, "modules"],
+  [/entitlements?/gi, "modules"],
+  [/Feature adoption/gi, "Modules"],
+  [/Features/gi, "Modules"],
+  [/Support load/gi, "Supportdruk"],
+  [/Customer success/gi, "Klantopvolging"],
+  [/Revenue operations/gi, "Facturatie"],
+  [/Implementation/gi, "Implementatie"],
+  [/Expansion/gi, "Uitbreiding"],
+  [/Trial actief/gi, "Proefperiode actief"],
+  [/Billingstatus/gi, "Betaalstatus"],
+  [/Billing/gi, "Betaling"],
+  [/SaaS billing/gi, "abonnementsfacturatie"],
+  [/SaaS factuur/gi, "abonnementsfactuur"],
+  [/tenantactivatie/gi, "praktijkactivatie"],
+  [/tenantfacturen/gi, "abonnementsfacturen"],
+  [/tenantfactuur/gi, "abonnementsfactuur"],
+  [/tenantlimiet/gi, "limiet"],
+  [/tenanttickets/gi, "supportvragen"],
+  [/tenantactiviteit/gi, "accountactiviteit"],
+  [/tenantcohort data/gi, "praktijkportfolio"],
+  [/\btenant\b/gi, "praktijk"],
+  [/Operatornotificatie/gi, "Melding"],
+  [/operatornotificaties/gi, "meldingen"],
+  [/operatorbeslissing/gi, "beslissing"],
+  [/\boperator\b/gi, "team"],
+  [/usage alert\(s\)/gi, "gebruikswaarschuwingen"],
+  [/usage events/gi, "gebruiksmomenten"],
+  [/\bUsage\b/g, "Gebruik"],
+  [/lifecycle-aanvragen/gi, "contractaanvragen"],
+  [/\blifecycle\b/gi, "contract"],
+  [/security center/gi, "veiligheidscentrum"],
+  [/\bsecurity\b/gi, "veiligheid"],
+  [/AI governance/gi, "AI-afspraken"],
+  [/AI policy/gi, "AI-beleid"],
+  [/modelgovernance/gi, "modelafspraken"],
+  [/audit-events/gi, "controlegebeurtenissen"],
+  [/Auditexport/gi, "Controleverslag"],
+  [/Access review/gi, "Toegangscontrole"],
+  [/Cleanup queue/gi, "Opruimlijst"],
+  [/Exportlog/gi, "Exportoverzicht"],
+  [/auditlog/gi, "controlelog"],
+  [/auditmateriaal/gi, "controlemateriaal"],
+  [/Evidence export/gi, "Bewijsmap"],
+  [/ISO evidence packs/gi, "ISO bewijsmappen"],
+  [/evidence vault/gi, "bewijsmap"],
+  [/\bevidence\b/gi, "bewijs"],
+  [/readiness/gi, "voorbereiding"],
+  [/blockers/gi, "blokkades"],
+  [/blocker/gi, "blokkade"],
+  [/renewal/gi, "verlenging"],
+  [/\bowner\b/gi, "eigenaar"]
+];
+
+function toProductCopy(value = "") {
+  return productCopyReplacements.reduce((copy, [pattern, replacement]) => copy.replace(pattern, replacement), String(value));
+}
+
+function polishProductCopy(container) {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach((node) => {
+    if (!node.nodeValue.trim()) return;
+    if (node.parentElement?.closest("script, style, textarea")) return;
+    node.nodeValue = toProductCopy(node.nodeValue);
+  });
+  container.querySelectorAll("[placeholder], [title], [aria-label]").forEach((element) => {
+    ["placeholder", "title", "aria-label"].forEach((attribute) => {
+      if (element.hasAttribute(attribute)) {
+        element.setAttribute(attribute, toProductCopy(element.getAttribute(attribute)));
+      }
+    });
+  });
+}
+
 function render() {
   const activeElement = document.activeElement;
   const restoreCommandSearch = activeElement?.dataset?.action === "command-search";
   const selectionStart = restoreCommandSearch ? activeElement.selectionStart : null;
   const selectionEnd = restoreCommandSearch ? activeElement.selectionEnd : null;
   root.innerHTML = renderApp(getState());
+  polishProductCopy(root);
   if (restoreCommandSearch) {
     const nextInput = document.querySelector('[data-action="command-search"]');
     nextInput?.focus();
