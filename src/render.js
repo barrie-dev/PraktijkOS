@@ -1582,8 +1582,53 @@ function billingView(state) {
   const exportSummary = state.billingExport?.summary;
   const accountingExport = state.accountingExport;
   const accountingTool = state.accountingTool || "exact";
+  const openInvoices = state.invoices.filter((invoice) => invoice.status !== "Betaald");
+  const reminderInvoices = state.invoices.filter((invoice) => invoice.status === "Herinnering");
+  const peppolQueue = state.invoices.filter((invoice) => invoice.channel === "Peppol");
+  const paymentRequestQueue = state.invoices.filter((invoice) => ["Bancontact", "Wero"].includes(invoice.channel) && invoice.status !== "Betaald");
+  const nextInvoiceAction = reminderInvoices[0] || openInvoices[0];
 
   return `
+    <section class="workflow-hero billing-hero">
+      <div>
+        <p class="eyebrow">Betaalopvolging</p>
+        <h2>${nextInvoiceAction ? `${escapeHtml(nextInvoiceAction.client)} vraagt opvolging` : "Facturatie loopt rustig"}</h2>
+        <p>${nextInvoiceAction ? `${formatEuro(nextInvoiceAction.amount)} via ${escapeHtml(nextInvoiceAction.channel)} staat op ${escapeHtml(nextInvoiceAction.status)}.` : "Alle betalingen zijn bijgewerkt. Gebruik de export wanneer je boekhouder actuele gegevens nodig heeft."}</p>
+        <div class="hero-actions">
+          <button class="primary-action" data-action="generate-invoices" type="button">Maak voorstellen</button>
+          <button class="ghost-action" data-action="export-billing" type="button">Boekhouderpakket</button>
+          <button class="ghost-action" data-action="export-accounting" type="button">Tool-export</button>
+        </div>
+      </div>
+      <div class="workflow-metrics">
+        <article><span>Openstaand</span><strong>${formatEuro(open)}</strong><small>${openInvoices.length} facturen</small></article>
+        <article><span>Herinneringen</span><strong>${escapeHtml(reminderInvoices.length)}</strong><small>actief</small></article>
+        <article><span>Peppol</span><strong>${escapeHtml(peppolQueue.length)}</strong><small>te controleren</small></article>
+        <article><span>Betaallinks</span><strong>${escapeHtml(paymentRequestQueue.length)}</strong><small>Bancontact/Wero</small></article>
+      </div>
+    </section>
+    <section class="workflow-strip">
+      <article>
+        <span>1</span>
+        <strong>Voorstel</strong>
+        <small>Maak facturen uit prestaties of handmatig.</small>
+      </article>
+      <article>
+        <span>2</span>
+        <strong>Betaalroute</strong>
+        <small>Kies Bancontact, Wero, Peppol of overschrijving.</small>
+      </article>
+      <article>
+        <span>3</span>
+        <strong>Opvolging</strong>
+        <small>Deel verzoek, stuur herinnering of markeer betaald.</small>
+      </article>
+      <article>
+        <span>4</span>
+        <strong>Boekhouding</strong>
+        <small>Exporteer een pakket met statussen en auditcontext.</small>
+      </article>
+    </section>
     <section class="content-grid">
       <div class="panel wide">
         <div class="panel-header"><div><h2>Facturen</h2><p>Belgische betaalopvolging met Peppol-ready status.</p></div><button class="primary-action" data-action="generate-invoices" type="button">Maak voorstellen</button></div>
@@ -1694,7 +1739,50 @@ function aiView(state) {
   const voiceClientId = state.voiceClientId || state.selectedClientId;
   const voiceClient = state.clients.find((client) => client.id === voiceClientId) || state.clients[0];
   const voiceConsent = (state.voiceConsents || []).find((consent) => consent.clientId === voiceClient?.id && consent.status === "Actief");
+  const pendingDrafts = (state.aiDrafts || []).filter((draft) => draft.status !== "Goedgekeurd");
+  const approvedDrafts = (state.aiDrafts || []).filter((draft) => draft.status === "Goedgekeurd");
+  const workflowLabel = getWorkflowLabel(state.aiWorkflow);
   return `
+    <section class="workflow-hero ai-review-hero">
+      <div>
+        <p class="eyebrow">AI review</p>
+        <h2>${escapeHtml(workflowLabel)} met menselijke controle</h2>
+        <p>Maak concepten vanuit praktijkkennis, modelprofiel en dossiercontext. Opslaan of verzenden gebeurt pas na professionele review.</p>
+        <div class="hero-actions">
+          <button class="primary-action" data-action="run-ai" type="button">Genereer concept</button>
+          <button class="ghost-action" data-action="clear-ai" type="button">Wis context</button>
+          ${can(state, "practice") ? `<button class="ghost-action" data-action="navigate" data-view="settings" type="button">Kennis beheren</button>` : ""}
+        </div>
+      </div>
+      <div class="workflow-metrics">
+        <article><span>Review</span><strong>${escapeHtml(pendingDrafts.length)}</strong><small>concepten open</small></article>
+        <article><span>Goedgekeurd</span><strong>${escapeHtml(approvedDrafts.length)}</strong><small>klaar voor dossier</small></article>
+        <article><span>Kennis</span><strong>${escapeHtml(activeKnowledge.length)}</strong><small>regels actief</small></article>
+        <article><span>Model</span><strong>${escapeHtml(activeModels.length)}</strong><small>profielen actief</small></article>
+      </div>
+    </section>
+    <section class="workflow-strip">
+      <article>
+        <span>1</span>
+        <strong>Context</strong>
+        <small>Kies workflow, cliënt en modelprofiel.</small>
+      </article>
+      <article>
+        <span>2</span>
+        <strong>Concept</strong>
+        <small>Genereer alleen een voorstel, geen definitieve inhoud.</small>
+      </article>
+      <article>
+        <span>3</span>
+        <strong>Review</strong>
+        <small>Zorgverlener controleert toon en dossiercontext.</small>
+      </article>
+      <article>
+        <span>4</span>
+        <strong>Opslag</strong>
+        <small>Alleen goedgekeurde output mag naar het dossier.</small>
+      </article>
+    </section>
     <section class="ai-layout">
       <div class="panel">
         <div class="panel-header"><div><h2>Assistent</h2><p>Maak een concept voor intake, nota, verslag of facturatie.</p></div></div>
@@ -1779,10 +1867,54 @@ function importView(state) {
   const importRuns = state.importRuns || [];
   const applySummary = state.importApplySummary || preview?.applySummary;
   const rollbackSummary = state.importRollbackSummary || preview?.rollbackSummary;
+  const appliedRuns = importRuns.filter((run) => run.applySummary && !run.rolledBackAt);
+  const rollbackRuns = importRuns.filter((run) => run.rolledBackAt);
+  const warningCount = preview?.warnings?.length || 0;
+  const blockedImport = Boolean(preview?.missingHeaders?.length);
 
   return `
+    <section class="workflow-hero import-hero">
+      <div>
+        <p class="eyebrow">Migratiecontrole</p>
+        <h2>${preview ? `${escapeHtml(preview.label || "Preview")} klaar voor controle` : "Importeer pas na een veilige preview"}</h2>
+        <p>${preview ? `${escapeHtml(preview.rowCount)} rijen geanalyseerd met ${escapeHtml(warningCount)} waarschuwing${warningCount === 1 ? "" : "en"}.` : "Plak data uit Excel, agenda of boekhouding. PraktijkOS toont eerst wat het begrijpt voordat er iets wordt geschreven."}</p>
+        <div class="hero-actions">
+          <button class="primary-action" type="submit" form="import-preview-form">Analyseer bestand</button>
+          ${preview && !preview.rolledBackAt ? `<button class="ghost-action" data-action="apply-import" data-preview-id="${escapeHtml(preview.id)}" type="button" ${blockedImport || preview.applySummary ? "disabled" : ""}>Importeer gecontroleerd</button>` : ""}
+          ${preview?.applySummary && !preview.rolledBackAt ? `<button class="ghost-action" data-action="rollback-import" data-preview-id="${escapeHtml(preview.id)}" type="button">Draai terug</button>` : ""}
+        </div>
+      </div>
+      <div class="workflow-metrics">
+        <article><span>Preview</span><strong>${escapeHtml(preview?.rowCount || 0)}</strong><small>rijen</small></article>
+        <article><span>Issues</span><strong>${escapeHtml(warningCount + (preview?.missingHeaders?.length || 0))}</strong><small>te bekijken</small></article>
+        <article><span>Geïmporteerd</span><strong>${escapeHtml(appliedRuns.length)}</strong><small>runs actief</small></article>
+        <article><span>Rollback</span><strong>${escapeHtml(rollbackRuns.length)}</strong><small>teruggedraaid</small></article>
+      </div>
+    </section>
+    <section class="workflow-strip">
+      <article>
+        <span>1</span>
+        <strong>Plakken</strong>
+        <small>CSV blijft eerst in previewmodus.</small>
+      </article>
+      <article>
+        <span>2</span>
+        <strong>Mappen</strong>
+        <small>Kolommen en waarden worden leesbaar getoond.</small>
+      </article>
+      <article>
+        <span>3</span>
+        <strong>Controleren</strong>
+        <small>Waarschuwingen blokkeren onveilige import.</small>
+      </article>
+      <article>
+        <span>4</span>
+        <strong>Terugdraaien</strong>
+        <small>Gecontroleerde imports houden rollbackcontext bij.</small>
+      </article>
+    </section>
     <section class="content-grid">
-      <form class="panel wide" data-form="import-preview">
+      <form class="panel wide" id="import-preview-form" data-form="import-preview">
         <div class="panel-header"><div><h2>Migratie voorbereiden</h2><p>Plak CSV uit Excel, agenda of boekhouding en controleer de mapping voor import.</p></div></div>
         <div class="form-grid">
           <label class="field"><span>Type data</span><select name="kind">

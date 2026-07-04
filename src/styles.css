@@ -798,6 +798,114 @@ h2 {
   line-height: 1.08;
 }
 
+.workflow-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f2f8f7 62%, #fff7e6 100%);
+  box-shadow: var(--shadow-soft);
+}
+
+.billing-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #f1f8f4 62%, #fff8e8 100%);
+}
+
+.ai-review-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #eef6f8 62%, #f7f5ec 100%);
+}
+
+.import-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #f4f8f2 62%, #eef5f7 100%);
+}
+
+.workflow-hero h2 {
+  margin-bottom: 8px;
+  font-size: 24px;
+}
+
+.workflow-hero p {
+  max-width: 720px;
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.workflow-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.workflow-metrics article {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid rgba(200, 214, 210, 0.86);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.workflow-metrics span,
+.workflow-metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.workflow-metrics strong {
+  display: block;
+  margin: 5px 0 2px;
+  font-size: 23px;
+  line-height: 1.08;
+}
+
+.workflow-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.workflow-strip article {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 4px 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.workflow-strip article > span {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-weight: 900;
+}
+
+.workflow-strip strong,
+.workflow-strip small {
+  min-width: 0;
+}
+
+.workflow-strip small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
 .secretary-lanes {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2702,6 +2810,9 @@ pre {
   .quick-actions,
   .daily-workbench,
   .workbench-metrics,
+  .workflow-hero,
+  .workflow-metrics,
+  .workflow-strip,
   .secretary-lanes,
   .role-home-grid,
   .content-grid,
@@ -2911,6 +3022,9 @@ pre {
   .waitlist-item,
   .daily-workbench,
   .workbench-metrics,
+  .workflow-hero,
+  .workflow-metrics,
+  .workflow-strip,
   .dossier-command-strip,
   .dossier-action-grid,
   .agenda-workspace,
