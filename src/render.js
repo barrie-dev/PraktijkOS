@@ -2658,6 +2658,49 @@ function settingsView(state) {
   const routedOperatorNotifications = openOperatorNotifications.filter((item) => item.owner && item.dueAt).length;
   const activeEntitlements = saasFeatureEntitlements.filter((item) => item.status === "Actief").length;
   const activeKnowledgeRules = (state.knowledgeBase || []).filter((item) => item.status === "Actief").length;
+  const pendingContractDocuments = saasContractDocuments.filter((item) => item.status !== "Gedeeld");
+  const shareableContract = pendingContractDocuments.find((item) => item.status === "Klaar om te delen");
+  const pendingLifecycleRequests = saasLifecycleRequests.filter((item) => item.status === "In review");
+  const pendingPlanChanges = saasPlanChanges.filter((item) => item.status === "Aangevraagd");
+  const openInvoiceAmount = openSaasInvoices.reduce((total, invoice) => total + Number(invoice.amount || 0), 0);
+  const usagePercentages = [
+    percentage(seatsUsed, seatsIncluded),
+    percentage(clientCount, clientLimit),
+    percentage(aiCreditsUsed, aiCreditsIncluded)
+  ];
+  const highestUsagePercentage = Math.max(...usagePercentages);
+  const usageStatus = highestUsagePercentage >= 100
+    ? "Limiet bereikt"
+    : highestUsagePercentage >= 80
+      ? "Bijna vol"
+      : "Ruimte beschikbaar";
+  const governanceFocus = shareableContract
+    ? {
+        eyebrow: "Klaar voor actie",
+        title: `${shareableContract.title} delen`,
+        detail: `Versie ${shareableContract.version} is klaar. Deel het document zodat de contractmap volledig is.`,
+        action: `<button class="primary-action" data-action="share-saas-contract" data-document-id="${escapeHtml(shareableContract.id)}" type="button">Document delen</button>`
+      }
+    : openSaasInvoices[0]
+      ? {
+          eyebrow: "Betaling opvolgen",
+          title: `${openSaasInvoices[0].period} staat nog open`,
+          detail: `${formatEuro(openSaasInvoices[0].amount)} vervalt op ${openSaasInvoices[0].dueAt || "een nog te bepalen datum"}. Maak een betaallink klaar of open de factuurhistoriek.`,
+          action: `<button class="primary-action" data-action="prepare-saas-payment" data-invoice-id="${escapeHtml(openSaasInvoices[0].id)}" type="button">Betaallink maken</button>`
+        }
+      : pendingLifecycleRequests[0] || pendingPlanChanges[0]
+        ? {
+            eyebrow: "Beslissing in behandeling",
+            title: "Abonnementswijziging wordt nagekeken",
+            detail: `${pendingLifecycleRequests.length + pendingPlanChanges.length} aanvraag${pendingLifecycleRequests.length + pendingPlanChanges.length === 1 ? "" : "en"} wacht${pendingLifecycleRequests.length + pendingPlanChanges.length === 1 ? "" : "en"} op bevestiging.`,
+            action: `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-lifecycle" type="button">Aanvraag bekijken</button>`
+          }
+        : {
+            eyebrow: "Alles in orde",
+            title: "Je abonnement vraagt geen actie",
+            detail: "Gebruik, contracten en betalingen zijn bijgewerkt voor deze praktijk.",
+            action: `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-usage" type="button">Gebruik bekijken</button>`
+          };
   const defaultSettingsFilter = defaultPracticeCenterFilter(state.currentUser?.role);
   const activeSettingsFilter = practiceCenterFilters.some((filter) => filter.value === state.settingsSectionFilter)
     ? state.settingsSectionFilter
@@ -2762,6 +2805,43 @@ function settingsView(state) {
           `).join("")}
         </div>
       </div>
+
+      <div class="workflow-hero subscription-governance-hero wide" data-setting-scope="owner admin">
+        <div>
+          <p class="eyebrow">${escapeHtml(governanceFocus.eyebrow)}</p>
+          <h2>${escapeHtml(governanceFocus.title)}</h2>
+          <p>${escapeHtml(governanceFocus.detail)}</p>
+          <div class="hero-actions">
+            ${governanceFocus.action}
+            <button class="ghost-action" data-action="jump-setting-section" data-section-target="settings-contracts" type="button">Contractmap openen</button>
+          </div>
+        </div>
+        <div class="workflow-metrics">
+          <article><span>Planruimte</span><strong>${escapeHtml(highestUsagePercentage)}%</strong><small>${escapeHtml(usageStatus)}</small></article>
+          <article><span>Verlenging</span><strong>${escapeHtml(saasAccount.renewalDate || "Te plannen")}</strong><small>${escapeHtml(saasAccount.plan || "Pro")} abonnement</small></article>
+          <article><span>Contractmap</span><strong>${escapeHtml(pendingContractDocuments.length)}</strong><small>document${pendingContractDocuments.length === 1 ? "" : "en"} nog af te ronden</small></article>
+          <article><span>Open bedrag</span><strong>${formatEuro(openInvoiceAmount)}</strong><small>${escapeHtml(openInvoiceLabel)}</small></article>
+        </div>
+      </div>
+
+      <nav class="governance-tabs wide" aria-label="Abonnement en contract">
+        <button data-action="jump-setting-section" data-section-target="settings-usage" type="button">
+          <span>Gebruik</span>
+          <strong>${escapeHtml(highestUsagePercentage)}% benut</strong>
+        </button>
+        <button data-action="jump-setting-section" data-section-target="settings-contracts" type="button">
+          <span>Contracten</span>
+          <strong>${escapeHtml(pendingContractDocuments.length)} open</strong>
+        </button>
+        <button data-action="jump-setting-section" data-section-target="settings-lifecycle" type="button">
+          <span>Wijzigingen</span>
+          <strong>${escapeHtml(pendingLifecycleRequests.length + pendingPlanChanges.length)} in behandeling</strong>
+        </button>
+        <button data-action="jump-setting-section" data-section-target="settings-invoices" type="button">
+          <span>Facturen</span>
+          <strong>${escapeHtml(openInvoiceLabel)}</strong>
+        </button>
+      </nav>
 
       <div class="settings-overview wide">
         ${usageSummary.map((item) => `
@@ -3034,7 +3114,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-contracts" data-setting-scope="owner admin">
+      <div class="panel wide" id="settings-contracts" data-section="saas-contracts" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Contracten</h2><p>Overeenkomsten, DPA's, orderformulieren en voorwaarden.</p></div>${badge(`${saasContractDocuments.filter((item) => item.status === "Gedeeld").length}/${saasContractDocuments.length} gedeeld`, "success")}</div>
         <div class="security-list">
           ${saasContractDocuments.map((document) => `
@@ -3115,7 +3195,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-usage-ledger" data-setting-scope="owner admin">
+      <div class="panel wide" id="settings-usage" data-section="saas-usage-ledger" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Gebruiksgeschiedenis</h2><p>Gebeurtenissen die limieten, abonnement en AI-verbruik verklaren.</p></div>${badge(`${saasUsageLedger.length} momenten`, "success")}</div>
         <div class="security-list">
           ${saasUsageLedger.map((entry) => `
@@ -3133,7 +3213,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <form class="panel wide" data-form="saas-lifecycle" data-section="saas-lifecycle" data-setting-scope="owner admin">
+      <form class="panel wide" id="settings-lifecycle" data-form="saas-lifecycle" data-section="saas-lifecycle" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Verlenging en opzegging</h2><p>Vraag verlenging, opzegging of contractwijziging aan met opvolgstatus.</p></div>${badge(saasLifecycleRequests.length ? `${saasLifecycleRequests.length} aanvragen` : "Geen aanvragen", saasLifecycleRequests.some((item) => item.status === "In review") ? "warning" : "success")}</div>
         <div class="form-grid">
           <label class="field"><span>Type aanvraag</span><select name="requestType"><option>Verlenging</option><option>Opzegging</option></select></label>
@@ -3182,7 +3262,7 @@ function settingsView(state) {
         </div>
       </form>
 
-      <div class="panel wide" data-section="saas-billing" data-setting-scope="owner admin">
+      <div class="panel wide" id="settings-invoices" data-section="saas-billing" data-setting-scope="owner admin">
         <div class="panel-header"><div><h2>Abonnementfacturen</h2><p>Facturen, betaalstatus, betaallinks en herinneringen.</p></div>${badge(openSaasInvoices.length ? `${openSaasInvoices.length} open` : "Betaald", openSaasInvoices.length ? "warning" : "success")}</div>
         <div class="security-list">
           ${saasInvoices.map((invoice) => `

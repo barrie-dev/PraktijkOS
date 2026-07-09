@@ -832,6 +832,10 @@ h2 {
   background: linear-gradient(135deg, #ffffff 0%, #f3f8f6 62%, #f7f5ec 100%);
 }
 
+.subscription-governance-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #eef7f3 60%, #fff7e8 100%);
+}
+
 .workflow-hero h2 {
   margin-bottom: 8px;
   font-size: 24px;
@@ -913,6 +917,52 @@ h2 {
 .workflow-strip small {
   color: var(--muted);
   line-height: 1.35;
+}
+
+.governance-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.governance-tabs button {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.governance-tabs button:hover,
+.governance-tabs button:focus-visible {
+  border-color: var(--line);
+  background: var(--surface-soft);
+}
+
+.governance-tabs span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.governance-tabs strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .secretary-lanes {
@@ -1306,6 +1356,13 @@ h2 {
 }
 
 [data-guide-section] {
+  scroll-margin-top: 24px;
+}
+
+#settings-contracts,
+#settings-usage,
+#settings-lifecycle,
+#settings-invoices {
   scroll-margin-top: 24px;
 }
 
@@ -2822,6 +2879,7 @@ pre {
   .workflow-hero,
   .workflow-metrics,
   .workflow-strip,
+  .governance-tabs,
   .secretary-lanes,
   .role-home-grid,
   .content-grid,
@@ -2849,6 +2907,10 @@ pre {
 
   .settings-filter-options {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .governance-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .settings-guide {
@@ -3052,9 +3114,20 @@ pre {
   .operator-summary,
   .operator-notification,
   .operator-routing,
-  .settings-guide,
-  .settings-filter-options {
+  .settings-guide {
     grid-template-columns: 1fr;
+  }
+
+  .settings-filter-options {
+    display: flex;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    overscroll-behavior-x: contain;
+  }
+
+  .settings-filter-options button {
+    flex: 0 0 172px;
   }
 
   .command-search {
@@ -3084,6 +3157,7 @@ pre {
   .workflow-hero,
   .workflow-metrics,
   .workflow-strip,
+  .governance-tabs,
   .dossier-command-strip,
   .dossier-action-grid,
   .agenda-workspace,
@@ -3112,6 +3186,14 @@ pre {
   .workbench-metrics,
   .settings-overview {
     grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  }
+
+  .governance-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .governance-tabs button {
+    min-height: 52px;
   }
 
   .modal-actions {
