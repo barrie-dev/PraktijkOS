@@ -163,7 +163,7 @@ async function verify() {
     const pausedEntitlement = usageAlertState.saasFeatureEntitlements.find((item) => item.status === "Gepauzeerd");
     const activatedEntitlement = await request(`/api/saas-entitlements/${pausedEntitlement.id}`, {
       method: "PATCH",
-      body: JSON.stringify({ status: "Actief", reason: "Verify activeert feature entitlement." })
+      body: JSON.stringify({ status: "Actief", reason: "Verify activeert module." })
     });
     assert(activatedEntitlement.status === "Actief", "SaaS entitlement should be activatable.");
     assert(activatedEntitlement.updatedAt, "Updated SaaS entitlement should include update metadata.");
@@ -173,9 +173,9 @@ async function verify() {
     const operatorNotification = usageAlertState.saasOperatorNotifications.find((item) => item.status !== "Afgehandeld");
     const routedOperatorNotification = await request(`/api/saas-operator-notifications/${operatorNotification.id}`, {
       method: "PATCH",
-      body: JSON.stringify({ owner: "Revenue operations", dueAt: "Morgen", priority: "Laag" })
+      body: JSON.stringify({ owner: "Facturatie", dueAt: "Morgen", priority: "Laag" })
     });
-    assert(routedOperatorNotification.owner === "Revenue operations", "SaaS operator notification should support owner routing.");
+    assert(routedOperatorNotification.owner === "Facturatie", "SaaS operator notification should support owner routing.");
     assert(routedOperatorNotification.dueAt === "Morgen", "SaaS operator notification should support due-date changes.");
     assert(routedOperatorNotification.priority === "Laag", "SaaS operator notification should support priority changes.");
     assert(routedOperatorNotification.routedAt, "Routed operator notification should include metadata.");

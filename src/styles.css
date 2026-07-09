@@ -2717,6 +2717,190 @@ textarea {
   background: #fff;
 }
 
+.service-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #eef7f8 58%, #fff6e8 100%);
+}
+
+.service-queue-panel {
+  border-color: rgba(23, 110, 120, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfd 100%);
+}
+
+.service-filter {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.service-filter button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  align-items: center;
+  min-width: 0;
+  min-height: 58px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.service-filter button:hover,
+.service-filter button.selected {
+  border-color: var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.service-filter span,
+.service-filter small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-filter span {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.service-filter strong {
+  display: grid;
+  place-items: center;
+  min-width: 25px;
+  height: 25px;
+  border-radius: 6px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 12px;
+}
+
+.service-filter small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.service-queue-list {
+  display: grid;
+  gap: 10px;
+}
+
+.service-card {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(300px, 0.72fr) minmax(128px, auto);
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.service-card.warning {
+  border-left-color: var(--warning);
+  background: #fffdf7;
+}
+
+.service-card.danger {
+  border-left-color: var(--danger);
+  background: #fff8f9;
+}
+
+.service-card.success {
+  border-left-color: var(--success);
+}
+
+.service-card-main {
+  min-width: 0;
+}
+
+.service-card-main strong {
+  display: block;
+  min-width: 0;
+  font-size: 15px;
+}
+
+.service-card-main p {
+  margin: 5px 0 9px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.service-card-main small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.service-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.service-meta span {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  max-width: 100%;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.service-routing {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.service-routing .compact-select {
+  min-width: 0;
+}
+
+.service-routing select {
+  min-height: 34px;
+  background: #fff;
+}
+
+.service-routing.resolved {
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.service-routing.resolved span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.service-actions {
+  min-width: 118px;
+}
+
 .insight-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3084,6 +3268,20 @@ pre {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .service-filter {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .service-card {
+    grid-template-columns: 1fr;
+  }
+
+  .service-actions {
+    grid-column: auto;
+    grid-template-columns: repeat(4, minmax(0, auto));
+    justify-content: start;
+  }
+
   .governance-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3301,6 +3499,8 @@ pre {
   .operator-summary,
   .operator-notification,
   .operator-routing,
+  .service-card,
+  .service-routing,
   .settings-guide {
     grid-template-columns: 1fr;
   }
@@ -3387,6 +3587,10 @@ pre {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .service-filter {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .portfolio-row {
     grid-template-columns: 1fr;
     gap: 11px;
@@ -3398,6 +3602,16 @@ pre {
 
   .portfolio-action {
     justify-items: stretch;
+  }
+
+  .service-actions {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+    min-width: 0;
+  }
+
+  .service-meta span {
+    width: 100%;
   }
 
   .modal-actions {

@@ -10,7 +10,7 @@
 - Tenant self-service usage ledger
 - Tenant plan change workflow
 - Tenant onboarding and feature checklist
-- Tenant feature entitlement controls
+- Tenant module controls
 - Tenant admin activity feed
 - Tenant health score and risk indicators
 - Tenant operator notifications for billing, support, onboarding, playbooks and lifecycle follow-up
@@ -22,6 +22,7 @@
 - SaaS workflow UI for security review, onboarding and support activation
 - SaaS subscription cockpit for contract, usage, plan and invoice governance
 - SaaS customer portfolio cockpit for health, renewals and review planning
+- SaaS servicelevel queue for customer follow-up, ownership and deadlines
 - Guided practice-center sections for team, billing, support and AI settings
 - Role-specific practice-center defaults and section filters
 - Tenant support and escalation queue
@@ -86,7 +87,7 @@
 
 ## Next Product Slice
 
-- Continue SaaS frontend polish across operator notifications, ownership and service levels.
+- Continue SaaS frontend polish across invoice follow-up, contract decisions and onboarding handoffs.
 
 ## Phase 4: Belgian Integrations
 

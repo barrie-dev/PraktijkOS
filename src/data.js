@@ -341,7 +341,7 @@ export const isoEvidencePacks = [
   {
     id: "iso-ai",
     domain: "A.5 Beleid en leveranciers",
-    label: "AI governance",
+    label: "AI-afspraken",
     status: "Open",
     owner: "Praktijkhouder",
     dueAt: "Deze maand",
@@ -490,7 +490,7 @@ export const saasOnboardingChecklist = [
   },
   {
     id: "saas-onboard-003",
-    label: "AI policy en modelgovernance gevalideerd",
+    label: "AI-beleid en modelafspraken gevalideerd",
     owner: "Praktijkhouder",
     status: "Open",
     dueAt: "05/07/2026",
@@ -516,7 +516,7 @@ export const saasFeatureEntitlements = [
     plan: "Pro",
     status: "Actief",
     limitLabel: "2000 AI credits/maand",
-    reason: "Binnen Pro-plan en AI policy gevalideerd.",
+    reason: "Binnen Pro-plan en AI-beleid gevalideerd.",
     updatedAt: "30/06/2026",
     updatedBy: "PraktijkOS"
   },

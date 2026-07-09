@@ -87,6 +87,7 @@ const initialState = {
   commandQuery: "",
   settingsSectionFilter: "",
   portfolioFilter: "attention",
+  operatorQueueFilter: "open",
   importKind: "clients",
   importCsv: "naam;leeftijd;traject;status;zorgverlener\nNieuwe Client;34;Stress en slaap;Intakefase;L. Janssens",
   importPreview: null,
@@ -2452,7 +2453,7 @@ export async function changeSaasFeatureEntitlement(entitlementId, status) {
       saasFeatureEntitlements: (state.saasFeatureEntitlements || []).map((item) => item.id === entitlementId ? updatedEntitlement : item),
       view: "settings"
     },
-    "SaaS feature entitlement bijgewerkt",
+    "SaaS module bijgewerkt",
     `${updatedEntitlement.feature}: ${updatedEntitlement.status}.`
   ));
   return { ok: true, message: status === "Actief" ? "Feature lokaal geactiveerd." : "Feature lokaal gepauzeerd." };
@@ -2499,6 +2500,15 @@ function operatorNotificationSignal(priority = "Normaal", status = "Nieuw") {
   return "warning";
 }
 
+function normalizeOperatorOwner(owner = "") {
+  const labels = {
+    "Customer success": "Klantopvolging",
+    "Revenue operations": "Facturatie",
+    Implementation: "Implementatie"
+  };
+  return labels[owner] || owner || "Klantopvolging";
+}
+
 function buildLocalSaasOperatorNotifications(sourceState = state) {
   const account = sourceState.practice?.saasAccount || {};
   const tenantId = account.tenantId || "tenant";
@@ -2527,7 +2537,7 @@ function buildLocalSaasOperatorNotifications(sourceState = state) {
       source: "saasInvoices",
       sourceLabel: "Abonnementfacturen",
       priority: "Hoog",
-      owner: "Customer success",
+      owner: "Klantopvolging",
       status: "Nieuw",
       createdAt: openInvoices[0]?.issuedAt || "Vandaag",
       dueAt: openInvoices[0]?.dueAt || "Vandaag"
@@ -2539,12 +2549,12 @@ function buildLocalSaasOperatorNotifications(sourceState = state) {
       id: "operator-support-escalation",
       tenantId,
       category: "Support",
-      title: "Supportescalatie vraagt operatorbeslissing",
+      title: "Supportescalatie vraagt beslissing",
       detail: `${escalatedSupport.length} escalatie(s) moeten eigenaar, SLA en klantupdate krijgen.`,
       source: "saasSupportQueue",
       sourceLabel: "Support",
       priority: "Hoog",
-      owner: "Customer success",
+      owner: "Klantopvolging",
       status: "Nieuw",
       createdAt: escalatedSupport[0]?.escalatedAt || escalatedSupport[0]?.createdAt || "Vandaag",
       dueAt: escalatedSupport[0]?.slaDueAt || "Vandaag"
@@ -2556,12 +2566,12 @@ function buildLocalSaasOperatorNotifications(sourceState = state) {
       id: "operator-onboarding-open",
       tenantId,
       category: "Onboarding",
-      title: "Tenantactivatie is nog niet rond",
+      title: "Praktijkactivatie is nog niet rond",
       detail: `${openActivation.length} onboarding- of livegangstap(pen) blokkeren volledige activatie.`,
       source: "saasOnboardingChecklist",
       sourceLabel: "Onboarding",
       priority: "Normaal",
-      owner: "Implementation",
+      owner: "Implementatie",
       status: "Nieuw",
       createdAt: "Vandaag",
       dueAt: openActivation[0]?.dueAt || "Deze week"
@@ -2574,11 +2584,11 @@ function buildLocalSaasOperatorNotifications(sourceState = state) {
       tenantId,
       category: "Scenario",
       title: "Opvolgscenario's staan klaar",
-      detail: `${recommendedPlaybooks.length} aanbevolen scenario(s) kunnen customer-success acties aanmaken.`,
+      detail: `${recommendedPlaybooks.length} aanbevolen scenario(s) kunnen klantopvolgingacties aanmaken.`,
       source: "saasRiskPlaybooks",
       sourceLabel: "Opvolgscenario's",
       priority: "Normaal",
-      owner: "Customer success",
+      owner: "Klantopvolging",
       status: "Nieuw",
       createdAt: "Vandaag",
       dueAt: "Deze week"
@@ -2591,11 +2601,11 @@ function buildLocalSaasOperatorNotifications(sourceState = state) {
       tenantId,
       category: "Contract",
       title: "Plan- of contractbeslissing wacht op review",
-      detail: `${openLifecycle.length} lifecycle- of planwijziging(en) staan in review.`,
+      detail: `${openLifecycle.length} contract- of planwijziging(en) staan in review.`,
       source: "saasLifecycleRequests",
       sourceLabel: "Verlenging en planwijziging",
       priority: "Normaal",
-      owner: "Revenue operations",
+      owner: "Facturatie",
       status: "Nieuw",
       createdAt: openLifecycle[0]?.requestedAt || "Vandaag",
       dueAt: openLifecycle[0]?.effectiveAt || "Deze maand"
@@ -2607,12 +2617,13 @@ function buildLocalSaasOperatorNotifications(sourceState = state) {
     return {
       ...candidate,
       ...existing,
+      owner: normalizeOperatorOwner(existing.owner || candidate.owner),
       signal: operatorNotificationSignal(existing.priority || candidate.priority, existing.status || candidate.status)
     };
   });
   (sourceState.saasOperatorNotifications || [])
     .filter((item) => !candidates.some((candidate) => candidate.id === item.id))
-    .forEach((item) => merged.push({ ...item, signal: operatorNotificationSignal(item.priority, item.status) }));
+    .forEach((item) => merged.push({ ...item, owner: normalizeOperatorOwner(item.owner), signal: operatorNotificationSignal(item.priority, item.status) }));
 
   const priorityRank = { Hoog: 0, Normaal: 1, Laag: 2 };
   const statusRank = { Nieuw: 0, Gezien: 1, Afgehandeld: 2 };
@@ -2751,7 +2762,7 @@ export async function changeSaasSupportTicket(ticketId, status) {
 
   const payload = {
     status,
-    owner: status === "Geescaleerd" ? "Customer success" : ticket.owner,
+    owner: status === "Geescaleerd" ? "Klantopvolging" : ticket.owner,
     resolution: status === "Gesloten" ? "Afgerond via PraktijkOS support." : ticket.resolution
   };
 
@@ -2857,7 +2868,7 @@ export async function completeSaasImplementationItem(milestoneId) {
 export async function completeSaasSuccessActionItem(actionId) {
   const action = (state.saasSuccessActions || []).find((item) => item.id === actionId);
   if (!action) {
-    return { ok: false, message: "Customer success actie niet gevonden." };
+    return { ok: false, message: "Klantopvolging actie niet gevonden." };
   }
 
   if (state.apiStatus === "connected") {
@@ -2865,7 +2876,7 @@ export async function completeSaasSuccessActionItem(actionId) {
       await completeSaasSuccessAction(actionId);
       await refreshFromApi();
       setState({ view: "settings" });
-      return { ok: true, message: "Customer success actie afgerond." };
+      return { ok: true, message: "Klantopvolging actie afgerond." };
     } catch {
       setState({ apiStatus: "local" });
     }
@@ -2883,10 +2894,10 @@ export async function completeSaasSuccessActionItem(actionId) {
       saasSuccessActions: (state.saasSuccessActions || []).map((item) => item.id === actionId ? updatedAction : item),
       view: "settings"
     },
-    "Customer success actie afgerond",
+    "Klantopvolging actie afgerond",
     `${updatedAction.category}: ${updatedAction.title}.`
   ));
-  return { ok: true, message: "Customer success actie lokaal afgerond." };
+  return { ok: true, message: "Klantopvolging actie lokaal afgerond." };
 }
 
 export async function runTenantRiskPlaybook(playbookId) {
@@ -2918,7 +2929,7 @@ export async function runTenantRiskPlaybook(playbookId) {
     tenantId: playbook.tenantId,
     category: playbook.category,
     title: playbook.actionTitle || playbook.recommendedAction,
-    owner: playbook.owner || "Customer success",
+    owner: normalizeOperatorOwner(playbook.owner || "Klantopvolging"),
     priority: playbook.severity === "danger" ? "Hoog" : "Normaal",
     status: "Open",
     dueAt: "Deze week",
@@ -3000,7 +3011,7 @@ export async function markSaasInvoicePaid(invoiceId) {
       reference: `RCPT-${invoice.id.toUpperCase()}`,
       issuedAt: nowLabel(),
       issuedBy: state.currentUser?.name || "PraktijkOS",
-      channel: "SaaS billing"
+      channel: "abonnementsfacturatie"
     }
   };
   commit(pushAudit(

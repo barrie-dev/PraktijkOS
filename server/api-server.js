@@ -248,14 +248,14 @@ function buildSaasHealth(store) {
       id: "onboarding",
       label: "Onboarding",
       status: openOnboarding ? "Open" : "Klaar",
-      detail: openOnboarding ? `${openOnboarding} onboardingstap(pen) open.` : "Tenantactivatie is klaar.",
+      detail: openOnboarding ? `${openOnboarding} onboardingstap(pen) open.` : "Praktijkactivatie is klaar.",
       severity: openOnboarding ? "warning" : "success"
     },
     {
       id: "features",
-      label: "Features",
+      label: "Modules",
       status: pausedFeatures ? "Beperkt" : "Actief",
-      detail: pausedFeatures ? `${pausedFeatures} feature entitlement(s) gepauzeerd.` : "Alle feature entitlements zijn actief.",
+      detail: pausedFeatures ? `${pausedFeatures} module(s) gepauzeerd.` : "Alle modules zijn actief.",
       severity: pausedFeatures ? "warning" : "success"
     },
     {
@@ -303,7 +303,7 @@ function buildSaasSuccessMetrics(store) {
       label: "Feature adoption",
       value: `${activeFeatures}/${featureEntitlements.length || 0}`,
       target: "Alle kernmodules actief",
-      detail: activeFeatures === featureEntitlements.length ? "Tenant gebruikt alle actieve entitlements." : `${featureEntitlements.length - activeFeatures} entitlement(s) nog beperkt.`,
+      detail: activeFeatures === featureEntitlements.length ? "Praktijk gebruikt alle actieve modules." : `${featureEntitlements.length - activeFeatures} module(s) nog beperkt.`,
       signal: activeFeatures === featureEntitlements.length ? "success" : "warning"
     },
     {
@@ -390,6 +390,15 @@ function notificationSignal(priority = "Normaal", status = "Nieuw") {
   return "warning";
 }
 
+function normalizeOperatorOwner(owner = "") {
+  const labels = {
+    "Customer success": "Klantopvolging",
+    "Revenue operations": "Facturatie",
+    Implementation: "Implementatie"
+  };
+  return labels[owner] || owner || "Klantopvolging";
+}
+
 function buildSaasOperatorNotifications(store) {
   const account = store.practice?.saasAccount || {};
   const tenantId = account.tenantId || "tenant";
@@ -420,7 +429,7 @@ function buildSaasOperatorNotifications(store) {
       source: "saasInvoices",
       sourceLabel: "Abonnementfacturen",
       priority: "Hoog",
-      owner: "Customer success",
+      owner: "Klantopvolging",
       status: "Nieuw",
       createdAt: openInvoices[0]?.issuedAt || "Vandaag",
       dueAt: openInvoices[0]?.dueAt || "Vandaag"
@@ -432,12 +441,12 @@ function buildSaasOperatorNotifications(store) {
       id: "operator-support-escalation",
       tenantId,
       category: "Support",
-      title: "Supportescalatie vraagt operatorbeslissing",
+      title: "Supportescalatie vraagt beslissing",
       detail: `${escalatedSupport.length} escalatie(s) moeten eigenaar, SLA en klantupdate krijgen.`,
       source: "saasSupportQueue",
       sourceLabel: "Support",
       priority: "Hoog",
-      owner: "Customer success",
+      owner: "Klantopvolging",
       status: "Nieuw",
       createdAt: escalatedSupport[0]?.escalatedAt || escalatedSupport[0]?.createdAt || "Vandaag",
       dueAt: escalatedSupport[0]?.slaDueAt || "Vandaag"
@@ -449,12 +458,12 @@ function buildSaasOperatorNotifications(store) {
       id: "operator-onboarding-open",
       tenantId,
       category: "Onboarding",
-      title: "Tenantactivatie is nog niet rond",
+      title: "Praktijkactivatie is nog niet rond",
       detail: `${openActivation.length} onboarding- of livegangstap(pen) blokkeren volledige activatie.`,
       source: "saasOnboardingChecklist",
       sourceLabel: "Onboarding",
       priority: "Normaal",
-      owner: "Implementation",
+      owner: "Implementatie",
       status: "Nieuw",
       createdAt: "Vandaag",
       dueAt: openActivation[0]?.dueAt || "Deze week"
@@ -467,11 +476,11 @@ function buildSaasOperatorNotifications(store) {
       tenantId,
       category: "Scenario",
       title: "Opvolgscenario's staan klaar",
-      detail: `${recommendedPlaybooks.length} aanbevolen scenario(s) kunnen customer-success acties aanmaken.`,
+      detail: `${recommendedPlaybooks.length} aanbevolen scenario(s) kunnen klantopvolgingacties aanmaken.`,
       source: "saasRiskPlaybooks",
       sourceLabel: "Opvolgscenario's",
       priority: "Normaal",
-      owner: "Customer success",
+      owner: "Klantopvolging",
       status: "Nieuw",
       createdAt: "Vandaag",
       dueAt: "Deze week"
@@ -484,11 +493,11 @@ function buildSaasOperatorNotifications(store) {
       tenantId,
       category: "Contract",
       title: "Plan- of contractbeslissing wacht op review",
-      detail: `${openLifecycle.length} lifecycle- of planwijziging(en) staan in review.`,
+      detail: `${openLifecycle.length} contract- of planwijziging(en) staan in review.`,
       source: "saasLifecycleRequests",
       sourceLabel: "Verlenging en planwijziging",
       priority: "Normaal",
-      owner: "Revenue operations",
+      owner: "Facturatie",
       status: "Nieuw",
       createdAt: openLifecycle[0]?.requestedAt || "Vandaag",
       dueAt: openLifecycle[0]?.effectiveAt || "Deze maand"
@@ -500,13 +509,14 @@ function buildSaasOperatorNotifications(store) {
     return {
       ...candidate,
       ...existing,
+      owner: normalizeOperatorOwner(existing.owner || candidate.owner),
       signal: notificationSignal(existing.priority || candidate.priority, existing.status || candidate.status)
     };
   });
 
   (store.saasOperatorNotifications || [])
     .filter((item) => !candidates.some((candidate) => candidate.id === item.id))
-    .forEach((item) => merged.push({ ...item, signal: notificationSignal(item.priority, item.status) }));
+    .forEach((item) => merged.push({ ...item, owner: normalizeOperatorOwner(item.owner), signal: notificationSignal(item.priority, item.status) }));
 
   const priorityRank = { Hoog: 0, Normaal: 1, Laag: 2 };
   const statusRank = { Nieuw: 0, Gezien: 1, Afgehandeld: 2 };
@@ -1511,7 +1521,7 @@ async function handleApi(request, response) {
         ...store,
         saasFeatureEntitlements: (store.saasFeatureEntitlements || []).map((item) => item.id === entitlementId ? updatedEntitlement : item)
       },
-      "SaaS feature entitlement bijgewerkt",
+      "SaaS module bijgewerkt",
       `${updatedEntitlement.feature}: ${updatedEntitlement.status}.`,
       user.name
     );
@@ -1662,7 +1672,7 @@ async function handleApi(request, response) {
     const updatedTicket = {
       ...ticket,
       status,
-      owner: payload.owner || (status === "Geescaleerd" ? "Customer success" : ticket.owner),
+      owner: payload.owner || (status === "Geescaleerd" ? "Klantopvolging" : ticket.owner),
       escalatedAt: status === "Geescaleerd" ? timestampLabel() : ticket.escalatedAt,
       closedAt: status === "Gesloten" ? timestampLabel() : ticket.closedAt,
       resolution: payload.resolution || ticket.resolution || (status === "Gesloten" ? "Afgerond via PraktijkOS support." : "")
@@ -1796,7 +1806,7 @@ async function handleApi(request, response) {
         ...store,
         saasSuccessActions: (store.saasSuccessActions || []).map((item) => item.id === actionId ? updatedAction : item)
       },
-      "Customer success actie afgerond",
+      "Klantopvolging actie afgerond",
       `${updatedAction.category}: ${updatedAction.title}.`,
       user.name
     );
@@ -1827,7 +1837,7 @@ async function handleApi(request, response) {
       tenantId: playbook.tenantId,
       category: playbook.category,
       title: playbook.actionTitle || playbook.recommendedAction,
-      owner: playbook.owner || "Customer success",
+      owner: normalizeOperatorOwner(playbook.owner || "Klantopvolging"),
       priority: playbook.severity === "danger" ? "Hoog" : "Normaal",
       status: "Open",
       dueAt: "Deze week",
@@ -2465,7 +2475,7 @@ async function handleApi(request, response) {
             reference: `RCPT-${invoice.id.toUpperCase()}`,
             issuedAt: timestampLabel(),
             issuedBy: user.name,
-            channel: "SaaS billing"
+            channel: "abonnementsfacturatie"
           }
         : invoice.receipt
     };

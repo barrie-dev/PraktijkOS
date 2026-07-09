@@ -221,6 +221,11 @@ async function handleClick(event) {
     return;
   }
 
+  if (action === "operator-queue-filter") {
+    setState({ operatorQueueFilter: target.dataset.operatorQueueFilter || "open" });
+    return;
+  }
+
   if (action === "command-open") {
     const nextState = { commandQuery: "" };
     if (target.dataset.view) nextState.view = target.dataset.view;
