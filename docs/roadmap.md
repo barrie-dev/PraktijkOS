@@ -21,6 +21,7 @@
 - SaaS workflow UI for billing, AI review and safe import controls
 - SaaS workflow UI for security review, onboarding and support activation
 - SaaS subscription cockpit for contract, usage, plan and invoice governance
+- SaaS customer portfolio cockpit for health, renewals and review planning
 - Guided practice-center sections for team, billing, support and AI settings
 - Role-specific practice-center defaults and section filters
 - Tenant support and escalation queue
@@ -85,7 +86,7 @@
 
 ## Next Product Slice
 
-- Continue SaaS frontend polish across portfolio operations, renewals and customer health.
+- Continue SaaS frontend polish across operator notifications, ownership and service levels.
 
 ## Phase 4: Belgian Integrations
 

@@ -256,6 +256,7 @@ async function verify() {
     assert(playbookRun.action.status === "Open", "Running a risk playbook should create a customer success action.");
     assert(usageAlertState.saasCohortSummary.tenants >= 3, "SaaS cohort overview should summarize multiple tenants.");
     assert(usageAlertState.saasTenantCohorts.some((tenant) => tenant.qbrStatus === "Te plannen"), "SaaS cohort overview should include QBR follow-up.");
+    assert(usageAlertState.saasTenantCohorts.every((tenant) => tenant.renewalAt), "SaaS cohort overview should include renewal dates.");
     const qbrTenant = usageAlertState.saasTenantCohorts.find((tenant) => tenant.qbrStatus === "Te plannen");
     const plannedQbr = await request(`/api/saas-tenant-cohorts/${qbrTenant.id}/qbr`, {
       method: "POST",

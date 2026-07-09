@@ -216,6 +216,11 @@ async function handleClick(event) {
     return;
   }
 
+  if (action === "portfolio-filter") {
+    setState({ portfolioFilter: target.dataset.portfolioFilter || "attention" });
+    return;
+  }
+
   if (action === "command-open") {
     const nextState = { commandQuery: "" };
     if (target.dataset.view) nextState.view = target.dataset.view;

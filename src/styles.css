@@ -836,6 +836,10 @@ h2 {
   background: linear-gradient(135deg, #ffffff 0%, #eef7f3 60%, #fff7e8 100%);
 }
 
+.portfolio-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #edf7f4 60%, #f4f6ec 100%);
+}
+
 .workflow-hero h2 {
   margin-bottom: 8px;
   font-size: 24px;
@@ -963,6 +967,166 @@ h2 {
   text-overflow: ellipsis;
   font-size: 13px;
   white-space: nowrap;
+}
+
+.portfolio-filter {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.portfolio-filter button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.portfolio-filter button:hover,
+.portfolio-filter button.selected {
+  border-color: var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.portfolio-filter span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.portfolio-filter strong {
+  display: grid;
+  place-items: center;
+  min-width: 25px;
+  height: 25px;
+  border-radius: 6px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 12px;
+}
+
+.portfolio-table {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.portfolio-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.25fr) minmax(125px, 0.8fr) minmax(145px, 0.9fr) minmax(125px, 0.75fr) minmax(95px, 0.55fr) minmax(120px, auto);
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.portfolio-row:last-child {
+  border-bottom: 0;
+}
+
+.portfolio-row:hover {
+  background: var(--surface-soft);
+}
+
+.portfolio-practice,
+.portfolio-cell,
+.portfolio-health,
+.portfolio-revenue,
+.portfolio-action {
+  min-width: 0;
+}
+
+.portfolio-practice strong,
+.portfolio-cell strong,
+.portfolio-health strong,
+.portfolio-revenue strong {
+  display: block;
+  min-width: 0;
+}
+
+.portfolio-practice span,
+.portfolio-cell span,
+.portfolio-cell small,
+.portfolio-health span,
+.portfolio-revenue span,
+.portfolio-action small {
+  display: block;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.portfolio-practice span {
+  margin-top: 4px;
+}
+
+.portfolio-cell strong,
+.portfolio-health strong,
+.portfolio-revenue strong {
+  margin: 4px 0 2px;
+  font-size: 14px;
+}
+
+.portfolio-health.warning strong {
+  color: var(--warning);
+}
+
+.portfolio-health.danger strong {
+  color: var(--danger);
+}
+
+.health-track {
+  height: 5px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--line);
+}
+
+.health-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--success);
+}
+
+.portfolio-health.warning .health-track i {
+  background: var(--warning);
+}
+
+.portfolio-health.danger .health-track i {
+  background: var(--danger);
+}
+
+.portfolio-action {
+  display: grid;
+  gap: 7px;
+  justify-items: end;
+}
+
+.portfolio-action .ghost-action {
+  min-height: 34px;
+  padding: 7px 10px;
 }
 
 .secretary-lanes {
@@ -1232,7 +1396,7 @@ h2 {
 
 .settings-filter-options {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1276,6 +1440,7 @@ h2 {
 .settings-grid:not(.settings-filter-all).settings-filter-admin [data-setting-scope]:not([data-setting-scope~="admin"]),
 .settings-grid:not(.settings-filter-all).settings-filter-care [data-setting-scope]:not([data-setting-scope~="care"]),
 .settings-grid:not(.settings-filter-all).settings-filter-support [data-setting-scope]:not([data-setting-scope~="support"]),
+.settings-grid:not(.settings-filter-all).settings-filter-portfolio [data-setting-scope]:not([data-setting-scope~="portfolio"]),
 .settings-grid:not(.settings-filter-all).settings-filter-ai [data-setting-scope]:not([data-setting-scope~="ai"]) {
   display: none;
 }
@@ -1362,7 +1527,8 @@ h2 {
 #settings-contracts,
 #settings-usage,
 #settings-lifecycle,
-#settings-invoices {
+#settings-invoices,
+#settings-portfolio {
   scroll-margin-top: 24px;
 }
 
@@ -2868,6 +3034,15 @@ pre {
     grid-column: 1 / -1;
     justify-content: flex-start;
   }
+
+  .portfolio-row {
+    grid-template-columns: minmax(190px, 1.2fr) repeat(3, minmax(125px, 0.8fr));
+  }
+
+  .portfolio-revenue,
+  .portfolio-action {
+    justify-items: start;
+  }
 }
 
 @media (max-width: 1050px) {
@@ -2915,6 +3090,18 @@ pre {
 
   .settings-guide {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portfolio-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portfolio-practice {
+    grid-column: 1 / -1;
+  }
+
+  .portfolio-action {
+    justify-items: start;
   }
 
   .sidebar {
@@ -3194,6 +3381,23 @@ pre {
 
   .governance-tabs button {
     min-height: 52px;
+  }
+
+  .portfolio-filter {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portfolio-row {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+
+  .portfolio-practice {
+    grid-column: auto;
+  }
+
+  .portfolio-action {
+    justify-items: stretch;
   }
 
   .modal-actions {

@@ -69,6 +69,7 @@ const practiceCenterFilters = [
   { value: "admin", label: "Administratie", detail: "Team, betaling en contracten" },
   { value: "care", label: "Zorgteam", detail: "Praktijkafspraken en AI-context" },
   { value: "support", label: "Support", detail: "Livegang, vragen en scenario's" },
+  { value: "portfolio", label: "Klantportfolio", detail: "Gezondheid en verlengingen" },
   { value: "ai", label: "AI beheer", detail: "Kennisbank en modelevaluatie" },
   { value: "all", label: "Alles", detail: "Alle secties tonen" }
 ];
@@ -2658,6 +2659,43 @@ function settingsView(state) {
   const routedOperatorNotifications = openOperatorNotifications.filter((item) => item.owner && item.dueAt).length;
   const activeEntitlements = saasFeatureEntitlements.filter((item) => item.status === "Actief").length;
   const activeKnowledgeRules = (state.knowledgeBase || []).filter((item) => item.status === "Actief").length;
+  const portfolioAttention = saasTenantCohorts
+    .filter((tenant) => Number(tenant.healthScore || 0) < 75 || tenant.qbrStatus !== "Gepland" || !["Laag", "Geen"].includes(tenant.risk))
+    .sort((a, b) => Number(a.healthScore || 0) - Number(b.healthScore || 0));
+  const portfolioRenewals = saasTenantCohorts.filter((tenant) => tenant.renewalAt || tenant.qbrDueAt);
+  const portfolioGrowth = saasTenantCohorts.filter((tenant) =>
+    ["Scale", "Enterprise"].includes(tenant.plan) || ["Uitbreiding", "Expansion", "Proefperiode", "Trial"].includes(tenant.lifecycleStage)
+  );
+  const portfolioFilters = [
+    { value: "attention", label: "Aandacht", count: portfolioAttention.length },
+    { value: "renewal", label: "Verlenging", count: portfolioRenewals.length },
+    { value: "growth", label: "Groei", count: portfolioGrowth.length },
+    { value: "all", label: "Alle praktijken", count: saasTenantCohorts.length }
+  ];
+  const activePortfolioFilter = portfolioFilters.some((filter) => filter.value === state.portfolioFilter)
+    ? state.portfolioFilter
+    : "attention";
+  const filteredPortfolioTenants = activePortfolioFilter === "attention"
+    ? portfolioAttention
+    : activePortfolioFilter === "renewal"
+      ? portfolioRenewals
+      : activePortfolioFilter === "growth"
+        ? portfolioGrowth
+        : saasTenantCohorts;
+  const nextPortfolioTenant = portfolioAttention.find((tenant) => tenant.qbrStatus !== "Gepland") || portfolioAttention[0] || saasTenantCohorts[0];
+  const portfolioFocus = nextPortfolioTenant
+    ? {
+        title: nextPortfolioTenant.practiceName,
+        detail: `${nextPortfolioTenant.risk} vraagt opvolging. Gezondheid ${nextPortfolioTenant.healthScore}/100, verlenging ${nextPortfolioTenant.renewalAt || "nog te plannen"}.`,
+        action: nextPortfolioTenant.qbrStatus !== "Gepland"
+          ? `<button class="primary-action" data-action="plan-tenant-qbr" data-cohort-id="${escapeHtml(nextPortfolioTenant.id)}" type="button">Review plannen</button>`
+          : `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-portfolio" type="button">Praktijk bekijken</button>`
+      }
+    : {
+        title: "Portfolio is op schema",
+        detail: "Er zijn geen praktijken die nu extra opvolging vragen.",
+        action: `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-portfolio" type="button">Portfolio bekijken</button>`
+      };
   const pendingContractDocuments = saasContractDocuments.filter((item) => item.status !== "Gedeeld");
   const shareableContract = pendingContractDocuments.find((item) => item.status === "Klaar om te delen");
   const pendingLifecycleRequests = saasLifecycleRequests.filter((item) => item.status === "In review");
@@ -2806,6 +2844,24 @@ function settingsView(state) {
         </div>
       </div>
 
+      <div class="workflow-hero portfolio-hero wide" data-setting-scope="portfolio">
+        <div>
+          <p class="eyebrow">Volgende klantactie</p>
+          <h2>${escapeHtml(portfolioFocus.title)}</h2>
+          <p>${escapeHtml(portfolioFocus.detail)}</p>
+          <div class="hero-actions">
+            ${portfolioFocus.action}
+            <button class="ghost-action" data-action="jump-setting-section" data-section-target="settings-portfolio" type="button">Portfolio openen</button>
+          </div>
+        </div>
+        <div class="workflow-metrics">
+          <article><span>Praktijken</span><strong>${escapeHtml(saasCohortSummary.tenants)}</strong><small>${formatEuro(saasCohortSummary.totalMrr || 0)} per maand</small></article>
+          <article><span>Gezondheid</span><strong>${escapeHtml(saasCohortSummary.averageHealth)}/100</strong><small>gemiddelde score</small></article>
+          <article><span>Aandacht</span><strong>${escapeHtml(portfolioAttention.length)}</strong><small>praktijken op te volgen</small></article>
+          <article><span>Reviews</span><strong>${escapeHtml(saasCohortSummary.qbrOpen)}</strong><small>nog in te plannen</small></article>
+        </div>
+      </div>
+
       <div class="workflow-hero subscription-governance-hero wide" data-setting-scope="owner admin">
         <div>
           <p class="eyebrow">${escapeHtml(governanceFocus.eyebrow)}</p>
@@ -2824,7 +2880,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <nav class="governance-tabs wide" aria-label="Abonnement en contract">
+      <nav class="governance-tabs wide" data-setting-scope="owner admin" aria-label="Abonnement en contract">
         <button data-action="jump-setting-section" data-section-target="settings-usage" type="button">
           <span>Gebruik</span>
           <strong>${escapeHtml(highestUsagePercentage)}% benut</strong>
@@ -2843,7 +2899,7 @@ function settingsView(state) {
         </button>
       </nav>
 
-      <div class="settings-overview wide">
+      <div class="settings-overview wide" data-setting-scope="owner admin care support ai">
         ${usageSummary.map((item) => `
           <article>
             <span>${escapeHtml(item.label)}</span>
@@ -2858,7 +2914,7 @@ function settingsView(state) {
         </article>
       </div>
 
-      <div class="settings-guide wide" aria-label="Praktijkcentrum secties">
+      <div class="settings-guide wide" data-setting-scope="owner admin care support ai" aria-label="Praktijkcentrum secties">
         ${guideSections.map((section) => `
           <article class="settings-guide-card ${escapeHtml(section.signal)}" data-setting-scope="${escapeHtml(section.scope)}">
             <div>
@@ -2990,29 +3046,52 @@ function settingsView(state) {
         <button class="primary-action" type="submit">Abonnement opslaan</button>
       </form>
 
-      <div class="panel wide" data-section="saas-cohorts" data-setting-scope="owner">
-        <div class="panel-header"><div><h2>Praktijkenportfolio</h2><p>Overzicht van klantpraktijken, plannen, omzet en opvolgmomenten.</p></div>${badge(`${saasCohortSummary.tenants} praktijken`, saasCohortSummary.atRisk ? "warning" : "success")}</div>
-        <div class="metric-grid compact-metrics">
-          <article class="metric"><span>Maandomzet</span><strong>${formatEuro(saasCohortSummary.totalMrr || 0)}</strong><small>terugkerende omzet</small></article>
-          <article class="metric"><span>Health</span><strong>${escapeHtml(saasCohortSummary.averageHealth || 0)}/100</strong><small>gemiddelde praktijkscore</small></article>
-          <article class="metric"><span>Risico</span><strong>${escapeHtml(saasCohortSummary.atRisk || 0)}</strong><small>praktijk(en) onder opvolging</small></article>
-          <article class="metric"><span>Review</span><strong>${escapeHtml(saasCohortSummary.qbrOpen || 0)}</strong><small>nog te plannen</small></article>
-          <article class="metric"><span>Groei</span><strong>${escapeHtml(saasCohortSummary.expansion || 0)}</strong><small>Scale/Enterprise kansen</small></article>
+      <div class="panel wide portfolio-panel" id="settings-portfolio" data-section="saas-cohorts" data-setting-scope="portfolio">
+        <div class="panel-header"><div><h2>Klantportfolio</h2><p>Stuur verlengingen, gezondheid en opvolgmomenten vanuit één overzicht.</p></div>${badge(`${filteredPortfolioTenants.length} zichtbaar`, portfolioAttention.length ? "warning" : "success")}</div>
+        <div class="portfolio-filter" aria-label="Portfoliofilter">
+          ${portfolioFilters.map((filter) => `
+            <button class="${activePortfolioFilter === filter.value ? "selected" : ""}" data-action="portfolio-filter" data-portfolio-filter="${escapeHtml(filter.value)}" type="button">
+              <span>${escapeHtml(filter.label)}</span>
+              <strong>${escapeHtml(filter.count)}</strong>
+            </button>
+          `).join("")}
         </div>
-        <div class="security-list">
-          ${saasTenantCohorts.map((tenant) => `
-            <article class="security-row">
-              <div>
-                <strong>${escapeHtml(tenant.practiceName)} / ${escapeHtml(tenant.plan)} / ${formatEuro(tenant.mrr || 0)} per maand</strong>
-                <span>${escapeHtml(tenant.segment)} / ${escapeHtml(tenant.region)} / ${escapeHtml(tenant.lifecycleStage)} / eigenaar ${escapeHtml(tenant.owner)}</span>
-                <span>Gezondheid ${escapeHtml(tenant.healthScore)}/100 / risico ${escapeHtml(tenant.risk)} / actief ${escapeHtml(tenant.lastActiveAt)}${tenant.qbrPlannedAt ? ` / review gepland ${escapeHtml(tenant.qbrPlannedAt)} door ${escapeHtml(tenant.qbrPlannedBy || "PraktijkOS")}` : ""}</span>
-              </div>
-              <div class="status-stack">
-                ${badge(tenant.qbrStatus || "Te plannen", tenant.qbrStatus === "Gepland" ? "success" : Number(tenant.healthScore || 0) < 75 ? "danger" : "warning")}
-                ${tenant.qbrStatus !== "Gepland" ? `<button class="ghost-action" data-action="plan-tenant-qbr" data-cohort-id="${escapeHtml(tenant.id)}" type="button">Review plannen</button>` : ""}
-              </div>
-            </article>
-          `).join("") || `<p class="empty-state">Geen praktijkportfolio beschikbaar.</p>`}
+        <div class="portfolio-table">
+          ${filteredPortfolioTenants.map((tenant) => {
+            const healthScore = Number(tenant.healthScore || 0);
+            const healthSignal = healthScore < 70 ? "danger" : healthScore < 80 ? "warning" : "success";
+            return `
+              <article class="portfolio-row">
+                <div class="portfolio-practice">
+                  <strong>${escapeHtml(tenant.practiceName)}</strong>
+                  <span>${escapeHtml(tenant.segment)} · ${escapeHtml(tenant.region)}</span>
+                </div>
+                <div class="portfolio-cell">
+                  <span>Fase</span>
+                  <strong>${escapeHtml(tenant.lifecycleStage)}</strong>
+                  <small>${escapeHtml(tenant.plan)} · ${escapeHtml(tenant.owner)}</small>
+                </div>
+                <div class="portfolio-cell">
+                  <span>Verlenging</span>
+                  <strong>${escapeHtml(tenant.renewalAt || tenant.qbrDueAt || "Te plannen")}</strong>
+                  <small>${escapeHtml(tenant.risk)} · actief ${escapeHtml(tenant.lastActiveAt)}</small>
+                </div>
+                <div class="portfolio-health ${healthSignal}">
+                  <span>Gezondheid</span>
+                  <strong>${escapeHtml(healthScore)}/100</strong>
+                  <div class="health-track" aria-hidden="true"><i style="width: ${Math.min(100, Math.max(0, healthScore))}%"></i></div>
+                </div>
+                <div class="portfolio-revenue">
+                  <span>Maandomzet</span>
+                  <strong>${formatEuro(tenant.mrr || 0)}</strong>
+                </div>
+                <div class="portfolio-action">
+                  ${badge(tenant.qbrStatus || "Te plannen", tenant.qbrStatus === "Gepland" ? "success" : healthSignal)}
+                  ${tenant.qbrStatus !== "Gepland" ? `<button class="ghost-action" data-action="plan-tenant-qbr" data-cohort-id="${escapeHtml(tenant.id)}" type="button">Review plannen</button>` : `<small>${escapeHtml(tenant.qbrPlannedAt || tenant.qbrDueAt || "Gepland")}</small>`}
+                </div>
+              </article>
+            `;
+          }).join("") || `<p class="empty-state">Geen praktijken binnen dit filter.</p>`}
         </div>
       </div>
 
