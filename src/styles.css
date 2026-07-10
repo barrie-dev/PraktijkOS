@@ -1178,6 +1178,114 @@ h2 {
   padding-inline: 12px;
 }
 
+.provisioning-board {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.provisioning-board-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.provisioning-board-header h2 {
+  margin-bottom: 4px;
+  font-size: 21px;
+}
+
+.provisioning-board-header p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.provisioning-flow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.provisioning-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  min-height: 198px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.provisioning-card.warning {
+  border-left-color: var(--warning);
+}
+
+.provisioning-card.danger {
+  border-left-color: var(--danger);
+}
+
+.provisioning-card.success {
+  border-left-color: var(--success);
+}
+
+.provisioning-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.provisioning-card-head > span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.provisioning-card strong {
+  min-width: 0;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.provisioning-card p,
+.provisioning-card small {
+  min-width: 0;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.provisioning-card small {
+  font-weight: 850;
+}
+
+.provisioning-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  gap: 8px;
+  align-self: end;
+  margin-top: 2px;
+}
+
+.provisioning-actions .primary-action,
+.provisioning-actions .ghost-action {
+  min-height: 38px;
+  padding-inline: 12px;
+}
+
 .portfolio-filter {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3483,6 +3591,10 @@ pre {
     grid-template-columns: 1fr;
   }
 
+  .provisioning-actions {
+    grid-template-columns: 1fr;
+  }
+
   .service-filter {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -3716,6 +3828,8 @@ pre {
   .operator-routing,
   .handoff-board-header,
   .handoff-lanes,
+  .provisioning-board-header,
+  .provisioning-flow,
   .service-card,
   .service-routing,
   .settings-guide {
@@ -3823,6 +3937,14 @@ pre {
   }
 
   .handoff-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .provisioning-card {
+    min-height: 0;
+  }
+
+  .provisioning-actions {
     grid-template-columns: 1fr;
   }
 

@@ -2873,6 +2873,81 @@ function settingsView(state) {
           secondaryAction: ""
         }
   ];
+  const requiredProvisioningRoles = ["Praktijkhouder", "Zorgverlener", "Administratie"];
+  const missingProvisioningRoles = requiredProvisioningRoles.filter((role) => !state.team.some((member) => member.role === role));
+  const seatsRemaining = Math.max(0, seatsIncluded - seatsUsed);
+  const pausedEntitlements = saasFeatureEntitlements.filter((item) => item.status !== "Actief");
+  const nextPausedEntitlement = pausedEntitlements[0];
+  const knowledgeReviewItems = (state.knowledgeBase || []).filter((item) =>
+    item.status !== "Actief" || item.nextReviewDue === "Vandaag" || !item.reviewedAt
+  );
+  const modelReviewItems = modelEvaluations.filter((item) => item.score !== "Goedgekeurd");
+  const nextKnowledgeReviewItem = knowledgeReviewItems[0];
+  const provisioningLanes = [
+    {
+      label: "Team",
+      count: seatsUsed > seatsIncluded ? 1 : missingProvisioningRoles.length,
+      title: seatsUsed > seatsIncluded
+        ? "Team zit boven de planlimiet"
+        : missingProvisioningRoles.length
+          ? `${missingProvisioningRoles[0]} nog voorzien`
+          : "Teamruimte is klaar",
+      detail: `${seatsUsed}/${seatsIncluded} plaatsen gebruikt. ${seatsRemaining ? `${seatsRemaining} plaatsen beschikbaar voor extra teamleden.` : "Geen vrije plaatsen binnen dit plan."}`,
+      meta: missingProvisioningRoles.length
+        ? `Nog te voorzien: ${missingProvisioningRoles.join(", ")}`
+        : "Rollenbasis is ingevuld",
+      signal: seatsUsed > seatsIncluded ? "danger" : missingProvisioningRoles.length || seatsRemaining <= 1 ? "warning" : "success",
+      action: `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-team" type="button">Team beheren</button>`,
+      secondaryAction: `<button class="ghost-action" data-action="jump-setting-section" data-section-target="settings-billing" type="button">Planruimte</button>`
+    },
+    nextPausedEntitlement
+      ? {
+          label: "Modules",
+          count: pausedEntitlements.length,
+          title: `${nextPausedEntitlement.feature} activeren`,
+          detail: `${nextPausedEntitlement.plan} / ${nextPausedEntitlement.limitLabel}.`,
+          meta: nextPausedEntitlement.reason || "Module wacht op bevestiging",
+          signal: nextPausedEntitlement.plan && nextPausedEntitlement.plan !== (saasAccount.plan || "Pro") ? "warning" : "danger",
+          action: `<button class="primary-action" data-action="toggle-saas-entitlement" data-entitlement-id="${escapeHtml(nextPausedEntitlement.id)}" data-status="Actief" type="button">Activeer module</button>`,
+          secondaryAction: `<button class="ghost-action" data-action="jump-setting-section" data-section-target="settings-modules" type="button">Modules openen</button>`
+        }
+      : {
+          label: "Modules",
+          count: 0,
+          title: "Modules staan goed",
+          detail: `${activeEntitlements}/${saasFeatureEntitlements.length} modules zijn actief voor deze praktijk.`,
+          meta: "Geen moduleactie",
+          signal: "success",
+          action: `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-modules" type="button">Modules bekijken</button>`,
+          secondaryAction: ""
+        },
+    modelReviewItems.length || nextKnowledgeReviewItem
+      ? {
+          label: "AI-afspraken",
+          count: modelReviewItems.length + knowledgeReviewItems.length,
+          title: modelReviewItems[0] ? `${modelReviewItems[0].modelName} opvolgen` : `${nextKnowledgeReviewItem.title} reviewen`,
+          detail: `${activeKnowledgeRules} actieve kennisregels en ${modelEvaluations.length} modelreviews beschikbaar.`,
+          meta: modelReviewItems[0]
+            ? `${modelReviewItems.length} modelreview${modelReviewItems.length === 1 ? "" : "s"} met aandachtspunt`
+            : `${knowledgeReviewItems.length} kennisregel${knowledgeReviewItems.length === 1 ? "" : "s"} klaar voor review`,
+          signal: modelReviewItems.length ? "warning" : "success",
+          action: nextKnowledgeReviewItem
+            ? `<button class="primary-action" data-action="complete-knowledge-review" data-knowledge-id="${escapeHtml(nextKnowledgeReviewItem.id)}" type="button">Kennisreview afronden</button>`
+            : `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-ai" type="button">Modelreview openen</button>`,
+          secondaryAction: `<button class="ghost-action" data-action="jump-setting-section" data-section-target="settings-ai" type="button">AI-afspraken</button>`
+        }
+      : {
+          label: "AI-afspraken",
+          count: 0,
+          title: "AI-governance is bijgewerkt",
+          detail: `${activeKnowledgeRules} actieve kennisregels en ${modelEvaluations.length} modelreviews zijn vastgelegd.`,
+          meta: "Geen reviewactie",
+          signal: "success",
+          action: `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-ai" type="button">AI-afspraken bekijken</button>`,
+          secondaryAction: ""
+        }
+  ];
+  const provisioningOpenCount = provisioningLanes.reduce((total, lane) => total + Number(lane.count || 0), 0);
   const guideSections = [
     {
       target: "settings-team",
@@ -3021,6 +3096,34 @@ function settingsView(state) {
               <p>${escapeHtml(lane.detail)}</p>
               <small>${escapeHtml(lane.meta)}</small>
               <div class="handoff-actions">
+                ${lane.action}
+                ${lane.secondaryAction}
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+
+      <section class="provisioning-board wide" data-setting-scope="owner admin care ai" aria-label="Inrichtingsflow">
+        <div class="provisioning-board-header">
+          <div>
+            <span class="section-kicker">Inrichtingsflow</span>
+            <h2>Team, modules en AI-afspraken klaarmaken</h2>
+            <p>De volgende stap per configuratiestroom, gekoppeld aan bestaande formulieren en acties.</p>
+          </div>
+          ${badge(provisioningOpenCount ? `${provisioningOpenCount} te doen` : "Klaar", provisioningLanes.some((lane) => lane.signal === "danger") ? "danger" : provisioningLanes.some((lane) => lane.signal === "warning") ? "warning" : "success")}
+        </div>
+        <div class="provisioning-flow">
+          ${provisioningLanes.map((lane) => `
+            <article class="provisioning-card ${escapeHtml(lane.signal)}">
+              <div class="provisioning-card-head">
+                <span>${escapeHtml(lane.label)}</span>
+                ${badge(lane.count ? `${lane.count} open` : "Rustig", lane.signal)}
+              </div>
+              <strong>${escapeHtml(lane.title)}</strong>
+              <p>${escapeHtml(lane.detail)}</p>
+              <small>${escapeHtml(lane.meta)}</small>
+              <div class="provisioning-actions">
                 ${lane.action}
                 ${lane.secondaryAction}
               </div>
@@ -3411,7 +3514,7 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide" data-section="saas-entitlements" data-setting-scope="owner ai">
+      <div class="panel wide" id="settings-modules" data-section="saas-entitlements" data-setting-scope="owner admin ai">
         <div class="panel-header"><div><h2>Modules</h2><p>Welke productmodules actief zijn voor deze praktijk.</p></div>${badge(`${activeEntitlements}/${saasFeatureEntitlements.length} actief`, "success")}</div>
         <div class="security-list">
           ${saasFeatureEntitlements.map((item) => `

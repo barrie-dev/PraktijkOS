@@ -15,6 +15,7 @@ PraktijkOS should feel like a calm operational workspace for Belgian care practi
 
 - Light sidebar with compact navigation.
 - Home screen starts from one clear next action, not competing dashboard blocks.
+- Practice-center setup flows should group team, module and AI decisions into visible next actions before showing detailed tables.
 - White work panels on a pale neutral background.
 - Muted labels and clear operational headings.
 - Status badges with soft semantic color.

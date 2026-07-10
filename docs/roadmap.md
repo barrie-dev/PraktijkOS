@@ -25,6 +25,7 @@
 - SaaS servicelevel queue for customer follow-up, ownership and deadlines
 - SaaS decision handoff board for invoice, contract and activation follow-up
 - Customer-first dashboard console and quieter practice-center support UI
+- SaaS provisioning console for team seats, module activation and AI governance handoffs
 - Guided practice-center sections for team, billing, support and AI settings
 - Role-specific practice-center defaults and section filters
 - Tenant support and escalation queue
@@ -89,7 +90,7 @@
 
 ## Next Product Slice
 
-- Continue SaaS frontend polish across team provisioning, module activation and AI governance handoffs.
+- Continue SaaS frontend polish across Belgian integration readiness and consent handoffs.
 
 ## Phase 4: Belgian Integrations
 
