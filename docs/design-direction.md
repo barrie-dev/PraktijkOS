@@ -14,7 +14,9 @@ PraktijkOS should feel like a calm operational workspace for Belgian care practi
 ## Current UI Direction
 
 - Light sidebar with compact navigation.
+- Home screen starts from one clear next action, not competing dashboard blocks.
 - White work panels on a pale neutral background.
 - Muted labels and clear operational headings.
 - Status badges with soft semantic color.
+- Internal service queues stay behind the support work mode for regular practice users.
 - Responsive horizontal navigation on smaller screens.

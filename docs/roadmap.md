@@ -23,6 +23,8 @@
 - SaaS subscription cockpit for contract, usage, plan and invoice governance
 - SaaS customer portfolio cockpit for health, renewals and review planning
 - SaaS servicelevel queue for customer follow-up, ownership and deadlines
+- SaaS decision handoff board for invoice, contract and activation follow-up
+- Customer-first dashboard console and quieter practice-center support UI
 - Guided practice-center sections for team, billing, support and AI settings
 - Role-specific practice-center defaults and section filters
 - Tenant support and escalation queue
@@ -87,7 +89,7 @@
 
 ## Next Product Slice
 
-- Continue SaaS frontend polish across invoice follow-up, contract decisions and onboarding handoffs.
+- Continue SaaS frontend polish across team provisioning, module activation and AI governance handoffs.
 
 ## Phase 4: Belgian Integrations
 

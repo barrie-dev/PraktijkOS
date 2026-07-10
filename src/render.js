@@ -290,7 +290,7 @@ function shell(state) {
   })).filter((group) => group.items.length);
 
   const account = state.practice?.saasAccount || {};
-  const connectionLabel = state.apiStatus === "connected" ? "Opgeslagen" : "Lokaal bewaard";
+  const connectionLabel = state.apiStatus === "connected" ? "Wijzigingen bewaard" : "Conceptmodus";
   const connectionSignal = state.apiStatus === "connected" ? "success" : "warning";
 
   return `
@@ -602,59 +602,39 @@ function dashboardView(state) {
     { label: "Te innen", value: formatEuro(openAmount), detail: `${state.invoices.length} betalingen` },
     { label: "Dagafsluiting", value: `${dayCloseDone}/${dayCloseItems.length}`, detail: "checks klaar" }
   ];
+  const daySignalLabel = attentionCount
+    ? `${attentionCount} aandachtspunt${attentionCount === 1 ? "" : "en"}`
+    : "Dag loopt rustig";
 
   return `
-    <section class="dashboard-hero">
-      <div>
-        <p class="eyebrow">Werkdag cockpit</p>
-        <h2>${nextAppointment ? `Volgende afspraak om ${escapeHtml(nextAppointment.time)}` : "Geen afspraken meer gepland"}</h2>
-        <p>${nextAppointment ? `${escapeHtml(nextAppointment.client)} / ${escapeHtml(nextAppointment.type)} bij ${escapeHtml(nextAppointment.clinician)}.` : "Gebruik de vrijgekomen ruimte voor dossiers, facturatie of teamopvolging."}</p>
-        <div class="hero-actions">
-          ${nextAppointment ? `<button class="primary-action" data-action="open-client" data-client-id="${escapeHtml(nextAppointment.clientId)}" type="button">Open dossier</button>` : ""}
-          ${priorityTask ? `<button class="ghost-action" data-action="navigate" data-view="work" type="button">Bekijk prioriteit</button>` : ""}
-          ${can(state, "scheduling") ? `<button class="ghost-action" data-action="new-appointment" type="button">Plan afspraak</button>` : ""}
-        </div>
-      </div>
-      <div class="today-focus">
-        <article>
-          <span>Aandacht</span>
-          <strong>${escapeHtml(attentionCount)}</strong>
-          <small>${attentionCount ? "signalen vandaag" : "geen kritieke signalen"}</small>
-        </article>
-        <article>
-          <span>Werk</span>
-          <strong>${escapeHtml(openTasks.length)}</strong>
-          <small>${priorityTask ? escapeHtml(priorityTask.label) : "alles bijgewerkt"}</small>
-        </article>
-        <article>
-          <span>Dagafsluiting</span>
-          <strong>${escapeHtml(dayCloseDone)}/${escapeHtml(dayCloseItems.length)}</strong>
-          <small>checks afgerond</small>
-        </article>
-      </div>
-    </section>
-
-    <section class="daily-workbench">
-      <div class="workbench-primary">
+    <section class="home-console">
+      <div class="home-primary">
         <span class="section-kicker">Nu eerst</span>
         <h2>${escapeHtml(dailyFocusTitle)}</h2>
         <p>${escapeHtml(dailyFocusDetail)}</p>
-        <div class="hero-actions">
+        <div class="home-actions">
           ${workbenchActions.slice(0, 3).map((item) => `
             <button class="${item.tone === "primary" ? "primary-action" : "ghost-action"}" data-action="${escapeHtml(item.action)}" ${item.view ? `data-view="${escapeHtml(item.view)}"` : ""} ${item.clientId ? `data-client-id="${escapeHtml(item.clientId)}"` : ""} type="button">${escapeHtml(item.label)}</button>
           `).join("")}
         </div>
       </div>
-      <div class="workbench-action-list" aria-label="Snelle acties">
+      <div class="home-today">
+        <div class="home-today-header">
+          <span class="section-kicker">Vandaag</span>
+          <strong>${escapeHtml(daySignalLabel)}</strong>
+        </div>
+        <div class="home-metrics">
+          ${dailyStatus.map((item) => `<article><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong><small>${escapeHtml(item.detail)}</small></article>`).join("")}
+        </div>
+      </div>
+      <div class="home-quick" aria-label="Snelle acties">
+        <span class="section-kicker">Snel openen</span>
         ${workbenchActions.slice(3).map((item) => `
           <button class="quick-action compact" data-action="${escapeHtml(item.action)}" ${item.view ? `data-view="${escapeHtml(item.view)}"` : ""} ${item.clientId ? `data-client-id="${escapeHtml(item.clientId)}"` : ""} type="button">
-            <span>Actie</span><strong>${escapeHtml(item.label)}</strong><small>Direct openen</small>
+            <span>Werkplek</span><strong>${escapeHtml(item.label)}</strong><small>Direct openen</small>
           </button>
         `).join("")}
         ${can(state, "scheduling") ? `<button class="quick-action compact" data-action="navigate" data-view="waiting" type="button"><span>Planning</span><strong>Wachtlijst</strong><small>Vrije plaats zoeken</small></button>` : ""}
-      </div>
-      <div class="workbench-metrics">
-        ${dailyStatus.map((item) => `<article><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong><small>${escapeHtml(item.detail)}</small></article>`).join("")}
       </div>
     </section>
     ${roleHome(state, openTasks, pendingIntakes, noShowCount)}
@@ -2797,6 +2777,7 @@ function settingsView(state) {
   const supportTicketLabel = openSupportTickets.length === 1 ? "1 open vraag" : `${openSupportTickets.length} open vragen`;
   const milestoneLabel = openImplementationMilestones === 1 ? "1 mijlpaal open" : `${openImplementationMilestones} mijlpalen open`;
   const openOnboardingSteps = saasOnboardingChecklist.filter((item) => item.status !== "Klaar");
+  const openImplementationMilestoneItems = saasImplementationMilestones.filter((item) => item.status !== "Klaar");
   const nextOnboardingStep = openOnboardingSteps[0];
   const escalatedSupportTickets = openSupportTickets.filter((ticket) => ticket.status === "Geescaleerd");
   const nextSupportTicket = escalatedSupportTickets[0] || openSupportTickets[0];
@@ -2813,6 +2794,85 @@ function settingsView(state) {
     : nextOnboardingStep
       ? `${nextOnboardingStep.owner} / deadline ${nextOnboardingStep.dueAt || "niet gepland"}`
       : "Onboarding, livegang en support zijn opgevolgd.";
+  const nextInvoiceHandoff = openSaasInvoices[0];
+  const nextContractHandoff = shareableContract || pendingLifecycleRequests[0] || pendingPlanChanges[0];
+  const nextActivationHandoff = nextOnboardingStep || openImplementationMilestoneItems[0];
+  const nextActivationHandoffKind = nextOnboardingStep ? "onboarding" : nextActivationHandoff ? "milestone" : "";
+  const handoffLanes = [
+    nextInvoiceHandoff
+      ? {
+          label: "Betaling",
+          count: openSaasInvoices.length,
+          title: `${nextInvoiceHandoff.period} opvolgen`,
+          detail: `${formatEuro(nextInvoiceHandoff.amount)} vervalt op ${nextInvoiceHandoff.dueAt || "een nog te plannen datum"}.`,
+          meta: nextInvoiceHandoff.paymentHandoff?.status
+            ? `Betaallink ${nextInvoiceHandoff.paymentHandoff.status}`
+            : "Betaallink nog te maken",
+          signal: nextInvoiceHandoff.status === "Opvolging" ? "danger" : "warning",
+          action: nextInvoiceHandoff.paymentHandoff?.status === "Klaar om te delen"
+            ? `<button class="primary-action" data-action="remind-saas-invoice" data-invoice-id="${escapeHtml(nextInvoiceHandoff.id)}" type="button">Opvolging klaarzetten</button>`
+            : `<button class="primary-action" data-action="prepare-saas-payment" data-invoice-id="${escapeHtml(nextInvoiceHandoff.id)}" type="button">Betaallink maken</button>`,
+          secondaryAction: `<button class="ghost-action" data-action="jump-setting-section" data-section-target="settings-invoices" type="button">Facturen openen</button>`
+        }
+      : {
+          label: "Betaling",
+          count: 0,
+          title: "Betalingen zijn bijgewerkt",
+          detail: "Er staat geen abonnementsfactuur open voor deze praktijk.",
+          meta: "Geen betaalactie",
+          signal: "success",
+          action: `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-invoices" type="button">Facturen bekijken</button>`,
+          secondaryAction: ""
+        },
+    nextContractHandoff
+      ? {
+          label: "Contract",
+          count: pendingContractDocuments.length + pendingLifecycleRequests.length + pendingPlanChanges.length,
+          title: nextContractHandoff.title || `${nextContractHandoff.requestType || "Planwijziging"} beoordelen`,
+          detail: nextContractHandoff.version
+            ? `Versie ${nextContractHandoff.version} is klaar voor ${nextContractHandoff.owner || "Klantopvolging"}.`
+            : `${nextContractHandoff.requestedPlan || nextContractHandoff.currentPlan || saasAccount.plan || "Plan"} wacht op bevestiging vanaf ${nextContractHandoff.effectiveAt || "de volgende periode"}.`,
+          meta: nextContractHandoff.status || "In review",
+          signal: nextContractHandoff.status === "Concept" ? "warning" : "danger",
+          action: nextContractHandoff.version
+            ? `<button class="primary-action" data-action="share-saas-contract" data-document-id="${escapeHtml(nextContractHandoff.id)}" type="button">Contract delen</button>`
+            : `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-lifecycle" type="button">Beslissing openen</button>`,
+          secondaryAction: `<button class="ghost-action" data-action="jump-setting-section" data-section-target="settings-contracts" type="button">Contractmap</button>`
+        }
+      : {
+          label: "Contract",
+          count: 0,
+          title: "Contractmap is rustig",
+          detail: "Er wacht geen verlenging, opzegging of documentdeling.",
+          meta: "Geen beslissing",
+          signal: "success",
+          action: `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-contracts" type="button">Contractmap bekijken</button>`,
+          secondaryAction: ""
+        },
+    nextActivationHandoff
+      ? {
+          label: "Activatie",
+          count: openOnboardingSteps.length + openImplementationMilestoneItems.length,
+          title: nextActivationHandoff.label || `${nextActivationHandoff.phase} afronden`,
+          detail: `${nextActivationHandoff.owner || "Klantopvolging"} / deadline ${nextActivationHandoff.dueAt || "niet gepland"}.`,
+          meta: nextActivationHandoff.status || "Open",
+          signal: nextActivationHandoff.priority === "Hoog" ? "danger" : "warning",
+          action: nextActivationHandoffKind === "onboarding"
+            ? `<button class="primary-action" data-action="complete-saas-onboarding" data-item-id="${escapeHtml(nextActivationHandoff.id)}" type="button">Stap afronden</button>`
+            : `<button class="primary-action" data-action="complete-saas-implementation" data-milestone-id="${escapeHtml(nextActivationHandoff.id)}" type="button">Mijlpaal afronden</button>`,
+          secondaryAction: `<button class="ghost-action" data-action="jump-setting-section" data-section-target="settings-onboarding" type="button">Onboarding openen</button>`
+        }
+      : {
+          label: "Activatie",
+          count: 0,
+          title: "Activatie is rond",
+          detail: "Onboarding en livegang vragen geen overdracht.",
+          meta: "Klaar",
+          signal: "success",
+          action: `<button class="primary-action" data-action="jump-setting-section" data-section-target="settings-onboarding" type="button">Onboarding bekijken</button>`,
+          secondaryAction: ""
+        }
+  ];
   const guideSections = [
     {
       target: "settings-team",
@@ -2941,6 +3001,34 @@ function settingsView(state) {
         </button>
       </nav>
 
+      <section class="handoff-board wide" data-setting-scope="owner admin support" aria-label="Beslissingsbord">
+        <div class="handoff-board-header">
+          <div>
+            <span class="section-kicker">Beslissingsbord</span>
+            <h2>Wat moet nu worden overgedragen?</h2>
+            <p>Betaling, contract en activatie met de eerstvolgende actie per werkstroom.</p>
+          </div>
+          ${badge(`${handoffLanes.reduce((total, lane) => total + Number(lane.count || 0), 0)} open`, handoffLanes.some((lane) => lane.signal === "danger") ? "danger" : handoffLanes.some((lane) => lane.signal === "warning") ? "warning" : "success")}
+        </div>
+        <div class="handoff-lanes">
+          ${handoffLanes.map((lane) => `
+            <article class="handoff-card ${escapeHtml(lane.signal)}">
+              <div class="handoff-card-top">
+                <span>${escapeHtml(lane.label)}</span>
+                ${badge(lane.count ? `${lane.count} open` : "Rustig", lane.signal)}
+              </div>
+              <strong>${escapeHtml(lane.title)}</strong>
+              <p>${escapeHtml(lane.detail)}</p>
+              <small>${escapeHtml(lane.meta)}</small>
+              <div class="handoff-actions">
+                ${lane.action}
+                ${lane.secondaryAction}
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+
       <div class="settings-overview wide" data-setting-scope="owner admin care support ai">
         ${usageSummary.map((item) => `
           <article>
@@ -3014,9 +3102,9 @@ function settingsView(state) {
         </article>
       </div>
 
-      <div class="workflow-hero service-hero wide" data-setting-scope="owner admin support">
+      <div class="workflow-hero service-hero wide" data-setting-scope="support">
         <div>
-          <p class="eyebrow">Klantopvolging vandaag</p>
+          <p class="eyebrow">Support vandaag</p>
           <h2>${nextServiceAction ? escapeHtml(nextServiceAction.title) : "Geen open klantactie"}</h2>
           <p>${nextServiceAction ? escapeHtml(nextServiceAction.detail) : "Alle servicelevels, supportvragen en contractopvolging zijn afgehandeld."}</p>
           <div class="hero-actions">
@@ -3033,9 +3121,9 @@ function settingsView(state) {
         </div>
       </div>
 
-      <div class="panel wide service-queue-panel" data-section="saas-operator-notifications" data-setting-scope="owner admin support">
+      <div class="panel wide service-queue-panel" data-section="saas-operator-notifications" data-setting-scope="support">
         <div class="panel-header">
-          <div><span class="section-kicker">Servicelevel-queue</span><h2>Klantacties die opvolging vragen</h2><p>Filter op werkstroom, wijs de juiste eigenaar toe en sluit acties meteen af.</p></div>
+          <div><span class="section-kicker">Klantvragen</span><h2>Vragen die opvolging vragen</h2><p>Filter op werkstroom, kies een eigenaar en sluit acties meteen af.</p></div>
           ${badge(openOperatorNotifications.length ? `${openOperatorNotifications.length} open` : "Alles afgehandeld", highOperatorNotifications.length ? "danger" : openOperatorNotifications.length ? "warning" : "success")}
         </div>
         <div class="service-filter" aria-label="Klantopvolging filter">

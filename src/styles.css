@@ -724,6 +724,107 @@ h2 {
   margin-bottom: 14px;
 }
 
+.home-console {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.35fr) minmax(280px, 0.8fr) minmax(220px, 0.55fr);
+  gap: 14px;
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+
+.home-primary,
+.home-today,
+.home-quick {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.home-primary {
+  display: grid;
+  gap: 18px;
+  align-content: space-between;
+  padding: 20px;
+  border-left: 4px solid var(--brand);
+}
+
+.home-primary h2 {
+  max-width: 780px;
+  margin-bottom: 7px;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.home-primary p {
+  max-width: 760px;
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.home-today,
+.home-quick {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 16px;
+}
+
+.home-today-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.home-today-header strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.home-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-metrics article {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.home-metrics span,
+.home-metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.home-metrics strong {
+  display: block;
+  margin: 5px 0 2px;
+  font-size: 22px;
+  line-height: 1.08;
+}
+
+.home-quick .quick-action {
+  background: var(--surface-soft);
+}
+
 .daily-workbench {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(220px, 0.55fr) minmax(360px, 0.9fr);
@@ -967,6 +1068,114 @@ h2 {
   text-overflow: ellipsis;
   font-size: 13px;
   white-space: nowrap;
+}
+
+.handoff-board {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.handoff-board-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.handoff-board-header h2 {
+  margin-bottom: 4px;
+  font-size: 21px;
+}
+
+.handoff-board-header p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.handoff-lanes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.handoff-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  min-height: 210px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.handoff-card.warning {
+  border-top-color: var(--warning);
+}
+
+.handoff-card.danger {
+  border-top-color: var(--danger);
+}
+
+.handoff-card.success {
+  border-top-color: var(--success);
+}
+
+.handoff-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.handoff-card-top > span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.handoff-card strong {
+  min-width: 0;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.handoff-card p,
+.handoff-card small {
+  min-width: 0;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.handoff-card small {
+  font-weight: 850;
+}
+
+.handoff-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  gap: 8px;
+  align-self: end;
+  margin-top: 2px;
+}
+
+.handoff-actions .primary-action,
+.handoff-actions .ghost-action {
+  min-height: 38px;
+  padding-inline: 12px;
 }
 
 .portfolio-filter {
@@ -3233,6 +3442,8 @@ pre {
   .app-shell,
   .metric-grid,
   .quick-actions,
+  .home-console,
+  .home-metrics,
   .daily-workbench,
   .workbench-metrics,
   .workflow-hero,
@@ -3266,6 +3477,10 @@ pre {
 
   .settings-filter-options {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .handoff-actions {
+    grid-template-columns: 1fr;
   }
 
   .service-filter {
@@ -3499,6 +3714,8 @@ pre {
   .operator-summary,
   .operator-notification,
   .operator-routing,
+  .handoff-board-header,
+  .handoff-lanes,
   .service-card,
   .service-routing,
   .settings-guide {
@@ -3530,6 +3747,7 @@ pre {
   .schedule-board,
   .agenda-row,
   .quick-actions,
+  .home-console,
   .insight-grid,
   .forecast-grid,
   .invoice-row,
@@ -3540,6 +3758,7 @@ pre {
   .task-item.rich-task,
   .waitlist-item,
   .daily-workbench,
+  .home-metrics,
   .workbench-metrics,
   .workflow-hero,
   .workflow-metrics,
@@ -3570,9 +3789,21 @@ pre {
   .workflow-metrics,
   .hero-metrics,
   .client-hero-metrics,
+  .home-metrics,
   .workbench-metrics,
   .settings-overview {
     grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  }
+
+  .home-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .home-primary,
+  .home-today,
+  .home-quick {
+    padding: 14px;
   }
 
   .governance-tabs {
@@ -3585,6 +3816,14 @@ pre {
 
   .portfolio-filter {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .handoff-card {
+    min-height: 0;
+  }
+
+  .handoff-actions {
+    grid-template-columns: 1fr;
   }
 
   .service-filter {
